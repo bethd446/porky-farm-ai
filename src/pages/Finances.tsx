@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { Transaction } from '@/types/database';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { formatCurrencyFull } from '@/lib/formatters';
 
 const COLORS = ['hsl(142, 71%, 45%)', 'hsl(340, 82%, 52%)', 'hsl(38, 92%, 50%)', 'hsl(217, 91%, 60%)', 'hsl(215, 16%, 47%)'];
 
@@ -48,43 +49,56 @@ export default function Finances() {
     fetchTransactions();
   }, [user]);
 
-  // Calculate totals
-  const income = transactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
+  // Calculate totals avec useMemo pour optimiser
+  const income = useMemo(() => 
+    transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0),
+    [transactions]
+  );
 
-  const expenses = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
+  const expenses = useMemo(() =>
+    transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0),
+    [transactions]
+  );
 
-  const balance = income - expenses;
+  const balance = useMemo(() => income - expenses, [income, expenses]);
 
   // Group expenses by category
-  const expensesByCategory = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
+  const expensesByCategory = useMemo(() =>
+    transactions
+      .filter(t => t.type === 'expense')
+      .reduce((acc, t) => {
+        acc[t.category] = (acc[t.category] || 0) + t.amount;
+        return acc;
+      }, {} as Record<string, number>),
+    [transactions]
+  );
 
-  const pieData = Object.entries(expensesByCategory).map(([name, value]) => ({
-    name,
-    value,
-  }));
+  const pieData = useMemo(() =>
+    Object.entries(expensesByCategory).map(([name, value]) => ({
+      name,
+      value,
+    })),
+    [expensesByCategory]
+  );
 
-  // Mock monthly data
-  const monthlyData = [
+  // Mock monthly data (sera remplacé par des données réelles)
+  const monthlyData = useMemo(() => [
     { month: 'Jan', revenus: 1800000, depenses: 650000 },
     { month: 'Fév', revenus: 2100000, depenses: 720000 },
     { month: 'Mar', revenus: 1950000, depenses: 680000 },
     { month: 'Avr', revenus: 2400000, depenses: 850000 },
     { month: 'Mai', revenus: 2200000, depenses: 780000 },
     { month: 'Juin', revenus: 2600000, depenses: 900000 },
-  ];
+  ], []);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('fr-FR').format(value);
-  };
+  // Utiliser la fonction formatCurrencyFull du module formatters
+  const formatCurrency = useCallback((value: number) => {
+    return formatCurrencyFull(value);
+  }, []);
 
   return (
     <div className="content-area space-y-6">

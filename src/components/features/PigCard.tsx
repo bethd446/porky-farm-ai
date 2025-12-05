@@ -1,9 +1,11 @@
+import { memo, useMemo } from 'react';
 import { Pig } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { LazyImage } from '@/components/ui/lazy-image';
 
 interface PigCardProps {
   pig: Pig;
@@ -17,12 +19,23 @@ const statusLabels = {
   breeding: { label: 'Reproduction', variant: 'outline' as const },
 };
 
-export function PigCard({ pig, onClick }: PigCardProps) {
-  const currentWeight = pig.weight_history?.length > 0 
-    ? pig.weight_history[pig.weight_history.length - 1].weight 
-    : null;
+/**
+ * Composant de carte pour afficher un porc
+ * Optimisé avec React.memo pour éviter les re-renders inutiles
+ */
+export const PigCard = memo(function PigCard({ pig, onClick }: PigCardProps) {
+  const currentWeight = useMemo(() => {
+    return pig.weight_history?.length > 0 
+      ? pig.weight_history[pig.weight_history.length - 1].weight 
+      : null;
+  }, [pig.weight_history]);
 
-  const status = statusLabels[pig.status];
+  const status = useMemo(() => statusLabels[pig.status], [pig.status]);
+
+  const formattedBirthDate = useMemo(() => {
+    if (!pig.birth_date) return null;
+    return format(new Date(pig.birth_date), 'd MMM yyyy', { locale: fr });
+  }, [pig.birth_date]);
 
   return (
     <Card 
@@ -34,10 +47,11 @@ export function PigCard({ pig, onClick }: PigCardProps) {
     >
       <div className="aspect-square relative bg-muted">
         {pig.photo_url ? (
-          <img 
+          <LazyImage 
             src={pig.photo_url} 
             alt={`Porc ${pig.tag_number}`}
-            className="w-full h-full object-cover"
+            fallback="🐷"
+            className="w-full h-full"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-6xl">
@@ -58,8 +72,8 @@ export function PigCard({ pig, onClick }: PigCardProps) {
         </div>
         <div className="space-y-1 text-sm text-muted-foreground">
           {pig.breed && <p>{pig.breed}</p>}
-          {pig.birth_date && (
-            <p>Né le {format(new Date(pig.birth_date), 'd MMM yyyy', { locale: fr })}</p>
+          {formattedBirthDate && (
+            <p>Né le {formattedBirthDate}</p>
           )}
           {currentWeight && (
             <p className="font-medium text-foreground">{currentWeight} kg</p>
@@ -68,4 +82,14 @@ export function PigCard({ pig, onClick }: PigCardProps) {
       </CardContent>
     </Card>
   );
-}
+}, (prevProps, nextProps) => {
+  // Comparaison personnalisée pour éviter les re-renders inutiles
+  return (
+    prevProps.pig.id === nextProps.pig.id &&
+    prevProps.pig.tag_number === nextProps.pig.tag_number &&
+    prevProps.pig.status === nextProps.pig.status &&
+    prevProps.pig.photo_url === nextProps.pig.photo_url &&
+    JSON.stringify(prevProps.pig.weight_history) === JSON.stringify(nextProps.pig.weight_history) &&
+    prevProps.onClick === nextProps.onClick
+  );
+});

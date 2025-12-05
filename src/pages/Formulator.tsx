@@ -21,6 +21,10 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Json } from '@/integrations/supabase/types';
+import { formulationSchema } from '@/lib/validation';
+import { ERROR_MESSAGES, formatError } from '@/lib/error-messages';
+import { Skeleton } from '@/components/ui/skeleton';
+import { rateLimiter } from '@/lib/rate-limit';
 
 export default function Formulator() {
   const { user, profile } = useAuth();
@@ -45,13 +49,29 @@ export default function Formulator() {
   const isLimitReached = remainingFormulations === 0 && profile?.subscription_tier === 'free';
 
   const handleGenerate = async () => {
-    if (!formData.pigCategory || !formData.targetWeight) {
-      toast.error('Veuillez remplir les champs obligatoires');
+    // Rate limiting
+    if (!rateLimiter.isAllowed('formulation-generate')) {
+      toast.error(ERROR_MESSAGES.API_RATE_LIMIT);
+      return;
+    }
+
+    // Validation avec Zod
+    const validationResult = formulationSchema.safeParse({
+      name: formData.name,
+      pigCategory: formData.pigCategory,
+      targetWeight: formData.targetWeight,
+      budget: formData.budget,
+      availableIngredients: formData.availableIngredients,
+    });
+
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0];
+      toast.error(firstError?.message || ERROR_MESSAGES.VALIDATION_ERROR);
       return;
     }
 
     if (isLimitReached) {
-      toast.error('Limite de formulations atteinte. Passez en Premium pour continuer.');
+      toast.error(ERROR_MESSAGES.FORMULATION_LIMIT_REACHED);
       return;
     }
 
@@ -70,11 +90,16 @@ export default function Formulator() {
 
       if (error) throw error;
 
+      if (!data || !data.ingredients || !data.nutritionalValues) {
+        throw new Error('Réponse invalide du serveur');
+      }
+
       setResult(data);
       toast.success('Formulation générée avec succès !');
     } catch (error: any) {
       console.error('Error generating formulation:', error);
-      toast.error(error.message || 'Erreur lors de la génération');
+      const errorMessage = error?.message || ERROR_MESSAGES.FORMULATION_GENERATE_ERROR;
+      toast.error(formatError(ERROR_MESSAGES.FORMULATION_GENERATE_ERROR, errorMessage));
     } finally {
       setLoading(false);
     }
@@ -95,10 +120,10 @@ export default function Formulator() {
 
       if (error) throw error;
 
-      toast.success('Formulation sauvegardée !');
+      toast.success('Formulation sauvegardée avec succès !');
     } catch (error: any) {
       console.error('Error saving formulation:', error);
-      toast.error('Erreur lors de la sauvegarde');
+      toast.error(formatError(ERROR_MESSAGES.FORMULATION_SAVE_ERROR, error?.message));
     }
   };
 
@@ -239,6 +264,11 @@ export default function Formulator() {
                     <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
                     <p className="text-muted-foreground">Optimisation en cours...</p>
                   </div>
+                </div>
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
                 </div>
               </div>
             ) : result ? (

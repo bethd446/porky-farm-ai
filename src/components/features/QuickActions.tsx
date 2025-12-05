@@ -1,5 +1,7 @@
+import { memo, useCallback } from 'react';
 import { Plus, Beaker, ShoppingCart, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { hapticLight } from '@/lib/haptic-feedback';
 
 const actions = [
   { 
@@ -26,10 +28,19 @@ const actions = [
     color: 'bg-warning-light text-warning-foreground',
     path: '/calendar'
   },
-];
+] as const;
 
-export function QuickActions() {
+/**
+ * Composant d'actions rapides pour le dashboard
+ * Optimisé avec React.memo pour éviter les re-renders inutiles
+ */
+export const QuickActions = memo(function QuickActions() {
   const navigate = useNavigate();
+
+  const handleAction = useCallback((path: string) => {
+    hapticLight();
+    navigate(path);
+  }, [navigate]);
 
   return (
     <div className="stat-card">
@@ -38,8 +49,8 @@ export function QuickActions() {
         {actions.map((action) => (
           <button
             key={action.label}
-            onClick={() => navigate(action.path)}
-            className="quick-action hover:bg-muted/50 rounded-xl"
+            onClick={() => handleAction(action.path)}
+            className="quick-action hover:bg-muted/50 rounded-xl interactive min-h-[44px]"
           >
             <div className={`quick-action-icon ${action.color}`}>
               <action.icon className="h-6 w-6" />
@@ -50,4 +61,4 @@ export function QuickActions() {
       </div>
     </div>
   );
-}
+});

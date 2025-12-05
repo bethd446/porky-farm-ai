@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { TrendingUp, TrendingDown, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,12 +28,27 @@ const variantStyles = {
     icon: 'bg-info-light text-info-foreground',
     trend: 'text-info',
   },
-};
+} as const;
 
-export function StatCard({ title, value, change, icon: Icon, variant, suffix }: StatCardProps) {
-  const styles = variantStyles[variant];
-  const isPositive = change && change > 0;
-  const isNegative = change && change < 0;
+/**
+ * Composant de carte statistique
+ * Optimisé avec React.memo pour éviter les re-renders inutiles
+ */
+export const StatCard = memo(function StatCard({ 
+  title, 
+  value, 
+  change, 
+  icon: Icon, 
+  variant, 
+  suffix 
+}: StatCardProps) {
+  const styles = useMemo(() => variantStyles[variant], [variant]);
+  const isPositive = useMemo(() => change && change > 0, [change]);
+  const isNegative = useMemo(() => change && change < 0, [change]);
+
+  const formattedValue = useMemo(() => {
+    return typeof value === 'number' ? value.toLocaleString('fr-FR') : value;
+  }, [value]);
 
   return (
     <div className="stat-card animate-fade-in">
@@ -40,7 +56,7 @@ export function StatCard({ title, value, change, icon: Icon, variant, suffix }: 
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">{title}</p>
           <p className="text-2xl md:text-3xl font-display font-bold text-foreground">
-            {typeof value === 'number' ? value.toLocaleString('fr-FR') : value}
+            {formattedValue}
             {suffix && <span className="text-lg font-normal text-muted-foreground ml-1">{suffix}</span>}
           </p>
         </div>
@@ -65,4 +81,4 @@ export function StatCard({ title, value, change, icon: Icon, variant, suffix }: 
       )}
     </div>
   );
-}
+});

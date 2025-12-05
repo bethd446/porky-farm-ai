@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Pig, PigStatus, PigSex, WeightRecord } from '@/types/database';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
+import { debounce } from '@/lib/rate-limit';
 
 interface UsepigsOptions {
   status?: PigStatus;
@@ -32,7 +33,7 @@ export function usePigs(options: UsepigsOptions = {}) {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  const fetchPigs = async () => {
+  const fetchPigs = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -80,9 +81,15 @@ export function usePigs(options: UsepigsOptions = {}) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, options.status, options.search]);
 
-  const addPig = async (pigData: Partial<Pig>) => {
+  // Debounced search pour optimiser les requêtes
+  const debouncedFetchPigs = useMemo(
+    () => debounce(fetchPigs, options.search ? 300 : 0),
+    [fetchPigs, options.search]
+  );
+
+  const addPig = useCallback(async (pigData: Partial<Pig>) => {
     if (!user) return { error: new Error('Non authentifié') };
 
     try {
@@ -114,16 +121,15 @@ export function usePigs(options: UsepigsOptions = {}) {
       };
 
       setPigs(prev => [newPig, ...prev]);
-      toast.success('Porc ajouté avec succès');
       return { data: newPig, error: null };
     } catch (error: unknown) {
       console.error('Error adding pig:', error);
-      toast.error("Erreur lors de l'ajout du porc");
+      toast.error('Erreur lors de l\'ajout du porc');
       return { data: null, error: error as Error };
     }
-  };
+  }, [user]);
 
-  const updatePig = async (id: string, updates: Partial<Pig>) => {
+  const updatePig = useCallback(async (id: string, updates: Partial<Pig>) => {
     try {
       const updateData: Record<string, unknown> = {};
       if (updates.tag_number !== undefined) updateData.tag_number = updates.tag_number;
@@ -152,16 +158,16 @@ export function usePigs(options: UsepigsOptions = {}) {
       };
 
       setPigs(prev => prev.map(p => p.id === id ? updatedPig : p));
-      toast.success('Porc mis à jour');
+      toast.success('Porc mis à jour avec succès');
       return { data: updatedPig, error: null };
     } catch (error: unknown) {
       console.error('Error updating pig:', error);
-      toast.error('Erreur lors de la mise à jour');
+      toast.error('Erreur lors de la mise à jour du porc');
       return { data: null, error: error as Error };
     }
-  };
+  }, []);
 
-  const deletePig = async (id: string) => {
+  const deletePig = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
         .from('pigs')
@@ -171,18 +177,22 @@ export function usePigs(options: UsepigsOptions = {}) {
       if (error) throw error;
 
       setPigs(prev => prev.filter(p => p.id !== id));
-      toast.success('Porc supprimé');
+      toast.success('Porc supprimé avec succès');
       return { error: null };
     } catch (error: unknown) {
       console.error('Error deleting pig:', error);
-      toast.error('Erreur lors de la suppression');
+      toast.error('Erreur lors de la suppression du porc');
       return { error: error as Error };
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchPigs();
-  }, [user, options.status, options.search]);
+    if (options.search) {
+      debouncedFetchPigs();
+    } else {
+      fetchPigs();
+    }
+  }, [user, options.status, options.search, fetchPigs, debouncedFetchPigs]);
 
   return {
     pigs,

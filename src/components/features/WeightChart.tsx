@@ -1,10 +1,15 @@
+import { memo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface WeightChartProps {
   data: { month: string; weight: number }[];
 }
 
-export function WeightChart({ data }: WeightChartProps) {
+/**
+ * Composant de graphique d'évolution du poids
+ * Optimisé avec React.memo pour éviter les re-renders inutiles
+ */
+export const WeightChart = memo(function WeightChart({ data }: WeightChartProps) {
   return (
     <div className="stat-card">
       <h3 className="text-lg font-semibold text-foreground mb-4">Évolution du poids moyen</h3>
@@ -43,4 +48,4 @@ export function WeightChart({ data }: WeightChartProps) {
       </div>
     </div>
   );
-}
+});

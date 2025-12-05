@@ -1,3 +1,4 @@
+import { memo, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ChevronRight } from 'lucide-react';
@@ -5,18 +6,30 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Event } from '@/types/database';
 import { EVENT_TYPES } from '@/lib/constants';
+import { hapticLight } from '@/lib/haptic-feedback';
 
 interface UpcomingEventsProps {
   events: Event[];
 }
 
-export function UpcomingEvents({ events }: UpcomingEventsProps) {
+/**
+ * Composant d'affichage des événements à venir
+ * Optimisé avec React.memo pour éviter les re-renders inutiles
+ */
+export const UpcomingEvents = memo(function UpcomingEvents({ events }: UpcomingEventsProps) {
   const navigate = useNavigate();
 
-  const getEventIcon = (type: string) => {
+  const getEventIcon = useCallback((type: string) => {
     const eventType = EVENT_TYPES.find(e => e.value === type);
     return eventType?.icon || '📝';
-  };
+  }, []);
+
+  const handleViewAll = useCallback(() => {
+    hapticLight();
+    navigate('/calendar');
+  }, [navigate]);
+
+  const displayedEvents = useMemo(() => events.slice(0, 3), [events]);
 
   return (
     <div className="stat-card">
@@ -25,8 +38,8 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={() => navigate('/calendar')}
-          className="text-muted-foreground hover:text-foreground"
+          onClick={handleViewAll}
+          className="text-muted-foreground hover:text-foreground min-h-[44px]"
         >
           Voir tout
           <ChevronRight className="h-4 w-4 ml-1" />
@@ -34,12 +47,12 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
       </div>
 
       <div className="space-y-3">
-        {events.length === 0 ? (
+        {displayedEvents.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
             Aucun événement à venir
           </p>
         ) : (
-          events.slice(0, 3).map((event) => {
+          displayedEvents.map((event) => {
             const eventDate = new Date(event.event_date);
             return (
               <div 
@@ -72,4 +85,4 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
       </div>
     </div>
   );
-}
+});

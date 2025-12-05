@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Filter, Loader2 } from 'lucide-react';
+import { Plus, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PigCard } from '@/components/features/PigCard';
@@ -14,28 +14,40 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PigStatus } from '@/types/database';
+import { PigCardSkeletonGrid } from '@/components/ui/skeleton-card';
+import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
+import { hapticMedium } from '@/lib/haptic-feedback';
 
+/**
+ * Page Liste des Porcs
+ * Affiche tous les porcs avec recherche et filtres
+ */
 export default function PigsList() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState<PigStatus | 'all'>('all');
   const [dialogOpen, setDialogOpen] = useState(searchParams.get('action') === 'add');
 
-  const { pigs, loading, addPig } = usePigs({
+  // Le hook usePigs gère déjà le debounce en interne
+  const { pigs, loading, addPig, refetch } = usePigs({
     status: statusFilter === 'all' ? undefined : statusFilter,
-    search: search || undefined,
+    search: searchInput || undefined,
   });
 
-  const filteredPigs = pigs.filter(pig => {
-    if (search && !pig.tag_number.toLowerCase().includes(search.toLowerCase())) {
-      return false;
-    }
-    return true;
+  // Pull to refresh
+  const { isPulling } = usePullToRefresh({
+    onRefresh: async () => {
+      hapticMedium();
+      await refetch();
+    },
   });
+
+  // Les porcs sont déjà filtrés par le hook usePigs
+  const filteredPigs = useMemo(() => pigs, [pigs]);
 
   return (
-    <div className="content-area space-y-6">
+    <div className={`content-area space-y-6 transition-transform duration-300 ${isPulling ? 'translate-y-2' : ''}`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -54,9 +66,9 @@ export default function PigsList() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher par numéro..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-10 min-h-[44px]"
           />
         </div>
         <Select
@@ -79,9 +91,7 @@ export default function PigsList() {
 
       {/* Pigs Grid */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <PigCardSkeletonGrid count={10} />
       ) : filteredPigs.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">🐷</div>
@@ -89,9 +99,9 @@ export default function PigsList() {
             Aucun porc trouvé
           </h3>
           <p className="text-muted-foreground mb-4">
-            {search ? 'Essayez une autre recherche' : 'Commencez par ajouter votre premier porc'}
+            {searchInput ? 'Essayez une autre recherche' : 'Commencez par ajouter votre premier porc'}
           </p>
-          {!search && (
+          {!searchInput && (
             <Button onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Ajouter un porc

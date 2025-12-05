@@ -56,8 +56,10 @@ export default function Auth() {
       const { error } = await signIn(loginEmail, loginPassword);
       
       if (error) {
-        if (error.message.includes('Invalid login')) {
+        if (error.message.includes('Invalid login') || error.message.includes('Invalid credentials')) {
           toast.error('Email ou mot de passe incorrect');
+        } else if (error.message.includes('password') && error.message.includes('compromised')) {
+          toast.error('Ce mot de passe a été compromis dans une fuite de données. Veuillez en choisir un autre.');
         } else {
           toast.error(error.message);
         }
@@ -95,8 +97,12 @@ export default function Auth() {
       const { error } = await signUp(signupEmail, signupPassword, signupName);
       
       if (error) {
-        if (error.message.includes('already registered')) {
+        if (error.message.includes('already registered') || error.message.includes('already exists')) {
           toast.error('Cet email est déjà utilisé');
+        } else if (error.message.includes('password') && (error.message.includes('compromised') || error.message.includes('pwned'))) {
+          toast.error('Ce mot de passe a été compromis dans une fuite de données. Veuillez en choisir un autre.');
+        } else if (error.message.includes('Password')) {
+          toast.error('Le mot de passe ne respecte pas les critères de sécurité requis');
         } else {
           toast.error(error.message);
         }

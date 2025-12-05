@@ -1,3 +1,6 @@
+/**
+ * Liste des races de porcs disponibles
+ */
 export const PIG_BREEDS = [
   'Large White',
   'Landrace',
@@ -10,6 +13,9 @@ export const PIG_BREEDS = [
   'Autre',
 ] as const;
 
+/**
+ * Catégories de porcs avec leurs plages de poids
+ */
 export const PIG_CATEGORIES = [
   { value: 'piglet', label: 'Porcelet (0-25kg)', minWeight: 0, maxWeight: 25 },
   { value: 'grower', label: 'Croissance (25-60kg)', minWeight: 25, maxWeight: 60 },
@@ -18,6 +24,9 @@ export const PIG_CATEGORIES = [
   { value: 'boar', label: 'Verrat', minWeight: 120, maxWeight: 350 },
 ] as const;
 
+/**
+ * Types d'événements disponibles avec leurs icônes
+ */
 export const EVENT_TYPES = [
   { value: 'vaccination', label: 'Vaccination', icon: '💉' },
   { value: 'weighing', label: 'Pesée', icon: '⚖️' },
@@ -27,6 +36,9 @@ export const EVENT_TYPES = [
   { value: 'other', label: 'Autre', icon: '📝' },
 ] as const;
 
+/**
+ * Catégories de transactions financières
+ */
 export const TRANSACTION_CATEGORIES = [
   { value: 'sale', label: 'Vente', type: 'income' },
   { value: 'feed', label: 'Alimentation', type: 'expense' },
@@ -36,6 +48,10 @@ export const TRANSACTION_CATEGORIES = [
   { value: 'other', label: 'Autre', type: 'both' },
 ] as const;
 
+/**
+ * Ingrédients courants pour formulations avec valeurs nutritionnelles
+ * Les coûts sont en FCFA/kg
+ */
 export const COMMON_INGREDIENTS = [
   { name: 'Maïs', protein: 9, energy: 3350, cost: 200 },
   { name: 'Soja (tourteau)', protein: 44, energy: 2230, cost: 450 },
@@ -49,4 +65,7 @@ export const COMMON_INGREDIENTS = [
   { name: 'Calcaire', protein: 0, energy: 0, cost: 80 },
 ] as const;
 
+/**
+ * Limite de formulations gratuites pour les utilisateurs free tier
+ */
 export const FREEMIUM_FORMULATION_LIMIT = 3;

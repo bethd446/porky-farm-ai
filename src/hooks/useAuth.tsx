@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, SubscriptionTier } from '@/types/database';
@@ -22,7 +22,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  /**
+   * Récupère le profil utilisateur depuis Supabase
+   * @param userId - ID de l'utilisateur
+   */
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -44,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Error in fetchProfile:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -55,9 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Defer profile fetch
         if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-          }, 0);
+          fetchProfile(session.user.id);
         } else {
           setProfile(null);
         }
@@ -77,14 +79,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchProfile]);
 
-  const signIn = async (email: string, password: string) => {
+  /**
+   * Connecte un utilisateur avec email et mot de passe
+   * @param email - Email de l'utilisateur
+   * @param password - Mot de passe
+   * @returns Objet avec error si échec
+   */
+  const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error ? new Error(error.message) : null };
-  };
+  }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  /**
+   * Inscrit un nouvel utilisateur
+   * @param email - Email de l'utilisateur
+   * @param password - Mot de passe
+   * @param fullName - Nom complet
+   * @returns Objet avec error si échec
+   */
+  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -99,18 +114,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     
     return { error: error ? new Error(error.message) : null };
-  };
+  }, []);
 
-  const signOut = async () => {
+  /**
+   * Déconnecte l'utilisateur actuel
+   */
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setProfile(null);
-  };
+  }, []);
 
-  const refreshProfile = async () => {
+  /**
+   * Rafraîchit le profil utilisateur
+   */
+  const refreshProfile = useCallback(async () => {
     if (user) {
       await fetchProfile(user.id);
     }
-  };
+  }, [user, fetchProfile]);
 
   return (
     <AuthContext.Provider value={{ user, session, profile, loading, signIn, signUp, signOut, refreshProfile }}>

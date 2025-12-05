@@ -19,11 +19,50 @@ serve(async (req) => {
   }
 
   try {
-    const { pigCategory, targetWeight, budget, availableIngredients }: FormulationRequest = await req.json();
+    // Validation des entrées
+    const body: FormulationRequest = await req.json();
+    
+    // Valider pigCategory
+    const validCategories = ['piglet', 'grower', 'finisher', 'sow', 'boar'];
+    if (!body.pigCategory || !validCategories.includes(body.pigCategory)) {
+      return new Response(JSON.stringify({ error: 'Catégorie de porc invalide' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Valider targetWeight
+    if (!body.targetWeight || typeof body.targetWeight !== 'number' || body.targetWeight <= 0 || body.targetWeight > 500) {
+      return new Response(JSON.stringify({ error: 'Poids cible invalide (doit être entre 0 et 500 kg)' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Valider budget si fourni
+    if (body.budget !== undefined) {
+      if (typeof body.budget !== 'number' || body.budget <= 0 || body.budget > 10000) {
+        return new Response(JSON.stringify({ error: 'Budget invalide (doit être entre 0 et 10000 FCFA/kg)' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+    
+    // Sanitize availableIngredients
+    const availableIngredients = body.availableIngredients 
+      ? body.availableIngredients.substring(0, 500).replace(/[<>]/g, '')
+      : undefined;
+    
+    const { pigCategory, targetWeight, budget } = body;
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+      console.error('LOVABLE_API_KEY is not configured');
+      return new Response(JSON.stringify({ error: 'Configuration serveur manquante' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Build the prompt for feed formulation

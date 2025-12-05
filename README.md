@@ -1,73 +1,137 @@
-# Welcome to your Lovable project
+# PorcPro - Gestion de Ferme Porcine
 
-## Project info
+Application web moderne pour la gestion complète d'une ferme porcine, avec IA pour la formulation d'aliments.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Technologies
 
-## How can I edit this code?
+- **Vite** - Build tool rapide
+- **React 18** - Bibliothèque UI
+- **TypeScript** - Typage statique
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - Composants UI
+- **Supabase** - Backend & Base de données
+- **React Query** - Gestion d'état serveur
+- **Zod** - Validation de schémas
 
-There are several ways of editing your application.
+## 📦 Installation
 
-**Use Lovable**
+```bash
+# Installer les dépendances
+npm install
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Lancer le serveur de développement
 npm run dev
+
+# Build pour la production
+npm run build
+
+# Prévisualiser le build
+npm run preview
 ```
 
-**Edit a file directly in GitHub**
+## ✨ Fonctionnalités
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 🐷 Gestion des Porcs
+- Ajout, modification et suppression de porcs
+- Suivi du poids avec historique
+- Photos et notes
+- Filtrage par statut (Actif, Vendu, Décédé, Reproduction)
+- Recherche par numéro d'identification
 
-**Use GitHub Codespaces**
+### 📊 Tableau de Bord
+- Statistiques en temps réel
+- Graphiques d'évolution du poids
+- Événements à venir
+- Actions rapides
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 🧪 Formulateur IA
+- Génération de formules alimentaires optimisées par IA
+- Calcul des valeurs nutritionnelles
+- Estimation des coûts
+- Recommandations personnalisées
 
-## What technologies are used for this project?
+### 📅 Calendrier
+- Gestion des événements (vaccinations, pesées, etc.)
+- Rappels et notifications
 
-This project is built with:
+### 💰 Finances
+- Suivi des revenus et dépenses
+- Catégorisation des transactions
+- Rapports financiers
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🎯 Optimisations
 
-## How can I deploy this project?
+### Performance
+- ✅ Lazy loading des images
+- ✅ React.memo sur composants lourds
+- ✅ Code splitting des routes
+- ✅ Compression d'images avant upload
+- ✅ Optimisation des re-renders avec useMemo/useCallback
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Sécurité
+- ✅ Validation Zod côté client
+- ✅ Sanitization des données utilisateur
+- ✅ Rate limiting
+- ✅ Messages d'erreur en français
 
-## Can I connect a custom domain to my Lovable project?
+### Mobile
+- ✅ Design responsive
+- ✅ Boutons 44px minimum (accessibilité)
+- ✅ Bottom sheet pour modals
+- ✅ Haptic feedback
+- ✅ Pull to refresh
 
-Yes, you can!
+### UX/UI
+- ✅ Loading skeletons
+- ✅ Animations micro-interactions
+- ✅ Feedback visuel après actions
+- ✅ Messages d'erreur clairs
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📁 Structure du Projet
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```
+PorcPro/
+├── src/
+│   ├── components/      # Composants React
+│   │   ├── features/    # Composants métier
+│   │   ├── layout/      # Layout components
+│   │   └── ui/          # Composants UI (shadcn)
+│   ├── hooks/           # Custom hooks
+│   ├── lib/             # Utilitaires
+│   ├── pages/           # Pages de l'application
+│   ├── types/           # Types TypeScript
+│   └── integrations/    # Intégrations (Supabase)
+├── public/              # Fichiers statiques
+└── supabase/            # Configuration Supabase
+```
+
+## 🔧 Configuration
+
+### Variables d'environnement
+
+Créez un fichier `.env` à la racine :
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_key
+```
+
+## 📝 Scripts Disponibles
+
+- `npm run dev` - Démarre le serveur de développement
+- `npm run build` - Build pour la production
+- `npm run build:dev` - Build en mode développement
+- `npm run preview` - Prévisualise le build
+- `npm run lint` - Lance ESLint
+
+## 🚀 Déploiement
+
+L'application peut être déployée sur :
+- Vercel
+- Netlify
+- Cloudflare Pages
+- Tout hébergeur supportant les applications Vite
+
+## 📄 Licence
+
+Propriétaire - Tous droits réservés
