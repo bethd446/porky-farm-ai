@@ -3,6 +3,7 @@ import { PiggyBank, DollarSign, Wheat, Bell } from 'lucide-react';
 import { StatCard } from '@/components/features/StatCard';
 import { QuickActions } from '@/components/features/QuickActions';
 import { WeightChart } from '@/components/features/WeightChart';
+import { WeightEvolutionChart } from '@/components/features/WeightEvolutionChart';
 import { UpcomingEvents } from '@/components/features/UpcomingEvents';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -119,6 +120,7 @@ export default function Dashboard() {
           change={stats?.pigsChange}
           icon={PiggyBank}
           variant="success"
+          index={0}
         />
         <StatCard
           title="Revenu mensuel"
@@ -127,6 +129,7 @@ export default function Dashboard() {
           icon={DollarSign}
           variant="revenue"
           suffix="FCFA"
+          index={1}
         />
         <StatCard
           title="Coût alimentaire"
@@ -135,19 +138,26 @@ export default function Dashboard() {
           icon={Wheat}
           variant="warning"
           suffix="FCFA"
+          index={2}
         />
         <StatCard
           title="Alertes"
           value={stats?.alertsCount || 0}
           icon={Bell}
           variant="info"
+          index={3}
         />
       </div>
 
       {/* Charts and Actions */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <WeightChart data={weightData} />
+        <WeightEvolutionChart data={weightData} />
         <QuickActions />
+      </div>
+      
+      {/* Additional Chart */}
+      <div className="grid lg:grid-cols-1 gap-6">
+        <WeightChart data={weightData} />
       </div>
 
       {/* Upcoming Events */}
