@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Plus, Wallet, Search, Filter, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -15,22 +17,33 @@ import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types/database';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { formatCurrencyFull } from '@/lib/formatters';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { formatCurrency, formatCurrencyFull } from '@/lib/formatters';
+import { FinanceSummary } from '@/components/features/FinanceSummary';
+import { TransactionList } from '@/components/features/TransactionList';
+import { AddTransactionDialog } from '@/components/features/AddTransactionDialog';
+import { hapticLight } from '@/lib/haptic-feedback';
+import { toast } from 'sonner';
 
 const COLORS = ['hsl(142, 71%, 45%)', 'hsl(340, 82%, 52%)', 'hsl(38, 92%, 50%)', 'hsl(217, 91%, 60%)', 'hsl(215, 16%, 47%)'];
 
 export default function Finances() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [period, setPeriod] = useState('month');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(searchParams.get('action') === 'sale' || searchParams.get('action') === 'add');
 
   useEffect(() => {
     const fetchTransactions = async () => {
       if (!user) return;
 
       try {
+        setLoading(true);
         const { data, error } = await supabase
           .from('transactions')
           .select('*')
@@ -39,6 +52,7 @@ export default function Finances() {
 
         if (error) throw error;
         setTransactions((data || []) as Transaction[]);
+        setFilteredTransactions((data || []) as Transaction[]);
       } catch (error) {
         console.error('Error fetching transactions:', error);
       } finally {
@@ -48,6 +62,28 @@ export default function Finances() {
 
     fetchTransactions();
   }, [user]);
+
+  // Filtrage des transactions
+  useEffect(() => {
+    let filtered = [...transactions];
+
+    // Filtre par type
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(t => t.type === typeFilter);
+    }
+
+    // Filtre par recherche
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(t =>
+        t.description?.toLowerCase().includes(query) ||
+        t.category?.toLowerCase().includes(query) ||
+        formatCurrencyFull(t.amount).includes(query)
+      );
+    }
+
+    setFilteredTransactions(filtered);
+  }, [transactions, typeFilter, searchQuery]);
 
   // Calculate totals avec useMemo pour optimiser
   const income = useMemo(() => 
@@ -65,6 +101,11 @@ export default function Finances() {
   );
 
   const balance = useMemo(() => income - expenses, [income, expenses]);
+
+  // Calculer les changements (mock pour l'instant)
+  const incomeChange = useMemo(() => 8, []);
+  const expensesChange = useMemo(() => -3, []);
+  const balanceChange = useMemo(() => 12, []);
 
   // Group expenses by category
   const expensesByCategory = useMemo(() =>
@@ -100,18 +141,109 @@ export default function Finances() {
     return formatCurrencyFull(value);
   }, []);
 
+  // Ajouter une transaction
+  const addTransaction = useCallback(async (data: Partial<Transaction>) => {
+    if (!user) return { error: new Error('Non authentifié') };
+
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .insert([{
+          ...data,
+          user_id: user.id,
+        }]);
+
+      if (error) throw error;
+
+      // Rafraîchir les transactions
+      const { data: newData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('transaction_date', { ascending: false });
+
+      if (newData) {
+        setTransactions(newData as Transaction[]);
+      }
+
+      return { error: null };
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      return { error: error as Error };
+    }
+  }, [user]);
+
+  // Exporter les données
+  const handleExport = useCallback(() => {
+    hapticLight();
+    const csv = [
+      ['Type', 'Montant', 'Catégorie', 'Description', 'Date'].join(','),
+      ...filteredTransactions.map(t => [
+        t.type === 'income' ? 'Revenu' : 'Dépense',
+        t.amount,
+        t.category || '',
+        `"${(t.description || '').replace(/"/g, '""')}"`,
+        format(new Date(t.transaction_date), 'dd/MM/yyyy', { locale: fr }),
+      ].join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `transactions-${format(new Date(), 'yyyy-MM-dd', { locale: fr })}.csv`;
+    link.click();
+  }, [filteredTransactions]);
+
   return (
-    <div className="content-area space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-2">
-            <Wallet className="h-7 w-7 text-primary" />
-            Finances
-          </h1>
-          <p className="text-muted-foreground">Gérez vos revenus et dépenses</p>
+    <div className="content-area space-y-6 pb-20">
+      {/* Header - Style TimeNote */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-display font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent flex items-center gap-3">
+              <Wallet className="h-8 w-8 text-primary" />
+              Finances
+            </h1>
+            <p className="text-muted-foreground mt-1">Gérez vos revenus et dépenses de votre élevage</p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={handleExport} disabled={filteredTransactions.length === 0}>
+              <Download className="h-4 w-4 mr-2" />
+              Exporter
+            </Button>
+            <Button onClick={() => {
+              hapticLight();
+              setDialogOpen(true);
+              setSearchParams({});
+            }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Transaction
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-3">
+
+        {/* Filtres et recherche - Style TimeNote */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher une transaction..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as 'all' | 'income' | 'expense')}>
+            <SelectTrigger className="w-40">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous</SelectItem>
+              <SelectItem value="income">Revenus</SelectItem>
+              <SelectItem value="expense">Dépenses</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-40">
               <SelectValue />
@@ -122,103 +254,75 @@ export default function Finances() {
               <SelectItem value="year">Cette année</SelectItem>
             </SelectContent>
           </Select>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Transaction
-          </Button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-l-4 border-l-success">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Revenus</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {formatCurrency(income)} <span className="text-sm font-normal">FCFA</span>
-                </p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-success-light flex items-center justify-center">
-                <ArrowUpRight className="h-6 w-6 text-success" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Summary Cards - Style TimeNote */}
+      <FinanceSummary
+        income={income}
+        expenses={expenses}
+        balance={balance}
+        incomeChange={incomeChange}
+        expensesChange={expensesChange}
+        balanceChange={balanceChange}
+      />
 
-        <Card className="border-l-4 border-l-revenue">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Dépenses</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {formatCurrency(expenses)} <span className="text-sm font-normal">FCFA</span>
-                </p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-revenue-light flex items-center justify-center">
-                <ArrowDownRight className="h-6 w-6 text-revenue" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-info">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Solde</p>
-                <p className={`text-2xl font-bold ${balance >= 0 ? 'text-success' : 'text-destructive'}`}>
-                  {formatCurrency(balance)} <span className="text-sm font-normal">FCFA</span>
-                </p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-info-light flex items-center justify-center">
-                {balance >= 0 ? (
-                  <TrendingUp className="h-6 w-6 text-success" />
-                ) : (
-                  <TrendingDown className="h-6 w-6 text-destructive" />
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts */}
+      {/* Charts - Style TimeNote */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="shadow-lg border-border/50 hover:shadow-xl transition-shadow duration-300">
           <CardHeader>
             <CardTitle>Évolution mensuelle</CardTitle>
+            <CardDescription>Revenus et dépenses sur 6 mois</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
+            <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-                  <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                <BarChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
+                  <YAxis 
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                  />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                     }}
-                    formatter={(value: number) => [formatCurrency(value) + ' FCFA', '']}
+                    formatter={(value: number) => [formatCurrencyFull(value) + ' FCFA', '']}
                   />
-                  <Bar dataKey="revenus" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="depenses" fill="hsl(var(--revenue))" radius={[4, 4, 0, 0]} />
+                  <Legend />
+                  <Bar 
+                    dataKey="revenus" 
+                    fill="hsl(var(--success))" 
+                    radius={[8, 8, 0, 0]}
+                    name="Revenus"
+                  />
+                  <Bar 
+                    dataKey="depenses" 
+                    fill="hsl(var(--revenue))" 
+                    radius={[8, 8, 0, 0]}
+                    name="Dépenses"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-lg border-border/50 hover:shadow-xl transition-shadow duration-300">
           <CardHeader>
             <CardTitle>Répartition des dépenses</CardTitle>
+            <CardDescription>Par catégorie</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
+            <div className="h-80">
               {pieData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -226,10 +330,11 @@ export default function Finances() {
                       data={pieData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
+                      innerRadius={70}
+                      outerRadius={110}
+                      paddingAngle={3}
                       dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     >
                       {pieData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -239,15 +344,18 @@ export default function Finances() {
                       contentStyle={{
                         backgroundColor: 'hsl(var(--card))',
                         border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       }}
-                      formatter={(value: number) => [formatCurrency(value) + ' FCFA', '']}
+                      formatter={(value: number) => [formatCurrencyFull(value) + ' FCFA', '']}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Aucune donnée disponible
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <Filter className="h-12 w-12 mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">Aucune donnée</p>
+                  <p className="text-sm">Ajoutez des transactions pour voir les statistiques</p>
                 </div>
               )}
             </div>
@@ -255,51 +363,58 @@ export default function Finances() {
         </Card>
       </div>
 
-      {/* Recent Transactions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Transactions récentes</CardTitle>
+      {/* Transactions List - Style TimeNote */}
+      <Card className="shadow-lg border-border/50">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Transactions</CardTitle>
+            <CardDescription>
+              {filteredTransactions.length} transaction{filteredTransactions.length > 1 ? 's' : ''} trouvée{filteredTransactions.length > 1 ? 's' : ''}
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
-          {transactions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Aucune transaction enregistrée
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {transactions.slice(0, 10).map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                      transaction.type === 'income' ? 'bg-success-light' : 'bg-revenue-light'
-                    }`}>
-                      {transaction.type === 'income' ? (
-                        <ArrowUpRight className="h-5 w-5 text-success" />
-                      ) : (
-                        <ArrowDownRight className="h-5 w-5 text-revenue" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">{transaction.description || transaction.category}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(transaction.transaction_date), 'd MMM yyyy', { locale: fr })}
-                      </p>
-                    </div>
-                  </div>
-                  <p className={`font-semibold ${
-                    transaction.type === 'income' ? 'text-success' : 'text-revenue'
-                  }`}>
-                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)} FCFA
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
+          <TransactionList
+            transactions={filteredTransactions}
+            onEdit={(transaction) => {
+              hapticLight();
+              toast.info('Édition de transaction à venir');
+            }}
+            onDelete={async (transaction) => {
+              hapticLight();
+              if (confirm('Êtes-vous sûr de vouloir supprimer cette transaction ?')) {
+                try {
+                  const { error } = await supabase
+                    .from('transactions')
+                    .delete()
+                    .eq('id', transaction.id);
+
+                  if (error) throw error;
+
+                  setTransactions(prev => prev.filter(t => t.id !== transaction.id));
+                  setFilteredTransactions(prev => prev.filter(t => t.id !== transaction.id));
+                  toast.success('Transaction supprimée');
+                } catch (error) {
+                  console.error('Error deleting transaction:', error);
+                  toast.error('Erreur lors de la suppression');
+                }
+              }
+            }}
+          />
         </CardContent>
       </Card>
+
+      {/* Add Transaction Dialog */}
+      <AddTransactionDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setSearchParams({});
+          }
+        }}
+        onSubmit={addTransaction}
+      />
     </div>
   );
 }

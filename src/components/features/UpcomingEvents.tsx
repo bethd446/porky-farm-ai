@@ -69,7 +69,7 @@ export const UpcomingEvents = memo(function UpcomingEvents({ events }: UpcomingE
   const displayedEvents = useMemo(() => events.slice(0, 3), [events]);
 
   return (
-    <div className="stat-card">
+    <div className="bg-white rounded-xl p-6 border border-gray-200">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-foreground">Événements à venir</h3>
         <Button 

@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
+    --background: 0 0% 100%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -15,7 +15,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 142 71% 45%;
+    --primary: 142 71% 45%; /* green-600 */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 96%;
@@ -34,7 +34,7 @@
     --input: 220 13% 91%;
     --ring: 142 71% 45%;
 
-    --radius: 1rem;
+    --radius: 0.5rem; /* 8px - plus subtil */
 
     /* Custom PorcPro colors */
     --success: 142 71% 45%;
@@ -122,10 +122,10 @@
   }
 }
 
-@layer components {
-  .stat-card {
-    @apply bg-card rounded-2xl p-5 shadow-sm border border-border/50 transition-all duration-300 hover:shadow-md;
-  }
+    @layer components {
+      .stat-card {
+        @apply bg-card rounded-2xl p-5 shadow-sm border border-border/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
+      }
 
   .stat-icon {
     @apply w-12 h-12 rounded-xl flex items-center justify-center;
@@ -163,9 +163,43 @@
     @apply p-4 md:p-6 lg:p-8 max-w-7xl mx-auto;
   }
 
-  .glass-card {
-    @apply bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 shadow-sm;
-  }
+      .glass-card {
+        @apply bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 shadow-sm;
+      }
+
+      /* Smart Farming Design Enhancements */
+      .gradient-card {
+        @apply bg-gradient-to-br from-primary/10 via-primary/5 to-background rounded-2xl border border-primary/20 shadow-lg;
+      }
+
+      .modern-card {
+        @apply bg-card rounded-2xl p-6 shadow-lg border border-border/50 transition-all duration-300 hover:shadow-xl hover:scale-[1.02];
+      }
+
+      /* Healthcare Dashboard Styles */
+      .health-card {
+        @apply bg-card rounded-2xl p-6 shadow-lg border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+      }
+
+      .health-indicator {
+        @apply absolute top-4 right-4 h-3 w-3 rounded-full;
+      }
+
+      .health-status-healthy {
+        @apply bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800;
+      }
+
+      .health-status-warning {
+        @apply bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800;
+      }
+
+      .health-status-critical {
+        @apply bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800;
+      }
+
+      .health-status-excellent {
+        @apply bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800;
+      }
 }
 
 @layer utilities {

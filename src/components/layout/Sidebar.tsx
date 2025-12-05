@@ -5,7 +5,7 @@ import {
   Beaker, 
   Wallet, 
   Calendar,
-  Settings,
+  User,
   X,
   Leaf
 } from 'lucide-react';
@@ -92,15 +92,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             })}
           </nav>
 
-          {/* Footer */}
+          {/* Footer - Profil */}
           <div className="p-4 border-t border-sidebar-border">
             <NavLink
-              to="/settings"
+              to="/profile"
               onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sidebar-foreground hover:bg-sidebar-accent transition-all"
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
+                "text-sidebar-foreground hover:bg-sidebar-accent",
+                location.pathname === '/profile' && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+              )}
             >
-              <Settings className="h-5 w-5 text-muted-foreground" />
-              <span>Paramètres</span>
+              <User className={cn(
+                "h-5 w-5 transition-colors",
+                location.pathname === '/profile' ? "text-sidebar-primary" : "text-muted-foreground"
+              )} />
+              <span>Profil</span>
             </NavLink>
           </div>
         </div>

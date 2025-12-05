@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -22,6 +23,7 @@ interface HeaderProps {
 }
 
 export function Header({ userName, userAvatar, alertsCount = 0, onMenuClick, onLogout }: HeaderProps) {
+  const navigate = useNavigate();
   const today = format(new Date(), "EEEE d MMMM yyyy", { locale: fr });
   const firstName = userName.split(' ')[0];
 
@@ -80,7 +82,7 @@ export function Header({ userName, userAvatar, alertsCount = 0, onMenuClick, onL
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Mon profil</span>
               </DropdownMenuItem>

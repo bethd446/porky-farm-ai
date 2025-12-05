@@ -40,10 +40,11 @@ export default function Auth() {
   const [signupConfirm, setSignupConfirm] = useState('');
 
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
+    if (user && !authLoading) {
+      console.log('User authenticated, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,11 +64,14 @@ export default function Auth() {
         } else {
           toast.error(error.message);
         }
+        setLoading(false);
         return;
       }
       
       toast.success('Connexion réussie');
-      navigate('/dashboard');
+      // Attendre que l'auth state change se propage avant de rediriger
+      await new Promise(resolve => setTimeout(resolve, 300));
+      // La redirection sera gérée par le useEffect qui écoute les changements de user
     } catch (err) {
       if (err instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
@@ -76,7 +80,6 @@ export default function Auth() {
         });
         setErrors(fieldErrors);
       }
-    } finally {
       setLoading(false);
     }
   };
@@ -110,20 +113,12 @@ export default function Auth() {
         return;
       }
       
-      // Attendre un peu pour que l'auth state change se propage
+      // Attendre que l'auth state change se propage
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Vérifier si l'utilisateur est maintenant connecté (si email confirmation est désactivée)
-      if (user) {
-        toast.success('Compte créé avec succès !');
-        navigate('/dashboard');
-      } else {
-        toast.success('Compte créé ! Vérifiez votre email pour confirmer votre compte.');
-        // Rediriger vers la page de connexion après 2 secondes
-        setTimeout(() => {
-          navigate('/auth');
-        }, 2000);
-      }
+      // La redirection sera gérée par le useEffect qui écoute les changements de user
+      toast.success('Compte créé ! Vérifiez votre email pour confirmer votre compte.');
     } catch (err) {
       if (err instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
@@ -146,127 +141,167 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-            <Leaf className="h-7 w-7 text-primary-foreground" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/10 p-4 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Logo avec animation */}
+        <div className="flex items-center justify-center gap-3 mb-8 animate-fade-in">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-300">
+            <Leaf className="h-8 w-8 text-primary-foreground" />
           </div>
-          <span className="text-3xl font-display font-bold text-foreground">PorcPro</span>
+          <span className="text-4xl font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            PorcPro
+          </span>
         </div>
 
-        <Card className="border-border/50 shadow-card">
-          <CardHeader className="text-center pb-4">
-            <CardTitle className="text-2xl font-display">Bienvenue</CardTitle>
-            <CardDescription>
+        <Card className="border-border/50 shadow-2xl bg-card/95 backdrop-blur-sm animate-scale-in">
+          <CardHeader className="text-center pb-6 pt-8">
+            <CardTitle className="text-3xl font-display bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              Bienvenue
+            </CardTitle>
+            <CardDescription className="text-base mt-2">
               Gérez votre élevage porcin efficacement
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">Connexion</TabsTrigger>
-                <TabsTrigger value="signup">Inscription</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50 p-1">
+                <TabsTrigger 
+                  value="login" 
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
+                >
+                  Connexion
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="signup"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
+                >
+                  Inscription
+                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
+              <TabsContent value="login" className="space-y-6 animate-fade-in">
+                <form onSubmit={handleLogin} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
+                    <Label htmlFor="login-email" className="text-sm font-medium">Email</Label>
                     <Input
                       id="login-email"
                       type="email"
                       placeholder="vous@exemple.com"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
-                      className={errors.email ? 'border-destructive' : ''}
+                      className={`h-11 transition-all duration-200 ${errors.email ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
                     />
                     {errors.email && (
-                      <p className="text-sm text-destructive">{errors.email}</p>
+                      <p className="text-sm text-destructive animate-shake">{errors.email}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Mot de passe</Label>
+                    <Label htmlFor="login-password" className="text-sm font-medium">Mot de passe</Label>
                     <Input
                       id="login-password"
                       type="password"
                       placeholder="••••••••"
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
-                      className={errors.password ? 'border-destructive' : ''}
+                      className={`h-11 transition-all duration-200 ${errors.password ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
                     />
                     {errors.password && (
-                      <p className="text-sm text-destructive">{errors.password}</p>
+                      <p className="text-sm text-destructive animate-shake">{errors.password}</p>
                     )}
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Se connecter
+                  <Button 
+                    type="submit" 
+                    className="w-full h-11 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-200" 
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Connexion...
+                      </>
+                    ) : (
+                      'Se connecter'
+                    )}
                   </Button>
                 </form>
               </TabsContent>
 
-              <TabsContent value="signup">
-                <form onSubmit={handleSignup} className="space-y-4">
+              <TabsContent value="signup" className="space-y-6 animate-fade-in">
+                <form onSubmit={handleSignup} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nom complet</Label>
+                    <Label htmlFor="signup-name" className="text-sm font-medium">Nom complet</Label>
                     <Input
                       id="signup-name"
                       placeholder="Kouassi Jean"
                       value={signupName}
                       onChange={(e) => setSignupName(e.target.value)}
-                      className={errors.fullName ? 'border-destructive' : ''}
+                      className={`h-11 transition-all duration-200 ${errors.fullName ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
                     />
                     {errors.fullName && (
-                      <p className="text-sm text-destructive">{errors.fullName}</p>
+                      <p className="text-sm text-destructive animate-shake">{errors.fullName}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email" className="text-sm font-medium">Email</Label>
                     <Input
                       id="signup-email"
                       type="email"
                       placeholder="vous@exemple.com"
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
-                      className={errors.email ? 'border-destructive' : ''}
+                      className={`h-11 transition-all duration-200 ${errors.email ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
                     />
                     {errors.email && (
-                      <p className="text-sm text-destructive">{errors.email}</p>
+                      <p className="text-sm text-destructive animate-shake">{errors.email}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Mot de passe</Label>
+                    <Label htmlFor="signup-password" className="text-sm font-medium">Mot de passe</Label>
                     <Input
                       id="signup-password"
                       type="password"
                       placeholder="••••••••"
                       value={signupPassword}
                       onChange={(e) => setSignupPassword(e.target.value)}
-                      className={errors.password ? 'border-destructive' : ''}
+                      className={`h-11 transition-all duration-200 ${errors.password ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
                     />
                     {errors.password && (
-                      <p className="text-sm text-destructive">{errors.password}</p>
+                      <p className="text-sm text-destructive animate-shake">{errors.password}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-confirm">Confirmer le mot de passe</Label>
+                    <Label htmlFor="signup-confirm" className="text-sm font-medium">Confirmer le mot de passe</Label>
                     <Input
                       id="signup-confirm"
                       type="password"
                       placeholder="••••••••"
                       value={signupConfirm}
                       onChange={(e) => setSignupConfirm(e.target.value)}
-                      className={errors.confirmPassword ? 'border-destructive' : ''}
+                      className={`h-11 transition-all duration-200 ${errors.confirmPassword ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
                     />
                     {errors.confirmPassword && (
-                      <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                      <p className="text-sm text-destructive animate-shake">{errors.confirmPassword}</p>
                     )}
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Créer un compte
+                  <Button 
+                    type="submit" 
+                    className="w-full h-11 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-200" 
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Création...
+                      </>
+                    ) : (
+                      'Créer un compte'
+                    )}
                   </Button>
                 </form>
               </TabsContent>
@@ -274,8 +309,9 @@ export default function Auth() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          En continuant, vous acceptez nos conditions d'utilisation
+        <p className="text-center text-sm text-muted-foreground mt-6 animate-fade-in">
+          En continuant, vous acceptez nos{' '}
+          <a href="#" className="text-primary hover:underline font-medium">conditions d'utilisation</a>
         </p>
       </div>
     </div>

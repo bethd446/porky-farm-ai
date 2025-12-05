@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,13 +17,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Camera, MapPin, X } from 'lucide-react';
 import { Pig, PigSex, PigStatus } from '@/types/database';
 import { PIG_BREEDS } from '@/lib/constants';
 import { pigSchema, sanitizeInput, sanitizeText } from '@/lib/validation';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { hapticSuccess, hapticError } from '@/lib/haptic-feedback';
+import { CameraCapture } from './CameraCapture';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface AddPigDialogProps {
   open: boolean;
@@ -34,6 +37,11 @@ interface AddPigDialogProps {
 export function AddPigDialog({ open, onOpenChange, onSubmit }: AddPigDialogProps) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showCamera, setShowCamera] = useState(false);
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
+  const { latitude, longitude, getCurrentPosition, loading: geoLoading } = useGeolocation();
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+
   const [formData, setFormData] = useState({
     tag_number: '',
     sex: 'male' as PigSex,
@@ -43,6 +51,18 @@ export function AddPigDialog({ open, onOpenChange, onSubmit }: AddPigDialogProps
     notes: '',
     initial_weight: '',
   });
+
+  useEffect(() => {
+    if (open && !location && !geoLoading) {
+      getCurrentPosition();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (latitude && longitude) {
+      setLocation({ lat: latitude, lng: longitude });
+    }
+  }, [latitude, longitude]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +105,9 @@ export function AddPigDialog({ open, onOpenChange, onSubmit }: AddPigDialogProps
         weight_history: formData.initial_weight
           ? [{ date: new Date().toISOString(), weight: parseFloat(formData.initial_weight) }]
           : [],
+        // Ajouter la photo et la localisation si disponibles
+        ...(photoDataUrl && { photo_url: photoDataUrl }),
+        ...(location && { location: { latitude: location.lat, longitude: location.lng } }),
       };
 
       const { error } = await onSubmit(pigData);
@@ -101,6 +124,9 @@ export function AddPigDialog({ open, onOpenChange, onSubmit }: AddPigDialogProps
           notes: '',
           initial_weight: '',
         });
+        setPhotoDataUrl(null);
+        setLocation(null);
+        setShowCamera(false);
         setErrors({});
         onOpenChange(false);
         hapticSuccess();
@@ -125,6 +151,110 @@ export function AddPigDialog({ open, onOpenChange, onSubmit }: AddPigDialogProps
               </AlertDescription>
             </Alert>
           )}
+
+          {/* Photo et Localisation */}
+          <Tabs defaultValue="info" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="info">Informations</TabsTrigger>
+              <TabsTrigger value="photo">Photo</TabsTrigger>
+              <TabsTrigger value="location">Localisation</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="photo" className="space-y-4">
+              {showCamera ? (
+                <CameraCapture
+                  onCapture={(photo) => {
+                    setPhotoDataUrl(photo);
+                    setShowCamera(false);
+                    toast.success('Photo capturée avec succès !');
+                  }}
+                  onCancel={() => setShowCamera(false)}
+                  initialPhoto={photoDataUrl}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {photoDataUrl ? (
+                    <div className="relative rounded-lg overflow-hidden border-2 border-primary">
+                      <img src={photoDataUrl} alt="Porc" className="w-full h-48 object-cover" />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => setPhotoDataUrl(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center">
+                      <Camera className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Aucune photo ajoutée
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowCamera(true)}
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        Prendre une photo
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="location" className="space-y-4">
+              <div className="space-y-4">
+                {location ? (
+                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Localisation enregistrée</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Latitude: {location.lat.toFixed(6)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Longitude: {location.lng.toFixed(6)}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => {
+                        setLocation(null);
+                        getCurrentPosition();
+                      }}
+                    >
+                      Actualiser
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center">
+                    <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {geoLoading ? 'Récupération de la localisation...' : 'Aucune localisation enregistrée'}
+                    </p>
+                    {!geoLoading && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={getCurrentPosition}
+                      >
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Obtenir la localisation
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="info" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="tag_number">Numéro d'identification *</Label>
@@ -256,6 +386,8 @@ export function AddPigDialog({ open, onOpenChange, onSubmit }: AddPigDialogProps
               {formData.notes.length}/1000 caractères
             </p>
           </div>
+            </TabsContent>
+          </Tabs>
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

@@ -114,7 +114,11 @@ export default function PigsList() {
             <PigCard
               key={pig.id}
               pig={pig}
-              onClick={() => navigate(`/pigs/${pig.id}`)}
+              onClick={() => {
+                // TODO: Créer une page de détail du porc
+                // Pour l'instant, on peut ouvrir un dialog ou simplement ne rien faire
+                hapticLight();
+              }}
             />
           ))}
         </div>

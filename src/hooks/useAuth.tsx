@@ -58,23 +58,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('Auth state changed:', event, session?.user?.id);
+        console.log('🔐 Auth state changed:', event, session?.user?.id || 'no user');
         
         setSession(session);
         setUser(session?.user ?? null);
         
         // Fetch profile if user exists
         if (session?.user) {
+          console.log('👤 Fetching profile for user:', session.user.id);
           try {
             await fetchProfile(session.user.id);
+            console.log('✅ Profile fetched successfully');
           } catch (error) {
-            console.error('Error fetching profile after auth change:', error);
+            console.error('❌ Error fetching profile after auth change:', error);
           }
         } else {
+          console.log('🚪 No user, clearing profile');
           setProfile(null);
         }
         
         setLoading(false);
+        console.log('✅ Auth loading set to false');
       }
     );
 
@@ -82,16 +86,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       
-      console.log('Initial session check:', session?.user?.id);
+      console.log('🔍 Initial session check:', session?.user?.id || 'no session');
       
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        console.log('👤 Fetching initial profile for user:', session.user.id);
         fetchProfile(session.user.id).catch(error => {
-          console.error('Error fetching initial profile:', error);
+          console.error('❌ Error fetching initial profile:', error);
         });
       }
       setLoading(false);
+      console.log('✅ Initial loading set to false');
     });
 
     return () => {
