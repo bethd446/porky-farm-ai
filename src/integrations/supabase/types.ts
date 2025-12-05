@@ -14,7 +14,218 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      events: {
+        Row: {
+          cost: number | null
+          created_at: string
+          description: string | null
+          event_date: string
+          event_type: string
+          id: string
+          pig_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          event_date: string
+          event_type: string
+          id?: string
+          pig_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          event_date?: string
+          event_type?: string
+          id?: string
+          pig_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_pig_id_fkey"
+            columns: ["pig_id"]
+            isOneToOne: false
+            referencedRelation: "pigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_formulations: {
+        Row: {
+          cost_per_kg: number | null
+          created_at: string
+          id: string
+          ingredients: Json | null
+          name: string
+          notes: string | null
+          nutritional_values: Json | null
+          pig_category: string
+          user_id: string
+        }
+        Insert: {
+          cost_per_kg?: number | null
+          created_at?: string
+          id?: string
+          ingredients?: Json | null
+          name: string
+          notes?: string | null
+          nutritional_values?: Json | null
+          pig_category: string
+          user_id: string
+        }
+        Update: {
+          cost_per_kg?: number | null
+          created_at?: string
+          id?: string
+          ingredients?: Json | null
+          name?: string
+          notes?: string | null
+          nutritional_values?: Json | null
+          pig_category?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pigs: {
+        Row: {
+          birth_date: string | null
+          breed: string | null
+          created_at: string
+          father_id: string | null
+          id: string
+          mother_id: string | null
+          notes: string | null
+          photo_url: string | null
+          sex: string
+          status: string | null
+          tag_number: string
+          updated_at: string
+          user_id: string
+          weight_history: Json | null
+        }
+        Insert: {
+          birth_date?: string | null
+          breed?: string | null
+          created_at?: string
+          father_id?: string | null
+          id?: string
+          mother_id?: string | null
+          notes?: string | null
+          photo_url?: string | null
+          sex: string
+          status?: string | null
+          tag_number: string
+          updated_at?: string
+          user_id: string
+          weight_history?: Json | null
+        }
+        Update: {
+          birth_date?: string | null
+          breed?: string | null
+          created_at?: string
+          father_id?: string | null
+          id?: string
+          mother_id?: string | null
+          notes?: string | null
+          photo_url?: string | null
+          sex?: string
+          status?: string | null
+          tag_number?: string
+          updated_at?: string
+          user_id?: string
+          weight_history?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pigs_father_id_fkey"
+            columns: ["father_id"]
+            isOneToOne: false
+            referencedRelation: "pigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pigs_mother_id_fkey"
+            columns: ["mother_id"]
+            isOneToOne: false
+            referencedRelation: "pigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          farm_name: string | null
+          formulations_count: number | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          subscription_tier: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          farm_name?: string | null
+          formulations_count?: number | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          farm_name?: string | null
+          formulations_count?: number | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          transaction_date: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          transaction_date: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          transaction_date?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
