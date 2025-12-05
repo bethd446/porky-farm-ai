@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile } from '@/types/database';
+import { Profile, SubscriptionTier } from '@/types/database';
 
 interface AuthContextType {
   user: User | null;
@@ -35,7 +35,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setProfile(data);
+      if (data) {
+        setProfile({
+          ...data,
+          subscription_tier: data.subscription_tier as SubscriptionTier,
+        });
+      }
     } catch (err) {
       console.error('Error in fetchProfile:', err);
     }
