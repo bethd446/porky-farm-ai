@@ -84,6 +84,17 @@ export default function Dashboard() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // Données mockées pour le graphique (sera remplacé par des données réelles)
+  // IMPORTANT: Les hooks doivent être appelés AVANT tout return conditionnel
+  const weightData = useMemo(() => [
+    { month: 'Jan', weight: 30 },
+    { month: 'Fév', weight: 38 },
+    { month: 'Mar', weight: 45 },
+    { month: 'Avr', weight: 52 },
+    { month: 'Mai', weight: 58 },
+    { month: 'Juin', weight: 65 },
+  ], []);
+
   if (loading) {
     return (
       <div className="content-area space-y-6">
@@ -99,16 +110,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  // Données mockées pour le graphique (sera remplacé par des données réelles)
-  const weightData = useMemo(() => [
-    { month: 'Jan', weight: 30 },
-    { month: 'Fév', weight: 38 },
-    { month: 'Mar', weight: 45 },
-    { month: 'Avr', weight: 52 },
-    { month: 'Mai', weight: 58 },
-    { month: 'Juin', weight: 65 },
-  ], []);
 
   return (
     <div className={`content-area space-y-6 transition-transform duration-300 ${isPulling ? 'translate-y-2' : ''}`}>
