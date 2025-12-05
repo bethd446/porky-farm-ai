@@ -8,23 +8,26 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Vérification des variables d'environnement
 if (!SUPABASE_URL) {
   console.error('❌ VITE_SUPABASE_URL is missing. Please check your environment variables.');
+  throw new Error('VITE_SUPABASE_URL is required');
 }
 
 if (!SUPABASE_PUBLISHABLE_KEY) {
   console.error('❌ VITE_SUPABASE_PUBLISHABLE_KEY is missing. Please check your environment variables.');
+  throw new Error('VITE_SUPABASE_PUBLISHABLE_KEY is required');
 }
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(
-  SUPABASE_URL || 'https://placeholder.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY || 'placeholder-key',
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY,
   {
     auth: {
       storage: typeof window !== 'undefined' ? localStorage : undefined,
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: true,
     }
   }
 );

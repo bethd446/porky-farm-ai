@@ -106,10 +106,24 @@ export default function Auth() {
         } else {
           toast.error(error.message);
         }
+        setLoading(false);
         return;
       }
       
-      toast.success('Compte créé ! Vérifiez votre email pour confirmer.');
+      // Attendre un peu pour que l'auth state change se propage
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Vérifier si l'utilisateur est maintenant connecté (si email confirmation est désactivée)
+      if (user) {
+        toast.success('Compte créé avec succès !');
+        navigate('/dashboard');
+      } else {
+        toast.success('Compte créé ! Vérifiez votre email pour confirmer votre compte.');
+        // Rediriger vers la page de connexion après 2 secondes
+        setTimeout(() => {
+          navigate('/auth');
+        }, 2000);
+      }
     } catch (err) {
       if (err instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
