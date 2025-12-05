@@ -16,10 +16,11 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { PIG_CATEGORIES, FREEMIUM_FORMULATION_LIMIT } from '@/lib/constants';
-import { PigCategory, FeedFormulation, Ingredient, NutritionalValues } from '@/types/database';
+import { PigCategory, Ingredient, NutritionalValues } from '@/types/database';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Json } from '@/integrations/supabase/types';
 
 export default function Formulator() {
   const { user, profile } = useAuth();
@@ -87,8 +88,8 @@ export default function Formulator() {
         user_id: user.id,
         name: formData.name || `Formule ${formData.pigCategory}`,
         pig_category: formData.pigCategory,
-        ingredients: result.ingredients,
-        nutritional_values: result.nutritionalValues,
+        ingredients: result.ingredients as unknown as Json,
+        nutritional_values: result.nutritionalValues as unknown as Json,
         cost_per_kg: result.costPerKg,
       });
 
