@@ -10,9 +10,16 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "check:supabase": "node check-supabase.js",
-    "check:supabase:detailed": "node check-supabase-detailed.js"
+    "check:supabase:detailed": "node check-supabase-detailed.js",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "cap:android": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
