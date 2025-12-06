@@ -98,3 +98,138 @@ export interface DashboardStats {
   feedCostChange: number;
   alertsCount: number;
 }
+
+// ============================================
+// TYPES POUR GESTATION
+// ============================================
+export type GestationStatus = 'pregnant' | 'delivered' | 'aborted' | 'lost';
+
+export interface Gestation {
+  id: string;
+  user_id: string;
+  sow_id: string;
+  boar_id: string | null;
+  breeding_date: string;
+  expected_delivery_date: string;
+  actual_delivery_date: string | null;
+  gestation_status: GestationStatus;
+  gestation_week: number | null;
+  expected_litter_size: number | null;
+  actual_litter_size: number | null;
+  live_piglets: number | null;
+  stillborn_piglets: number | null;
+  notes: string | null;
+  veterinarian_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// TYPES POUR SANTÉ
+// ============================================
+export type HealthRecordType = 'vaccination' | 'treatment' | 'checkup' | 'surgery' | 'medication' | 'observation';
+
+export interface Medication {
+  name: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+}
+
+export interface HealthRecord {
+  id: string;
+  user_id: string;
+  pig_id: string;
+  record_type: HealthRecordType;
+  title: string;
+  description: string | null;
+  veterinarian_name: string | null;
+  cost: number | null;
+  record_date: string;
+  next_due_date: string | null;
+  medications: Medication[];
+  diagnosis: string | null;
+  treatment_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// TYPES POUR PHOTOS
+// ============================================
+export interface AIAnalysis {
+  health_score?: number;
+  weight_estimate?: number;
+  condition?: 'excellent' | 'good' | 'fair' | 'poor';
+  anomalies?: string[];
+  recommendations?: string[];
+}
+
+export interface PigPhoto {
+  id: string;
+  user_id: string;
+  pig_id: string;
+  photo_url: string;
+  thumbnail_url: string | null;
+  photo_date: string;
+  caption: string | null;
+  tags: string[];
+  ai_analysis: AIAnalysis | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// TYPES POUR IA
+// ============================================
+export type InsightType = 
+  | 'health_alert' 
+  | 'gestation_progress' 
+  | 'weight_anomaly' 
+  | 'behavior_pattern' 
+  | 'nutrition_recommendation' 
+  | 'breeding_optimization';
+
+export type InsightStatus = 'new' | 'reviewed' | 'dismissed' | 'action_taken';
+
+export interface Recommendation {
+  action: string;
+  priority: 'high' | 'medium' | 'low';
+  description: string;
+}
+
+export interface AIInsight {
+  id: string;
+  user_id: string;
+  pig_id: string | null;
+  gestation_id: string | null;
+  insight_type: InsightType;
+  title: string;
+  description: string;
+  confidence_score: number;
+  source_data: Record<string, unknown>;
+  recommendations: Recommendation[];
+  status: InsightStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// TYPES POUR REPRODUCTION
+// ============================================
+export type BreedingMethod = 'natural' | 'ai' | 'mixed';
+
+export interface BreedingRecord {
+  id: string;
+  user_id: string;
+  sow_id: string;
+  boar_id: string;
+  breeding_date: string;
+  breeding_time: string | null;
+  breeding_method: BreedingMethod | null;
+  successful: boolean | null;
+  gestation_id: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
