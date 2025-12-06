@@ -18,11 +18,10 @@ const Index = () => {
     setRedirected(true);
     
     if (user) {
-      console.log('User authenticated, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
     } else {
-      console.log('No user, redirecting to auth');
-      navigate('/auth', { replace: true });
+      // Rediriger vers la landing page au lieu de /auth directement
+      navigate('/landing', { replace: true });
     }
   }, [user, loading, navigate, redirected]);
 
