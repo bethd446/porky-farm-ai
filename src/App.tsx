@@ -1,107 +1,79 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { Loader2 } from "lucide-react";
-import { lazy, Suspense } from "react";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
-// Lazy load pages
-const Index = lazy(() => import("./pages/Index"));
-const Landing = lazy(() => import("./pages/Landing"));
-const Auth = lazy(() => import("./pages/Auth"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const PigsList = lazy(() => import("./pages/PigsList"));
-const Formulator = lazy(() => import("./pages/Formulator"));
-const Finances = lazy(() => import("./pages/Finances"));
-const Calendar = lazy(() => import("./pages/Calendar"));
-const Profile = lazy(() => import("./pages/Profile"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+// Pages
+import Landing from '@/pages/Landing';
+import Auth from '@/pages/Auth';
+import Dashboard from '@/pages/Dashboard';
+import PigsList from '@/pages/PigsList';
+import Formulator from '@/pages/Formulator';
+import Finances from '@/pages/Finances';
+import Calendar from '@/pages/Calendar';
 
-const queryClient = new QueryClient();
+// Layout
+import { AppLayout } from '@/components/layout/AppLayout';
 
-function LoadingSpinner() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  );
-}
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+function App() {
+  const [session, setSession] = useState<{ user: { id: string } } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session as { user: { id: string } } | null);
+      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session as { user: { id: string } } | null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse-soft">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  return <>{children}</>;
-}
-
-function AppRoutes() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/landing" element={<Landing />} />
-        <Route path="/auth" element={<Auth />} />
-        
-        {/* Protected Routes */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <AppLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/pigs" element={<PigsList />} />
-          <Route path="/formulator" element={<Formulator />} />
-          <Route path="/finances" element={<Finances />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/profile" element={<Profile />} />
-        </Route>
-
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={session ? <Navigate to="/dashboard" /> : <Landing />} />
+          <Route path="/auth" element={session ? <Navigate to="/dashboard" /> : <Auth />} />
+          
+          <Route element={session ? <AppLayout /> : <Navigate to="/auth" />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/pigs" element={<PigsList />} />
+            <Route path="/pigs/:id" element={<div>PigDetail - À implémenter</div>} />
+            <Route path="/formulator" element={<Formulator />} />
+            <Route path="/finances" element={<Finances />} />
+            <Route path="/calendar" element={<Calendar />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+      <Toaster position="top-right" />
+    </QueryClientProvider>
   );
 }
-
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner 
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: 'white',
-              color: '#18181b',
-              border: '1px solid #e4e4e7',
-            },
-          }}
-        />
-        <BrowserRouter>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-        </BrowserRouter>
-        <Analytics />
-        <SpeedInsights />
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
 
 export default App;

@@ -41,7 +41,6 @@ export default function Auth() {
 
   useEffect(() => {
     if (user && !authLoading) {
-      console.log('User authenticated, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
     }
   }, [user, authLoading, navigate]);

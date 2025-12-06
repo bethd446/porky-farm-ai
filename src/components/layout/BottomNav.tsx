@@ -14,7 +14,7 @@ export function BottomNav() {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 lg:hidden safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border lg:hidden safe-area-bottom">
       <div className="grid grid-cols-5 h-16">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -25,14 +25,14 @@ export function BottomNav() {
               key={item.path}
               to={item.path}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 transition-colors relative',
-                isActive ? 'text-green-600' : 'text-gray-500'
+                'flex flex-col items-center justify-center gap-1 transition-colors relative duration-300',
+                isActive ? 'text-primary' : 'text-muted-foreground'
               )}
             >
               <Icon className="w-5 h-5" />
               <span className="text-xs font-medium">{item.label}</span>
               {isActive && (
-                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-0.5 bg-green-600 rounded-full" />
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-0.5 bg-primary rounded-full" />
               )}
             </Link>
           );

@@ -73,6 +73,6 @@ if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_AUTH_TEST === 'true') {
   // Ne pas exécuter automatiquement pour éviter les problèmes
   // Peut être appelé manuellement depuis la console
   console.log('💡 Pour tester l\'authentification, exécutez: testAuthentication()');
-  (window as any).testAuthentication = testAuthentication;
+  (window as Window & { testAuthentication?: typeof testAuthentication }).testAuthentication = testAuthentication;
 }
 

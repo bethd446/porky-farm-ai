@@ -7,12 +7,10 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Vérification des variables d'environnement
 if (!SUPABASE_URL) {
-  console.error('❌ VITE_SUPABASE_URL is missing. Please check your environment variables.');
   throw new Error('VITE_SUPABASE_URL is required');
 }
 
 if (!SUPABASE_PUBLISHABLE_KEY) {
-  console.error('❌ VITE_SUPABASE_PUBLISHABLE_KEY is missing. Please check your environment variables.');
   throw new Error('VITE_SUPABASE_PUBLISHABLE_KEY is required');
 }
 
