@@ -48,7 +48,8 @@ Créer `.env.local` à la racine du projet :
 
 ```env
 # OpenAI API Key
-OPENAI_API_KEY=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
+# Voir CLE_OPENAI.md pour la clé complète
+OPENAI_API_KEY=votre_cle_openai_ici
 
 # Supabase (déjà configuré)
 NEXT_PUBLIC_SUPABASE_URL=https://cjzyvcrnwqejlplbkexg.supabase.co

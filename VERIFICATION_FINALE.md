@@ -66,7 +66,7 @@
 
 ### Configuration requise
 1. **Variables d'environnement Vercel** :
-   - `OPENAI_API_KEY` = `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`
+   - `OPENAI_API_KEY` = Voir `CLE_OPENAI.md` pour la clé complète
 
 2. **Icônes PWA** (à créer) :
    - `public/icon-192x192.png`
