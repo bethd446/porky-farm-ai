@@ -1,0 +1,265 @@
+"use client"
+
+import type React from "react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Camera, Loader2, Upload } from "lucide-react"
+
+export function AddAnimalForm() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    name: "",
+    tagNumber: "",
+    category: "",
+    breed: "",
+    birthDate: "",
+    weight: "",
+    acquisitionDate: "",
+    acquisitionPrice: "",
+    motherId: "",
+    fatherId: "",
+    notes: "",
+  })
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    // TODO: Save to Supabase
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    router.push("/dashboard/livestock")
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Photo Upload */}
+        <Card className="shadow-soft">
+          <CardHeader>
+            <CardTitle className="text-base">Photo de l'animal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex h-48 w-full items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/50">
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Upload className="h-10 w-10" />
+                  <span className="text-sm">Glissez ou cliquez</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" className="gap-2 bg-transparent">
+                  <Upload className="h-4 w-4" />
+                  Télécharger
+                </Button>
+                <Button type="button" variant="outline" className="gap-2 bg-transparent">
+                  <Camera className="h-4 w-4" />
+                  Prendre photo
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Main Info */}
+        <Card className="shadow-soft lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Informations principales</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nom / Identifiant</Label>
+                <Input
+                  id="name"
+                  placeholder="Ex: Truie #32"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tagNumber">Numéro de boucle</Label>
+                <Input
+                  id="tagNumber"
+                  placeholder="Ex: CI-2024-0032"
+                  value={formData.tagNumber}
+                  onChange={(e) => setFormData({ ...formData, tagNumber: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Catégorie</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="truie">Truie</SelectItem>
+                    <SelectItem value="verrat">Verrat</SelectItem>
+                    <SelectItem value="porcelet">Porcelet</SelectItem>
+                    <SelectItem value="porc_engraissement">Porc d'engraissement</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="breed">Race</Label>
+                <Select value={formData.breed} onValueChange={(value) => setFormData({ ...formData, breed: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="large_white">Large White</SelectItem>
+                    <SelectItem value="landrace">Landrace</SelectItem>
+                    <SelectItem value="duroc">Duroc</SelectItem>
+                    <SelectItem value="pietrain">Piétrain</SelectItem>
+                    <SelectItem value="croise">Croisé</SelectItem>
+                    <SelectItem value="local">Race locale</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="birthDate">Date de naissance</Label>
+                <Input
+                  id="birthDate"
+                  type="date"
+                  value={formData.birthDate}
+                  onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="weight">Poids actuel (kg)</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  placeholder="Ex: 185"
+                  value={formData.weight}
+                  onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Acquisition & Genealogy */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="shadow-soft">
+          <CardHeader>
+            <CardTitle className="text-base">Acquisition</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="acquisitionDate">Date d'acquisition</Label>
+              <Input
+                id="acquisitionDate"
+                type="date"
+                value={formData.acquisitionDate}
+                onChange={(e) => setFormData({ ...formData, acquisitionDate: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="acquisitionPrice">Prix d'achat (FCFA)</Label>
+              <Input
+                id="acquisitionPrice"
+                type="number"
+                placeholder="Ex: 150000"
+                value={formData.acquisitionPrice}
+                onChange={(e) => setFormData({ ...formData, acquisitionPrice: e.target.value })}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-soft">
+          <CardHeader>
+            <CardTitle className="text-base">Généalogie</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Mère</Label>
+              <Select
+                value={formData.motherId}
+                onValueChange={(value) => setFormData({ ...formData, motherId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner la mère" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Non renseigné</SelectItem>
+                  <SelectItem value="truie-32">Truie #32</SelectItem>
+                  <SelectItem value="truie-28">Truie #28</SelectItem>
+                  <SelectItem value="truie-45">Truie #45</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Père</Label>
+              <Select
+                value={formData.fatherId}
+                onValueChange={(value) => setFormData({ ...formData, fatherId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner le père" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Non renseigné</SelectItem>
+                  <SelectItem value="verrat-8">Verrat #8</SelectItem>
+                  <SelectItem value="verrat-5">Verrat #5</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Notes */}
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="text-base">Notes additionnelles</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Ajoutez des observations ou informations supplémentaires..."
+            className="min-h-24"
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Actions */}
+      <div className="flex justify-end gap-4">
+        <Button type="button" variant="outline" onClick={() => router.back()}>
+          Annuler
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Enregistrement...
+            </>
+          ) : (
+            "Enregistrer l'animal"
+          )}
+        </Button>
+      </div>
+    </form>
+  )
+}
