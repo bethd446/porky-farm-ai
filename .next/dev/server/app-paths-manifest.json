@@ -1,4 +1,6 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/chat/route": "app/api/chat/route.js",
   "/auth/login/page": "app/auth/login/page.js",
   "/dashboard/ai-assistant/page": "app/dashboard/ai-assistant/page.js",
   "/dashboard/feeding/page": "app/dashboard/feeding/page.js",

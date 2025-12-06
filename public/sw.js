@@ -2,7 +2,9 @@ const CACHE_NAME = 'porkyfarm-v1'
 const urlsToCache = [
   '/',
   '/dashboard',
-  '/app/globals.css',
+  '/manifest.json',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
 ]
 
 self.addEventListener('install', (event) => {
