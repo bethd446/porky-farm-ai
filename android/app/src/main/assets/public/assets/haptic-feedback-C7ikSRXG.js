@@ -1,0 +1,1 @@
+function n(){return"vibrate"in navigator}function t(i="medium"){if(!n())return;const a={light:10,medium:20,heavy:30,success:[10,50,20],warning:[20,50,20,50,20],error:[30,100,30,100,30]}[i];navigator.vibrate(a)}function c(){t("light")}function e(){t("medium")}function s(){t("success")}function u(){t("error")}export{e as a,s as b,u as c,c as h};
