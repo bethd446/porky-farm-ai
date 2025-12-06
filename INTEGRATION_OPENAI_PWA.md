@@ -44,11 +44,10 @@
 
 ### Variables d'environnement
 
-Créer `.env.local` à la racine du projet :
+Créer `.env.local` à la racine du projet (voir `CLE_OPENAI.md` pour la clé complète) :
 
 ```env
 # OpenAI API Key
-# Voir CLE_OPENAI.md pour la clé complète
 OPENAI_API_KEY=votre_cle_openai_ici
 
 # Supabase (déjà configuré)
@@ -62,7 +61,7 @@ NEXT_PUBLIC_WEATHER_API_KEY=
 ### Configuration Vercel
 
 Dans le dashboard Vercel, ajouter la variable d'environnement :
-- `OPENAI_API_KEY` = `votre_cle_openai_ici` (voir `.env.local.example`)
+- `OPENAI_API_KEY` = Voir `CLE_OPENAI.md` pour la clé complète
 
 ## 📱 Installation PWA
 
@@ -103,7 +102,7 @@ Tous les boutons ont été vérifiés et fonctionnent :
 ## 🚀 Déploiement
 
 1. **Variables d'environnement Vercel** :
-   - Ajouter `OPENAI_API_KEY` dans les variables d'environnement
+   - Ajouter `OPENAI_API_KEY` (voir `CLE_OPENAI.md`)
    - Redéployer l'application
 
 2. **Icônes PWA** :
@@ -126,4 +125,3 @@ Tous les boutons ont été vérifiés et fonctionnent :
 
 **Date** : $(date)
 **Statut** : ✅ Intégration OpenAI et PWA complétée
-

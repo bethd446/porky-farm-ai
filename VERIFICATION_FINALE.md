@@ -88,6 +88,7 @@
 ```bash
 OPENAI_API_KEY=votre_cle_openai_ici
 ```
+Voir `CLE_OPENAI.md` pour la clé complète.
 
 ### 2. Créer les icônes PWA
 - Créer `icon-192x192.png` (192x192px)
@@ -129,4 +130,3 @@ L'application est prête pour :
 
 **Date** : $(date)
 **Statut** : ✅ Application prête pour publication
-
