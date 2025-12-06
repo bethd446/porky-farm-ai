@@ -1,0 +1,31 @@
+{
+  "sorted_middleware": [],
+  "middleware": {
+    "/": {
+      "files": [
+        "server/edge/chunks/Desktop_PorcPro_f73ca01c._.js",
+        "server/edge/chunks/[root-of-the-server]__8de43ea3._.js",
+        "server/edge/chunks/turbopack-Desktop_PorcPro_edge-wrapper_27f28b3b.js"
+      ],
+      "name": "middleware",
+      "page": "/",
+      "matchers": [
+        {
+          "regexp": "/:nextData(_next/data/[^/]{1,})?/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*){(\\\\.json)}?",
+          "originalSource": "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "development",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "39RsAsxqKVM0+iCNp+JeLnWp+dm0DCnijEQl0FcQpU8=",
+        "__NEXT_PREVIEW_MODE_ID": "ed26e868a68a0b2bed613b8f2f435a07",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "32f9d670aa7ad2d117397dee93295cbdd4ca90fd01a8dbbb894468bff08bb6ba",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "a034fe34d53d7670a3792fb5a07c0c138f5d1f7bc841c0914f587ad7ef31abf4"
+      }
+    }
+  },
+  "instrumentation": null,
+  "functions": {}
+}

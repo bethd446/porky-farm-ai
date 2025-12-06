@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Bell, Search, Sun, Cloud, CloudRain, MapPin } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -76,11 +77,13 @@ export function DashboardHeader() {
         </Button>
 
         {/* Profile */}
-        <button className="flex items-center gap-2 rounded-full p-1 transition hover:bg-muted">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-            {firstName.charAt(0).toUpperCase()}
-          </div>
-        </button>
+        <Link href="/dashboard/profile">
+          <button className="flex items-center gap-2 rounded-full p-1 transition hover:bg-muted">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
+              {firstName.charAt(0).toUpperCase()}
+            </div>
+          </button>
+        </Link>
       </div>
     </header>
   )

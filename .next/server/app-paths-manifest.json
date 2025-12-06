@@ -1,0 +1,20 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/auth/login/page": "app/auth/login/page.js",
+  "/auth/register/page": "app/auth/register/page.js",
+  "/dashboard/ai-assistant/page": "app/dashboard/ai-assistant/page.js",
+  "/dashboard/feeding/page": "app/dashboard/feeding/page.js",
+  "/dashboard/health/page": "app/dashboard/health/page.js",
+  "/dashboard/livestock/[id]/page": "app/dashboard/livestock/[id]/page.js",
+  "/dashboard/livestock/add/page": "app/dashboard/livestock/add/page.js",
+  "/dashboard/livestock/boars/page": "app/dashboard/livestock/boars/page.js",
+  "/dashboard/livestock/page": "app/dashboard/livestock/page.js",
+  "/dashboard/livestock/piglets/page": "app/dashboard/livestock/piglets/page.js",
+  "/dashboard/livestock/sows/page": "app/dashboard/livestock/sows/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/profile/page": "app/dashboard/profile/page.js",
+  "/dashboard/reproduction/page": "app/dashboard/reproduction/page.js",
+  "/dashboard/settings/page": "app/dashboard/settings/page.js",
+  "/page": "app/page.js"
+}

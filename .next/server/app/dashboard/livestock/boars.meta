@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/dashboard/layout,_N_T_/dashboard/livestock/layout,_N_T_/dashboard/livestock/boars/layout,_N_T_/dashboard/livestock/boars/page,_N_T_/dashboard/livestock/boars"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/dashboard/livestock/boars/__PAGE__",
+    "/dashboard/livestock/boars",
+    "/dashboard/livestock",
+    "/dashboard",
+    "/_index",
+    "/_head"
+  ]
+}

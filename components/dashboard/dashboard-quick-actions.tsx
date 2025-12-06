@@ -13,18 +13,24 @@ export function DashboardQuickActions() {
           Ajouter animal
         </Button>
       </Link>
-      <Button variant="outline" className="gap-2 bg-transparent">
-        <Camera className="h-4 w-4" />
-        Prendre photo
-      </Button>
-      <Button variant="outline" className="gap-2 bg-transparent">
-        <Stethoscope className="h-4 w-4" />
-        Signaler maladie
-      </Button>
-      <Button variant="outline" className="gap-2 bg-transparent">
-        <FileText className="h-4 w-4" />
-        Rapport
-      </Button>
+      <Link href="/dashboard/livestock/add">
+        <Button variant="outline" className="gap-2 bg-transparent">
+          <Camera className="h-4 w-4" />
+          Prendre photo
+        </Button>
+      </Link>
+      <Link href="/dashboard/health">
+        <Button variant="outline" className="gap-2 bg-transparent">
+          <Stethoscope className="h-4 w-4" />
+          Signaler maladie
+        </Button>
+      </Link>
+      <Link href="/dashboard/settings">
+        <Button variant="outline" className="gap-2 bg-transparent">
+          <FileText className="h-4 w-4" />
+          Rapport
+        </Button>
+      </Link>
     </div>
   )
 }
