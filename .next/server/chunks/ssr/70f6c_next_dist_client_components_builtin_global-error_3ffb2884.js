@@ -1,3 +1,0 @@
-module.exports=[47582,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(34404);a.n(d("[project]/Desktop/PorcPro/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},75499,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(34404);a.n(d("[project]/Desktop/PorcPro/node_modules/next/dist/client/components/builtin/global-error.js"))},75352,a=>{"use strict";a.i(47582);var b=a.i(75499);a.n(b)}];
-
-//# sourceMappingURL=70f6c_next_dist_client_components_builtin_global-error_3ffb2884.js.map

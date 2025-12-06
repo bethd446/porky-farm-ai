@@ -92,38 +92,15 @@ export default function AnimalDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            className="gap-2 bg-transparent"
-            onClick={() => {
-              // TODO: Ouvrir modal pour prendre/uploader photo
-              alert("Fonctionnalité photo à venir")
-            }}
-          >
+          <Button variant="outline" className="gap-2 bg-transparent">
             <Camera className="h-4 w-4" />
             Photo
           </Button>
-          <Button 
-            variant="outline" 
-            className="gap-2 bg-transparent"
-            onClick={() => {
-              // TODO: Ouvrir modal pour modifier l'animal
-              alert("Fonctionnalité modification à venir")
-            }}
-          >
+          <Button variant="outline" className="gap-2 bg-transparent">
             <Edit className="h-4 w-4" />
             Modifier
           </Button>
-          <Button 
-            variant="destructive" 
-            size="icon"
-            onClick={() => {
-              if (confirm("Êtes-vous sûr de vouloir supprimer cet animal ?")) {
-                // TODO: Implémenter la suppression
-                alert("Fonctionnalité suppression à venir")
-              }
-            }}
-          >
+          <Button variant="destructive" size="icon">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -255,11 +232,9 @@ export default function AnimalDetailPage() {
                     <span>Dernière vaccination</span>
                     <span className="font-medium">{animal.lastVaccination}</span>
                   </div>
-                  <Link href="/dashboard/health/vaccination-calendar">
-                    <Button variant="outline" className="w-full bg-transparent">
-                      Voir le calendrier vaccinal
-                    </Button>
-                  </Link>
+                  <Button variant="outline" className="w-full bg-transparent">
+                    Voir le calendrier vaccinal
+                  </Button>
                 </CardContent>
               </Card>
 

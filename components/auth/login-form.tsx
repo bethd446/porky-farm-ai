@@ -48,12 +48,9 @@ export function LoginForm() {
 
       if (data?.session) {
         console.log("[v0] Login successful! User:", data.user?.email)
-        console.log("[v0] Session stored, waiting for persistence...")
+        console.log("[v0] Session stored, redirecting to dashboard...")
         setSuccess(true)
 
-        await new Promise((resolve) => setTimeout(resolve, 300))
-
-        console.log("[v0] Navigating to dashboard...")
         window.location.href = "/dashboard"
       }
     } catch (err) {

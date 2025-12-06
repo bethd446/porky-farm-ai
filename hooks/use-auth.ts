@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import type { User, Session } from "@supabase/supabase-js"
-import { supabase } from "@/lib/supabase/client"
+import { supabase, type User, type Session } from "@/lib/supabase/client"
 import type { Profile } from "@/lib/supabase/types"
 
 export function useAuth() {
@@ -14,7 +13,7 @@ export function useAuth() {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data } = await supabase.from("profiles").select("*").eq("id", userId).single()
     if (data) {
-      setProfile(data)
+      setProfile(data as Profile)
     }
   }, [])
 
@@ -54,10 +53,7 @@ export function useAuth() {
   }, [fetchProfile])
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     return { data, error }
   }
 
@@ -66,10 +62,7 @@ export function useAuth() {
       email,
       password,
       options: {
-        emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
-        data: {
-          full_name: fullName,
-        },
+        data: { full_name: fullName },
       },
     })
     return { data, error }
@@ -86,7 +79,7 @@ export function useAuth() {
     const { data, error } = await supabase.from("profiles").update(updates).eq("id", user.id).select().single()
 
     if (data) {
-      setProfile(data)
+      setProfile(data as Profile)
     }
 
     return { data, error }

@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -109,7 +108,6 @@ interface LivestockCategoryListProps {
 }
 
 export function LivestockCategoryList({ category }: LivestockCategoryListProps) {
-  const router = useRouter()
   const animals = allAnimals.filter(animal => animal.type === category)
 
   if (animals.length === 0) {
@@ -147,26 +145,15 @@ export function LivestockCategoryList({ category }: LivestockCategoryListProps) 
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => router.push(`/dashboard/livestock/${animal.id}`)}>
+                  <DropdownMenuItem>
                     <Eye className="mr-2 h-4 w-4" />
                     Voir détails
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => {
-                    // TODO: Ouvrir modal pour modifier
-                    alert("Fonctionnalité modification à venir")
-                  }}>
+                  <DropdownMenuItem>
                     <Edit className="mr-2 h-4 w-4" />
                     Modifier
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="text-destructive"
-                    onClick={() => {
-                      if (confirm(`Êtes-vous sûr de vouloir supprimer ${animal.name} ?`)) {
-                        // TODO: Implémenter la suppression
-                        alert("Fonctionnalité suppression à venir")
-                      }
-                    }}
-                  >
+                  <DropdownMenuItem className="text-destructive">
                     <Trash2 className="mr-2 h-4 w-4" />
                     Supprimer
                   </DropdownMenuItem>

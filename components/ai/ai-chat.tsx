@@ -1,149 +1,133 @@
 "use client"
 
-import { useState } from "react"
+import type React from "react"
+
+import { useChat } from "ai/react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Send, Bot, User, Sparkles, Loader2 } from "lucide-react"
+import { Send, Bot, User, Sparkles, Loader2, RefreshCw } from "lucide-react"
+import { useEffect, useRef } from "react"
 
 const suggestedQuestions = [
   "Quel est le meilleur régime pour une truie gestante ?",
   "Comment reconnaître les signes de mise-bas imminente ?",
   "Quelle est la durée normale d'allaitement ?",
   "Comment prévenir la diarrhée chez les porcelets ?",
+  "Quel calendrier vaccinal pour mon élevage ?",
+  "Comment calculer la ration alimentaire ?",
 ]
 
-interface Message {
-  id: number
-  role: "user" | "assistant"
-  content: string
-}
-
 export function AIChat() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      role: "assistant",
-      content:
-        "Bonjour ! Je suis votre assistant IA spécialisé en élevage porcin en Côte d'Ivoire. Comment puis-je vous aider aujourd'hui ? Vous pouvez me poser des questions sur l'alimentation, la santé, la reproduction ou tout autre aspect de la gestion de votre élevage.",
-    },
-  ])
-  const [input, setInput] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return
-
-    const userMessage: Message = {
-      id: Date.now(),
-      role: "user",
-      content: input,
-    }
-
-    const question = input.trim()
-    setMessages((prev) => [...prev, userMessage])
-    setInput("")
-    setIsLoading(true)
-
-    try {
-      // Préparer l'historique de conversation (derniers 10 messages)
-      const conversationHistory = messages
-        .slice(-10)
-        .map((msg) => ({
-          role: msg.role === "user" ? "user" : "assistant",
-          content: msg.content,
-        }))
-
-      // Appeler l'API OpenAI via notre route API
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: question,
-          conversationHistory,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Erreur API")
-      }
-
-      const data = await response.json()
-      const aiResponse: Message = {
-        id: Date.now() + 1,
+  const { messages, input, handleInputChange, handleSubmit, isLoading, reload, error } = useChat({
+    api: "/api/chat",
+    initialMessages: [
+      {
+        id: "welcome",
         role: "assistant",
-        content: data.response || "Désolé, je n'ai pas pu générer de réponse.",
-      }
+        content:
+          "Bonjour ! Je suis **PorkyAssistant**, votre conseiller IA spécialisé en élevage porcin. 🐷\n\nJe peux vous aider sur :\n- **Alimentation** : rations, besoins nutritionnels\n- **Reproduction** : gestation, mise-bas, sevrage\n- **Santé** : prévention, vaccinations, traitements\n- **Gestion** : suivi du cheptel, rentabilité\n\nComment puis-je vous aider aujourd'hui ?",
+      },
+    ],
+  })
 
-      setMessages((prev) => [...prev, aiResponse])
-    } catch (error) {
-      console.error("Erreur assistant IA:", error)
-      const errorResponse: Message = {
-        id: Date.now() + 1,
-        role: "assistant",
-        content: "Désolé, une erreur s'est produite. Veuillez réessayer.",
-      }
-      setMessages((prev) => [...prev, errorResponse])
-    } finally {
-      setIsLoading(false)
-    }
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  const handleQuestionClick = (question: string) => {
+    handleInputChange({ target: { value: question } } as React.ChangeEvent<HTMLInputElement>)
   }
 
   return (
-    <Card className="flex h-[calc(100vh-200px)] flex-col shadow-soft">
+    <Card className="flex h-[calc(100vh-200px)] flex-col shadow-soft overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border bg-gradient-to-r from-primary/10 to-transparent px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
+            <Bot className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground">PorkyAssistant</h3>
+            <p className="text-xs text-muted-foreground">Expert en élevage porcin</p>
+          </div>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => reload()} disabled={isLoading}>
+          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div key={message.id} className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}>
             <div
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                message.role === "user" ? "bg-primary" : "bg-muted"
+                message.role === "user" ? "bg-primary" : "bg-gradient-to-br from-primary to-primary-dark"
               }`}
             >
               {message.role === "user" ? (
                 <User className="h-5 w-5 text-white" />
               ) : (
-                <Bot className="h-5 w-5 text-primary" />
+                <Bot className="h-5 w-5 text-white" />
               )}
             </div>
             <div
               className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                message.role === "user" ? "bg-primary text-white" : "bg-muted text-foreground"
+                message.role === "user" ? "bg-primary text-white" : "bg-muted text-foreground border border-border"
               }`}
             >
-              <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+              <div
+                className="whitespace-pre-wrap text-sm prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{
+                  __html: message.content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br/>"),
+                }}
+              />
             </div>
           </div>
         ))}
 
         {isLoading && (
           <div className="flex gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-              <Bot className="h-5 w-5 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dark">
+              <Bot className="h-5 w-5 text-white" />
             </div>
-            <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-3">
+            <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-3 border border-border">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <span className="text-sm text-muted-foreground">Réflexion en cours...</span>
             </div>
           </div>
         )}
+
+        {error && (
+          <div className="flex gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/20">
+              <Bot className="h-5 w-5 text-destructive" />
+            </div>
+            <div className="rounded-2xl bg-destructive/10 px-4 py-3 border border-destructive/20">
+              <p className="text-sm text-destructive">Une erreur est survenue. Veuillez réessayer.</p>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Suggested Questions */}
-      {messages.length === 1 && (
-        <div className="border-t border-border px-4 py-3">
-          <p className="mb-2 text-xs font-medium text-muted-foreground">
-            <Sparkles className="mr-1 inline h-3 w-3" />
+      {messages.length <= 1 && (
+        <div className="border-t border-border px-4 py-3 bg-muted/30">
+          <p className="mb-2 text-xs font-medium text-muted-foreground flex items-center gap-1">
+            <Sparkles className="h-3 w-3 text-primary" />
             Questions suggérées
           </p>
           <div className="flex flex-wrap gap-2">
             {suggestedQuestions.map((q, i) => (
               <button
                 key={i}
-                onClick={() => setInput(q)}
-                className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                onClick={() => handleQuestionClick(q)}
+                className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-all hover:bg-primary hover:text-white hover:border-primary"
               >
                 {q}
               </button>
@@ -153,18 +137,12 @@ export function AIChat() {
       )}
 
       {/* Input */}
-      <div className="border-t border-border p-4">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            handleSend()
-          }}
-          className="flex gap-2"
-        >
+      <div className="border-t border-border p-4 bg-background">
+        <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Posez votre question..."
+            onChange={handleInputChange}
+            placeholder="Posez votre question sur l'élevage porcin..."
             className="flex-1"
             disabled={isLoading}
           />
@@ -173,7 +151,7 @@ export function AIChat() {
             className="bg-primary text-white hover:bg-primary-dark"
             disabled={!input.trim() || isLoading}
           >
-            <Send className="h-4 w-4" />
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>
       </div>
