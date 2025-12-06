@@ -156,7 +156,7 @@ function AIChat() {
         {
             id: 1,
             role: "assistant",
-            content: "Bonjour ! Je suis votre assistant IA spécialisé en élevage porcin. Comment puis-je vous aider aujourd'hui ? Vous pouvez me poser des questions sur l'alimentation, la santé, la reproduction ou tout autre aspect de la gestion de votre élevage."
+            content: "Bonjour ! Je suis votre assistant IA spécialisé en élevage porcin en Côte d'Ivoire. Comment puis-je vous aider aujourd'hui ? Vous pouvez me poser des questions sur l'alimentation, la santé, la reproduction ou tout autre aspect de la gestion de votre élevage."
         }
     ]);
     const [input, setInput] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
@@ -168,24 +168,57 @@ function AIChat() {
             role: "user",
             content: input
         };
+        const question = input.trim();
         setMessages((prev)=>[
                 ...prev,
                 userMessage
             ]);
         setInput("");
         setIsLoading(true);
-        // Simulate AI response
-        await new Promise((resolve)=>setTimeout(resolve, 1500));
-        const aiResponse = {
-            id: Date.now() + 1,
-            role: "assistant",
-            content: "Merci pour votre question ! Voici mes recommandations basées sur les meilleures pratiques d'élevage porcin...\n\n**Points clés :**\n- Surveillez régulièrement l'état de santé de vos animaux\n- Adaptez l'alimentation selon le stade physiologique\n- Maintenez une bonne hygiène dans les bâtiments\n\nN'hésitez pas à me poser d'autres questions !"
-        };
-        setMessages((prev)=>[
-                ...prev,
-                aiResponse
-            ]);
-        setIsLoading(false);
+        try {
+            // Préparer l'historique de conversation (derniers 10 messages)
+            const conversationHistory = messages.slice(-10).map((msg)=>({
+                    role: msg.role === "user" ? "user" : "assistant",
+                    content: msg.content
+                }));
+            // Appeler l'API OpenAI via notre route API
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: question,
+                    conversationHistory
+                })
+            });
+            if (!response.ok) {
+                throw new Error("Erreur API");
+            }
+            const data = await response.json();
+            const aiResponse = {
+                id: Date.now() + 1,
+                role: "assistant",
+                content: data.response || "Désolé, je n'ai pas pu générer de réponse."
+            };
+            setMessages((prev)=>[
+                    ...prev,
+                    aiResponse
+                ]);
+        } catch (error) {
+            console.error("Erreur assistant IA:", error);
+            const errorResponse = {
+                id: Date.now() + 1,
+                role: "assistant",
+                content: "Désolé, une erreur s'est produite. Veuillez réessayer."
+            };
+            setMessages((prev)=>[
+                    ...prev,
+                    errorResponse
+                ]);
+        } finally{
+            setIsLoading(false);
+        }
     };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
         className: "flex h-[calc(100vh-200px)] flex-col shadow-soft",
@@ -202,18 +235,18 @@ function AIChat() {
                                         className: "h-5 w-5 text-white"
                                     }, void 0, false, {
                                         fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                        lineNumber: 73,
+                                        lineNumber: 106,
                                         columnNumber: 17
                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$bot$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Bot$3e$__["Bot"], {
                                         className: "h-5 w-5 text-primary"
                                     }, void 0, false, {
                                         fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                        lineNumber: 75,
+                                        lineNumber: 108,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                    lineNumber: 67,
+                                    lineNumber: 100,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -223,18 +256,18 @@ function AIChat() {
                                         children: message.content
                                     }, void 0, false, {
                                         fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                        lineNumber: 83,
+                                        lineNumber: 116,
                                         columnNumber: 15
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                    lineNumber: 78,
+                                    lineNumber: 111,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, message.id, true, {
                             fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                            lineNumber: 66,
+                            lineNumber: 99,
                             columnNumber: 11
                         }, this)),
                     isLoading && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -246,12 +279,12 @@ function AIChat() {
                                     className: "h-5 w-5 text-primary"
                                 }, void 0, false, {
                                     fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                    lineNumber: 91,
+                                    lineNumber: 124,
                                     columnNumber: 15
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                lineNumber: 90,
+                                lineNumber: 123,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -261,7 +294,7 @@ function AIChat() {
                                         className: "h-4 w-4 animate-spin text-primary"
                                     }, void 0, false, {
                                         fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                        lineNumber: 94,
+                                        lineNumber: 127,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -269,25 +302,25 @@ function AIChat() {
                                         children: "Réflexion en cours..."
                                     }, void 0, false, {
                                         fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                        lineNumber: 95,
+                                        lineNumber: 128,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                lineNumber: 93,
+                                lineNumber: 126,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                        lineNumber: 89,
+                        lineNumber: 122,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                lineNumber: 64,
+                lineNumber: 97,
                 columnNumber: 7
             }, this),
             messages.length === 1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -300,14 +333,14 @@ function AIChat() {
                                 className: "mr-1 inline h-3 w-3"
                             }, void 0, false, {
                                 fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                lineNumber: 105,
+                                lineNumber: 138,
                                 columnNumber: 13
                             }, this),
                             "Questions suggérées"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                        lineNumber: 104,
+                        lineNumber: 137,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -318,18 +351,18 @@ function AIChat() {
                                 children: q
                             }, i, false, {
                                 fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                lineNumber: 110,
+                                lineNumber: 143,
                                 columnNumber: 15
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                        lineNumber: 108,
+                        lineNumber: 141,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                lineNumber: 103,
+                lineNumber: 136,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -349,7 +382,7 @@ function AIChat() {
                             disabled: isLoading
                         }, void 0, false, {
                             fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                            lineNumber: 131,
+                            lineNumber: 164,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$PorcPro$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -360,33 +393,33 @@ function AIChat() {
                                 className: "h-4 w-4"
                             }, void 0, false, {
                                 fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                                lineNumber: 143,
+                                lineNumber: 176,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                            lineNumber: 138,
+                            lineNumber: 171,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                    lineNumber: 124,
+                    lineNumber: 157,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-                lineNumber: 123,
+                lineNumber: 156,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/Desktop/PorcPro/components/ai/ai-chat.tsx",
-        lineNumber: 62,
+        lineNumber: 95,
         columnNumber: 5
     }, this);
 }
-_s(AIChat, "iF1PD2WjU5oydvwaE/c73tkJPco=");
+_s(AIChat, "EvNQmb+w5/pRQEmmtcprFsRRkjs=");
 _c = AIChat;
 var _c;
 __turbopack_context__.k.register(_c, "AIChat");

@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -53,9 +54,11 @@ export function HealthVaccinations() {
     <Card className="shadow-soft">
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle className="text-base font-medium">Calendrier vaccinal</CardTitle>
-        <Button variant="ghost" size="sm">
-          Voir calendrier
-        </Button>
+        <Link href="/dashboard/health/vaccination-calendar">
+          <Button variant="ghost" size="sm">
+            Voir calendrier
+          </Button>
+        </Link>
       </CardHeader>
       <CardContent className="space-y-4">
         {vaccinations.map((vax) => (

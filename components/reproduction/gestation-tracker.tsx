@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -62,6 +63,8 @@ const gestations = [
 ]
 
 export function GestationTracker() {
+  const router = useRouter()
+  
   return (
     <Card className="shadow-soft">
       <CardHeader className="flex-row items-center justify-between">
@@ -69,7 +72,11 @@ export function GestationTracker() {
           <Baby className="h-5 w-5 text-pink-500" />
           Suivi des gestations
         </CardTitle>
-        <Button variant="outline" size="sm">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => router.push("/dashboard/reproduction")}
+        >
           Voir tout
         </Button>
       </CardHeader>

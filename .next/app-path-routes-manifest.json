@@ -1,11 +1,13 @@
 {
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
+  "/api/chat/route": "/api/chat",
   "/auth/login/page": "/auth/login",
   "/auth/register/page": "/auth/register",
   "/dashboard/ai-assistant/page": "/dashboard/ai-assistant",
   "/dashboard/feeding/page": "/dashboard/feeding",
   "/dashboard/health/page": "/dashboard/health",
+  "/dashboard/health/vaccination-calendar/page": "/dashboard/health/vaccination-calendar",
   "/dashboard/livestock/[id]/page": "/dashboard/livestock/[id]",
   "/dashboard/livestock/add/page": "/dashboard/livestock/add",
   "/dashboard/livestock/boars/page": "/dashboard/livestock/boars",
@@ -14,6 +16,7 @@
   "/dashboard/livestock/sows/page": "/dashboard/livestock/sows",
   "/dashboard/page": "/dashboard",
   "/dashboard/profile/page": "/dashboard/profile",
+  "/dashboard/reproduction/calendar/page": "/dashboard/reproduction/calendar",
   "/dashboard/reproduction/page": "/dashboard/reproduction",
   "/dashboard/settings/page": "/dashboard/settings",
   "/page": "/"

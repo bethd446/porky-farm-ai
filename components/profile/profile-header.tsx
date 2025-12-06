@@ -1,13 +1,19 @@
 "use client"
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Camera, MapPin, Calendar, Edit } from "lucide-react"
 import { useAuthContext } from "@/contexts/auth-context"
+import { EditProfileDialog } from "./edit-profile-dialog"
+import { UploadAvatarDialog } from "./upload-avatar-dialog"
 
 export function ProfileHeader() {
   const { profile } = useAuthContext()
+  const [editProfileOpen, setEditProfileOpen] = useState(false)
+  const [uploadAvatarOpen, setUploadAvatarOpen] = useState(false)
 
   return (
+    <>
     <Card className="relative overflow-hidden shadow-md">
       {/* Cover Image */}
       <div className="h-32 bg-gradient-to-r from-primary to-primary/70 md:h-48" />
@@ -19,7 +25,10 @@ export function ProfileHeader() {
             <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-card bg-primary text-3xl font-bold text-primary-foreground shadow-lg md:h-32 md:w-32 md:text-4xl">
               {profile?.full_name?.charAt(0).toUpperCase() || "U"}
             </div>
-            <button className="absolute bottom-0 right-0 rounded-full bg-primary p-2 text-primary-foreground shadow-lg">
+            <button 
+              onClick={() => setUploadAvatarOpen(true)}
+              className="absolute bottom-0 right-0 rounded-full bg-primary p-2 text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
+            >
               <Camera className="h-4 w-4" />
             </button>
           </div>
@@ -42,7 +51,11 @@ export function ProfileHeader() {
                 </span>
               </div>
             </div>
-            <Button variant="outline" className="gap-2 bg-transparent">
+            <Button 
+              variant="outline" 
+              className="gap-2 bg-transparent"
+              onClick={() => setEditProfileOpen(true)}
+            >
               <Edit className="h-4 w-4" />
               Modifier le profil
             </Button>
@@ -50,5 +63,9 @@ export function ProfileHeader() {
         </div>
       </div>
     </Card>
+
+    <EditProfileDialog open={editProfileOpen} onOpenChange={setEditProfileOpen} />
+    <UploadAvatarDialog open={uploadAvatarOpen} onOpenChange={setUploadAvatarOpen} />
+    </>
   )
 }

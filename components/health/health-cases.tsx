@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -45,11 +46,17 @@ const cases = [
 ]
 
 export function HealthCases() {
+  const router = useRouter()
+  
   return (
     <Card className="shadow-soft">
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle className="text-base font-medium">Cas sanitaires actifs</CardTitle>
-        <Button variant="ghost" size="sm">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => router.push("/dashboard/health")}
+        >
           Voir tout
         </Button>
       </CardHeader>

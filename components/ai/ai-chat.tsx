@@ -25,7 +25,7 @@ export function AIChat() {
       id: 1,
       role: "assistant",
       content:
-        "Bonjour ! Je suis votre assistant IA spécialisé en élevage porcin. Comment puis-je vous aider aujourd'hui ? Vous pouvez me poser des questions sur l'alimentation, la santé, la reproduction ou tout autre aspect de la gestion de votre élevage.",
+        "Bonjour ! Je suis votre assistant IA spécialisé en élevage porcin en Côte d'Ivoire. Comment puis-je vous aider aujourd'hui ? Vous pouvez me poser des questions sur l'alimentation, la santé, la reproduction ou tout autre aspect de la gestion de votre élevage.",
     },
   ])
   const [input, setInput] = useState("")
@@ -40,22 +40,55 @@ export function AIChat() {
       content: input,
     }
 
+    const question = input.trim()
     setMessages((prev) => [...prev, userMessage])
     setInput("")
     setIsLoading(true)
 
-    // Simulate AI response
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      // Préparer l'historique de conversation (derniers 10 messages)
+      const conversationHistory = messages
+        .slice(-10)
+        .map((msg) => ({
+          role: msg.role === "user" ? "user" : "assistant",
+          content: msg.content,
+        }))
 
-    const aiResponse: Message = {
-      id: Date.now() + 1,
-      role: "assistant",
-      content:
-        "Merci pour votre question ! Voici mes recommandations basées sur les meilleures pratiques d'élevage porcin...\n\n**Points clés :**\n- Surveillez régulièrement l'état de santé de vos animaux\n- Adaptez l'alimentation selon le stade physiologique\n- Maintenez une bonne hygiène dans les bâtiments\n\nN'hésitez pas à me poser d'autres questions !",
+      // Appeler l'API OpenAI via notre route API
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: question,
+          conversationHistory,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Erreur API")
+      }
+
+      const data = await response.json()
+      const aiResponse: Message = {
+        id: Date.now() + 1,
+        role: "assistant",
+        content: data.response || "Désolé, je n'ai pas pu générer de réponse.",
+      }
+
+      setMessages((prev) => [...prev, aiResponse])
+    } catch (error) {
+      console.error("Erreur assistant IA:", error)
+      const errorResponse: Message = {
+        id: Date.now() + 1,
+        role: "assistant",
+        content: "Désolé, une erreur s'est produite. Veuillez réessayer.",
+      }
+      setMessages((prev) => [...prev, errorResponse])
+    } finally {
+      setIsLoading(false)
     }
-
-    setMessages((prev) => [...prev, aiResponse])
-    setIsLoading(false)
   }
 
   return (

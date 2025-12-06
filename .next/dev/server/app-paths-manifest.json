@@ -11,6 +11,7 @@
   "/dashboard/livestock/sows/page": "app/dashboard/livestock/sows/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/dashboard/profile/page": "app/dashboard/profile/page.js",
+  "/dashboard/reproduction/calendar/page": "app/dashboard/reproduction/calendar/page.js",
   "/dashboard/reproduction/page": "app/dashboard/reproduction/page.js",
   "/dashboard/settings/page": "app/dashboard/settings/page.js",
   "/page": "app/page.js"

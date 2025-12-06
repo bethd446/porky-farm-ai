@@ -49,6 +49,12 @@
       "namedRegex": "^/_not\\-found(?:/)?$"
     },
     {
+      "page": "/api/chat",
+      "regex": "^/api/chat(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/chat(?:/)?$"
+    },
+    {
       "page": "/auth/login",
       "regex": "^/auth/login(?:/)?$",
       "routeKeys": {},
@@ -83,6 +89,12 @@
       "regex": "^/dashboard/health(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/dashboard/health(?:/)?$"
+    },
+    {
+      "page": "/dashboard/health/vaccination-calendar",
+      "regex": "^/dashboard/health/vaccination\\-calendar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard/health/vaccination\\-calendar(?:/)?$"
     },
     {
       "page": "/dashboard/livestock",
@@ -125,6 +137,12 @@
       "regex": "^/dashboard/reproduction(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/dashboard/reproduction(?:/)?$"
+    },
+    {
+      "page": "/dashboard/reproduction/calendar",
+      "regex": "^/dashboard/reproduction/calendar(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard/reproduction/calendar(?:/)?$"
     },
     {
       "page": "/dashboard/settings",

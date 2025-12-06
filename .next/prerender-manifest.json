@@ -177,6 +177,31 @@
         "x-next-revalidate-tag-token"
       ]
     },
+    "/dashboard/health/vaccination-calendar": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/dashboard/health/vaccination-calendar",
+      "dataRoute": "/dashboard/health/vaccination-calendar.rsc",
+      "prefetchDataRoute": null,
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
     "/dashboard/livestock/add": {
       "experimentalBypassFor": [
         {
@@ -342,6 +367,31 @@
       "initialRevalidateSeconds": false,
       "srcRoute": "/dashboard/profile",
       "dataRoute": "/dashboard/profile.rsc",
+      "prefetchDataRoute": null,
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
+    "/dashboard/reproduction/calendar": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/dashboard/reproduction/calendar",
+      "dataRoute": "/dashboard/reproduction/calendar.rsc",
       "prefetchDataRoute": null,
       "allowHeader": [
         "host",

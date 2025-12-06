@@ -2,38 +2,22 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Bell, Search, Sun, Cloud, CloudRain, MapPin } from "lucide-react"
+import { Bell, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useAuthContext } from "@/contexts/auth-context"
+import { NotificationsDialog } from "./notifications-dialog"
+import { WeatherWidget } from "@/components/weather/weather-widget"
 
 export function DashboardHeader() {
   const { profile } = useAuthContext()
-  const [weather, setWeather] = useState({
-    temp: 28,
-    condition: "sunny",
-    humidity: 65,
-    location: "Abidjan, CI",
-  })
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
     return () => clearInterval(timer)
   }, [])
-
-  const getWeatherIcon = () => {
-    switch (weather.condition) {
-      case "sunny":
-        return <Sun className="h-5 w-5 text-amber-500" />
-      case "cloudy":
-        return <Cloud className="h-5 w-5 text-gray-500" />
-      case "rainy":
-        return <CloudRain className="h-5 w-5 text-blue-500" />
-      default:
-        return <Sun className="h-5 w-5 text-amber-500" />
-    }
-  }
 
   const firstName = profile?.full_name?.split(" ")[0] || "Utilisateur"
 
@@ -54,13 +38,7 @@ export function DashboardHeader() {
 
       <div className="flex items-center gap-3">
         {/* Weather Widget */}
-        <div className="hidden items-center gap-2 rounded-full bg-muted px-4 py-2 lg:flex">
-          {getWeatherIcon()}
-          <span className="text-sm font-medium">{weather.temp}°C</span>
-          <div className="h-4 w-px bg-border" />
-          <MapPin className="h-3 w-3 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">{weather.location}</span>
-        </div>
+        <WeatherWidget />
 
         {/* Search */}
         <div className="relative hidden md:block">
@@ -69,7 +47,12 @@ export function DashboardHeader() {
         </div>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative rounded-full">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="relative rounded-full"
+          onClick={() => setNotificationsOpen(true)}
+        >
           <Bell className="h-5 w-5" />
           <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
             3
@@ -85,6 +68,8 @@ export function DashboardHeader() {
           </button>
         </Link>
       </div>
+
+      <NotificationsDialog open={notificationsOpen} onOpenChange={setNotificationsOpen} />
     </header>
   )
 }
