@@ -1,8 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { AuthProvider, useAuth } from '@/hooks/useAuth';
 
 // Pages
 import Landing from '@/pages/Landing';
@@ -25,24 +24,28 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
-  const [session, setSession] = useState<{ user: { id: string } } | null>(null);
-  const [loading, setLoading] = useState(true);
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session as { user: { id: string } } | null);
-      setLoading(false);
-    });
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse-soft">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session as { user: { id: string } } | null);
-    });
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
 
-    return () => subscription.unsubscribe();
-  }, []);
+  return <>{children}</>;
+}
+
+function AppRoutes() {
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -55,21 +58,35 @@ function App() {
   }
 
   return (
+    <Routes>
+      <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
+      <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
+      
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/pigs" element={<PigsList />} />
+        <Route path="/pigs/:id" element={<div>PigDetail - À implémenter</div>} />
+        <Route path="/formulator" element={<Formulator />} />
+        <Route path="/finances" element={<Finances />} />
+        <Route path="/calendar" element={<Calendar />} />
+      </Route>
+    </Routes>
+  );
+}
+
+function App() {
+  return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={session ? <Navigate to="/dashboard" /> : <Landing />} />
-          <Route path="/auth" element={session ? <Navigate to="/dashboard" /> : <Auth />} />
-          
-          <Route element={session ? <AppLayout /> : <Navigate to="/auth" />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/pigs" element={<PigsList />} />
-            <Route path="/pigs/:id" element={<div>PigDetail - À implémenter</div>} />
-            <Route path="/formulator" element={<Formulator />} />
-            <Route path="/finances" element={<Finances />} />
-            <Route path="/calendar" element={<Calendar />} />
-          </Route>
-        </Routes>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </BrowserRouter>
       <Toaster position="top-right" />
     </QueryClientProvider>

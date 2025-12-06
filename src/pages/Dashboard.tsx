@@ -20,7 +20,7 @@ export default function Dashboard() {
       ]);
       
       const revenue = transactionsRes.data
-        ?.filter(t => t.type === 'revenue')
+        ?.filter(t => t.type === 'income')
         .reduce((sum, t) => sum + t.amount, 0) || 0;
       
       const expenses = transactionsRes.data

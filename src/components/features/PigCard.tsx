@@ -3,17 +3,17 @@ import { Link } from 'react-router-dom';
 import { Heart, Scale, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Pig } from '@/types/database';
+import { Pig, PigStatus as DatabasePigStatus } from '@/types/database';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-export type PigStatus = 'active' | 'for-sale' | 'sick';
+export type PigCardStatus = 'active' | 'for-sale' | 'sick';
 
 interface PigCardProps {
   pig: Pig;
 }
 
-const statusStyles: Record<PigStatus, { 
+const statusStyles: Record<PigCardStatus, { 
   border: string;
   label: string;
   badge: string;
@@ -33,7 +33,7 @@ const statusStyles: Record<PigStatus, {
   },
   sick: {
     border: 'border-destructive/30 hover:border-destructive/60',
-    label: 'Malade',
+    label: 'Décédé',
     badge: 'bg-destructive/10 text-destructive',
     glow: 'group-hover:shadow-destructive/20',
   },
@@ -87,11 +87,22 @@ function calculateHealthScore(pig: Pig): number {
 
 /**
  * Mapper le statut de la base de données vers le statut du card
+ * Gère tous les statuts de la base de données correctement
  */
-function mapStatus(status: string): PigStatus {
-  if (status === 'sold') return 'for-sale';
-  if (status === 'deceased') return 'sick';
-  return 'active';
+function mapStatus(status: DatabasePigStatus): PigCardStatus {
+  switch (status) {
+    case 'sold':
+      return 'for-sale';
+    case 'deceased':
+      return 'sick'; // Décédé affiché comme "Décédé"
+    case 'breeding':
+      return 'active'; // En reproduction affiché comme "Actif"
+    case 'active':
+      return 'active';
+    default:
+      // TypeScript devrait empêcher ce cas, mais par sécurité
+      return 'active';
+  }
 }
 
 export function PigCard({ pig }: PigCardProps) {
