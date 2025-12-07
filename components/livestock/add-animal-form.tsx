@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Camera, Upload, X, CheckCircle } from "lucide-react"
-import { useLivestock } from "@/contexts/livestock-context"
+import { useApp } from "@/contexts/app-context"
 import { FormInput, FormSelect } from "@/components/common/form-field"
 import { FormStatus, SubmitButton } from "@/components/common/form-status"
 import { animalSchema, type AnimalFormData } from "@/lib/validations/schemas"
@@ -16,7 +16,7 @@ const categoryOptions = [
   { value: "truie", label: "Truie" },
   { value: "verrat", label: "Verrat" },
   { value: "porcelet", label: "Porcelet" },
-  { value: "porc_engraissement", label: "Porc d'engraissement" },
+  { value: "porc", label: "Porc d'engraissement" },
 ]
 
 const breedOptions = [
@@ -30,7 +30,7 @@ const breedOptions = [
 
 export function AddAnimalForm() {
   const router = useRouter()
-  const { addAnimal, animals } = useLivestock()
+  const { addAnimal, animals } = useApp()
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [errorMessage, setErrorMessage] = useState("")
@@ -54,7 +54,6 @@ export function AddAnimalForm() {
 
   const updateField = (field: keyof AnimalFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    // Clear error when user types
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }))
     }
@@ -82,7 +81,6 @@ export function AddAnimalForm() {
     setErrors({})
     setErrorMessage("")
 
-    // Validate with Zod
     const result = animalSchema.safeParse(formData)
     if (!result.success) {
       const fieldErrors: Record<string, string> = {}
@@ -97,30 +95,22 @@ export function AddAnimalForm() {
     setStatus("loading")
 
     try {
-      const categoryMap: Record<string, "sow" | "boar" | "piglet" | "fattening"> = {
-        truie: "sow",
-        verrat: "boar",
-        porcelet: "piglet",
-        porc_engraissement: "fattening",
-      }
-
-      const addResult = await addAnimal({
+      const newAnimal = addAnimal({
         name: formData.name,
         identifier: formData.tagNumber || formData.name,
-        category: categoryMap[formData.category] || "sow",
-        breed: formData.breed,
-        birth_date: formData.birthDate || undefined,
-        weight: formData.weight ? Number.parseFloat(formData.weight) : undefined,
-        status: "active",
-        acquisition_date: formData.acquisitionDate || undefined,
-        acquisition_price: formData.acquisitionPrice ? Number.parseFloat(formData.acquisitionPrice) : undefined,
-        mother_id: formData.motherId && formData.motherId !== "none" ? formData.motherId : undefined,
-        father_id: formData.fatherId && formData.fatherId !== "none" ? formData.fatherId : undefined,
+        category: formData.category as "truie" | "verrat" | "porcelet" | "porc",
+        breed: formData.breed || "Non renseigné",
+        birthDate: formData.birthDate || new Date().toISOString().split("T")[0],
+        weight: formData.weight ? Number.parseFloat(formData.weight) : 0,
+        status: "actif",
+        healthStatus: "bon",
+        photo: photo || undefined,
+        motherId: formData.motherId && formData.motherId !== "none" ? formData.motherId : undefined,
+        fatherId: formData.fatherId && formData.fatherId !== "none" ? formData.fatherId : undefined,
         notes: formData.notes || undefined,
-        image_url: photo || undefined,
       })
 
-      if (addResult) {
+      if (newAnimal) {
         setStatus("success")
         setTimeout(() => {
           router.push("/dashboard/livestock")
@@ -144,8 +134,8 @@ export function AddAnimalForm() {
     )
   }
 
-  const sows = animals.filter((a) => a.category === "sow" || a.type === "Truie")
-  const boars = animals.filter((a) => a.category === "boar" || a.type === "Verrat")
+  const sows = animals.filter((a) => a.category === "truie")
+  const boars = animals.filter((a) => a.category === "verrat")
 
   const parentOptions = (list: typeof animals) => [
     { value: "none", label: "Non renseigné" },

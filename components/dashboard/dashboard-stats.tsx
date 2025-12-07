@@ -1,17 +1,17 @@
 "use client"
 
 import { memo } from "react"
-import { useLivestock } from "@/contexts/livestock-context"
+import { useApp } from "@/contexts/app-context"
 import { PiggyBank, Baby, Stethoscope, TrendingUp } from "lucide-react"
 import { Card } from "@/components/ui/card"
 
 export const DashboardStats = memo(function DashboardStats() {
-  const { stats: livestockStats } = useLivestock()
+  const { stats } = useApp()
 
-  const stats = [
+  const statCards = [
     {
       label: "Total Cheptel",
-      value: livestockStats.total.toString(),
+      value: stats.totalAnimals.toString(),
       change: "+12",
       changeType: "positive" as const,
       icon: PiggyBank,
@@ -19,25 +19,25 @@ export const DashboardStats = memo(function DashboardStats() {
     },
     {
       label: "Truies Gestantes",
-      value: livestockStats.truies.toString(),
-      change: "+3",
+      value: stats.gestationsActives.toString(),
+      change: `${stats.truies} truies`,
       changeType: "positive" as const,
       icon: Baby,
       color: "bg-pink-500",
     },
     {
       label: "Cas Sanitaires",
-      value: "5",
-      change: "-2",
-      changeType: "positive" as const,
+      value: stats.cassSanteActifs.toString(),
+      change: stats.cassSanteActifs === 0 ? "Aucun cas" : "En cours",
+      changeType: stats.cassSanteActifs === 0 ? ("positive" as const) : ("negative" as const),
       icon: Stethoscope,
-      color: "bg-amber-500",
+      color: stats.cassSanteActifs === 0 ? "bg-green-500" : "bg-amber-500",
     },
     {
-      label: "Revenus du Mois",
-      value: "2.4M",
+      label: "Coût Alimentation",
+      value: stats.coutAlimentationMois > 0 ? `${(stats.coutAlimentationMois / 1000).toFixed(1)}K` : "0",
       suffix: " FCFA",
-      change: "+18%",
+      change: "Ce mois",
       changeType: "positive" as const,
       icon: TrendingUp,
       color: "bg-emerald-500",
@@ -46,7 +46,7 @@ export const DashboardStats = memo(function DashboardStats() {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat, i) => (
+      {statCards.map((stat, i) => (
         <Card key={i} className="p-6 shadow-soft">
           <div className="flex items-start justify-between">
             <div>
@@ -57,10 +57,10 @@ export const DashboardStats = memo(function DashboardStats() {
               </p>
               <p
                 className={`mt-1 text-xs font-medium ${
-                  stat.changeType === "positive" ? "text-green-600" : "text-red-600"
+                  stat.changeType === "positive" ? "text-green-600" : "text-amber-600"
                 }`}
               >
-                {stat.change} ce mois
+                {stat.change}
               </p>
             </div>
             <div className={`rounded-xl ${stat.color} p-3`}>

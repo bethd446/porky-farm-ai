@@ -1,68 +1,39 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useApp } from "@/contexts/app-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, Calendar, Syringe, Baby, X, Check, Eye } from "lucide-react"
-
-const initialAlerts = [
-  {
-    id: 1,
-    type: "warning",
-    icon: AlertTriangle,
-    title: "Truie #45 - Fièvre",
-    description: "Température élevée détectée",
-    time: "Il y a 2h",
-    color: "text-amber-500",
-    bg: "bg-amber-50",
-    link: "/dashboard/health",
-  },
-  {
-    id: 2,
-    type: "info",
-    icon: Syringe,
-    title: "Vaccination prévue",
-    description: "12 porcelets - Lot B23",
-    time: "Demain",
-    color: "text-blue-500",
-    bg: "bg-blue-50",
-    link: "/dashboard/health",
-  },
-  {
-    id: 3,
-    type: "success",
-    icon: Baby,
-    title: "Mise-bas imminente",
-    description: "Truie #32 - J+112",
-    time: "Dans 2 jours",
-    color: "text-pink-500",
-    bg: "bg-pink-50",
-    link: "/dashboard/reproduction",
-  },
-  {
-    id: 4,
-    type: "info",
-    icon: Calendar,
-    title: "Visite vétérinaire",
-    description: "Dr. Koffi - Contrôle mensuel",
-    time: "Vendredi",
-    color: "text-green-500",
-    bg: "bg-green-50",
-    link: "/dashboard/health",
-  },
-]
+import { AlertTriangle, Calendar, Syringe, Baby, Check, Eye } from "lucide-react"
 
 export function DashboardAlerts() {
   const router = useRouter()
-  const [alerts, setAlerts] = useState(initialAlerts)
+  const { alerts } = useApp()
 
-  const dismissAlert = (id: number) => {
-    setAlerts(alerts.filter((alert) => alert.id !== id))
+  const getAlertIcon = (type: string) => {
+    switch (type) {
+      case "health":
+        return AlertTriangle
+      case "gestation":
+        return Baby
+      case "vaccination":
+        return Syringe
+      default:
+        return Calendar
+    }
   }
 
-  const markAsRead = (id: number, link: string) => {
-    router.push(link)
+  const getAlertStyle = (priority: string) => {
+    switch (priority) {
+      case "critical":
+        return { color: "text-red-500", bg: "bg-red-50" }
+      case "high":
+        return { color: "text-amber-500", bg: "bg-amber-50" }
+      case "medium":
+        return { color: "text-blue-500", bg: "bg-blue-50" }
+      default:
+        return { color: "text-green-500", bg: "bg-green-50" }
+    }
   }
 
   return (
@@ -80,38 +51,39 @@ export function DashboardAlerts() {
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Check className="h-12 w-12 text-green-500 mb-2" />
             <p className="text-sm text-muted-foreground">Aucune alerte en cours</p>
+            <p className="text-xs text-muted-foreground mt-1">Tout va bien dans votre élevage!</p>
           </div>
         ) : (
-          alerts.map((alert) => (
-            <div key={alert.id} className={`flex items-start gap-3 rounded-xl ${alert.bg} p-3 group`}>
-              <div className={`rounded-lg bg-white p-2 ${alert.color}`}>
-                <alert.icon className="h-4 w-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{alert.title}</p>
-                <p className="text-xs text-muted-foreground">{alert.description}</p>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground hidden sm:block">{alert.time}</span>
+          alerts.slice(0, 5).map((alert, index) => {
+            const Icon = getAlertIcon(alert.type)
+            const style = getAlertStyle(alert.priority)
+
+            return (
+              <div key={index} className={`flex items-start gap-3 rounded-xl ${style.bg} p-3 group`}>
+                <div className={`rounded-lg bg-white p-2 ${style.color}`}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{alert.title}</p>
+                  <p className="text-xs text-muted-foreground">{alert.description}</p>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => markAsRead(alert.id, alert.link)}
+                  onClick={() => router.push(alert.link)}
                 >
                   <Eye className="h-3.5 w-3.5" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                  onClick={() => dismissAlert(alert.id)}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
               </div>
-            </div>
-          ))
+            )
+          })
+        )}
+
+        {alerts.length > 5 && (
+          <Button variant="ghost" className="w-full text-xs" onClick={() => router.push("/dashboard/health")}>
+            Voir toutes les alertes ({alerts.length})
+          </Button>
         )}
       </CardContent>
     </Card>

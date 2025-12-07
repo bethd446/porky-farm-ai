@@ -4,11 +4,11 @@ import Link from "next/link"
 import Image from "next/image"
 import { useState, memo, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { useLivestock } from "@/contexts/livestock-context"
+import { useApp } from "@/contexts/app-context"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MoreVertical, Eye, Edit, Trash2, Heart, Weight, Loader2 } from "lucide-react"
+import { MoreVertical, Eye, Edit, Trash2, Heart, Weight, Loader2, DollarSign } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
@@ -20,21 +20,73 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import type { Animal } from "@/contexts/livestock-context"
+import type { Animal } from "@/lib/storage/local-database"
 
 interface AnimalCardProps {
   animal: Animal
   onDelete: (id: string) => void
+  onSell: (id: string) => void
 }
 
-const AnimalCard = memo(function AnimalCard({ animal, onDelete }: AnimalCardProps) {
+const AnimalCard = memo(function AnimalCard({ animal, onDelete, onSell }: AnimalCardProps) {
   const router = useRouter()
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "actif":
+        return "bg-green-500"
+      case "malade":
+        return "bg-red-500"
+      case "vendu":
+        return "bg-blue-500"
+      case "mort":
+        return "bg-gray-500"
+      default:
+        return "bg-green-500"
+    }
+  }
+
+  const getHealthScore = (healthStatus: string) => {
+    switch (healthStatus) {
+      case "bon":
+        return 95
+      case "moyen":
+        return 70
+      case "mauvais":
+        return 40
+      default:
+        return 85
+    }
+  }
+
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      truie: "Truie",
+      verrat: "Verrat",
+      porcelet: "Porcelet",
+      porc: "Porc",
+    }
+    return labels[category] || category
+  }
+
+  const getAge = (birthDate: string) => {
+    if (!birthDate) return "Age inconnu"
+    const birth = new Date(birthDate)
+    const now = new Date()
+    const months = Math.floor((now.getTime() - birth.getTime()) / (1000 * 60 * 60 * 24 * 30))
+    if (months < 12) return `${months} mois`
+    const years = Math.floor(months / 12)
+    const remainingMonths = months % 12
+    return remainingMonths > 0 ? `${years} an(s) ${remainingMonths} mois` : `${years} an(s)`
+  }
+
+  const healthScore = getHealthScore(animal.healthStatus)
 
   return (
     <Card className="group overflow-hidden shadow-soft transition hover:shadow-lg">
       <div className="relative">
         <Image
-          src={animal.image || animal.image_url || "/placeholder.svg?height=192&width=256&query=pig"}
+          src={animal.photo || "/placeholder.svg?height=192&width=256&query=pig farm"}
           alt={animal.name}
           width={256}
           height={192}
@@ -42,12 +94,12 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete }: AnimalCardProp
           loading="lazy"
         />
         <div className="absolute left-3 top-3 flex gap-2">
-          <Badge className={`${animal.statusColor} text-white`}>{animal.status}</Badge>
-          {animal.count && (
-            <Badge variant="secondary" className="bg-black/50 text-white">
-              {animal.count} tetes
-            </Badge>
-          )}
+          <Badge className={`${getStatusColor(animal.status)} text-white`}>
+            {animal.status === "actif" ? "Actif" : animal.status}
+          </Badge>
+          <Badge variant="secondary" className="bg-black/50 text-white">
+            {getCategoryLabel(animal.category)}
+          </Badge>
         </div>
         <div className="absolute right-3 top-3">
           <DropdownMenu>
@@ -65,6 +117,10 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete }: AnimalCardProp
                 <Edit className="mr-2 h-4 w-4" />
                 Modifier
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onSell(animal.id)}>
+                <DollarSign className="mr-2 h-4 w-4" />
+                Marquer vendu
+              </DropdownMenuItem>
               <DropdownMenuItem className="text-destructive" onClick={() => onDelete(animal.id)}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Supprimer
@@ -79,12 +135,20 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete }: AnimalCardProp
           <div>
             <h3 className="font-semibold text-foreground">{animal.name}</h3>
             <p className="text-sm text-muted-foreground">
-              {animal.breed} - {animal.age}
+              {animal.breed || "Race inconnue"} - {getAge(animal.birthDate)}
             </p>
           </div>
-          <div className="flex items-center gap-1 rounded-full bg-green-50 px-2 py-1">
-            <Heart className="h-3 w-3 text-green-600" />
-            <span className="text-xs font-medium text-green-600">{animal.healthScore}%</span>
+          <div
+            className={`flex items-center gap-1 rounded-full px-2 py-1 ${healthScore >= 80 ? "bg-green-50" : healthScore >= 60 ? "bg-amber-50" : "bg-red-50"}`}
+          >
+            <Heart
+              className={`h-3 w-3 ${healthScore >= 80 ? "text-green-600" : healthScore >= 60 ? "text-amber-600" : "text-red-600"}`}
+            />
+            <span
+              className={`text-xs font-medium ${healthScore >= 80 ? "text-green-600" : healthScore >= 60 ? "text-amber-600" : "text-red-600"}`}
+            >
+              {healthScore}%
+            </span>
           </div>
         </div>
 
@@ -93,7 +157,7 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete }: AnimalCardProp
             <Weight className="h-4 w-4" />
             {animal.weight ? `${animal.weight} kg` : "Non renseigne"}
           </div>
-          <span className="text-xs text-muted-foreground">{animal.nextEvent}</span>
+          <span className="text-xs text-muted-foreground">ID: {animal.identifier}</span>
         </div>
 
         <Link href={`/dashboard/livestock/${animal.id}`}>
@@ -109,31 +173,51 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete }: AnimalCardProp
 const ITEMS_PER_PAGE = 12
 
 export function LivestockList() {
-  const { animals, deleteAnimal, loading } = useLivestock()
+  const { animals, deleteAnimal, sellAnimal, isLoading } = useApp()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [sellDialogOpen, setSellDialogOpen] = useState(false)
   const [animalToDelete, setAnimalToDelete] = useState<string | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [animalToSell, setAnimalToSell] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
   const [page, setPage] = useState(1)
+
+  // Filter only active animals
+  const activeAnimals = animals.filter((a) => a.status === "actif" || a.status === "malade")
 
   const handleDelete = useCallback((id: string) => {
     setAnimalToDelete(id)
     setDeleteDialogOpen(true)
   }, [])
 
-  const confirmDelete = useCallback(async () => {
+  const handleSell = useCallback((id: string) => {
+    setAnimalToSell(id)
+    setSellDialogOpen(true)
+  }, [])
+
+  const confirmDelete = useCallback(() => {
     if (animalToDelete) {
-      setIsDeleting(true)
-      await deleteAnimal(animalToDelete)
-      setIsDeleting(false)
+      setIsProcessing(true)
+      deleteAnimal(animalToDelete)
+      setIsProcessing(false)
       setDeleteDialogOpen(false)
       setAnimalToDelete(null)
     }
   }, [animalToDelete, deleteAnimal])
 
-  const totalPages = Math.ceil(animals.length / ITEMS_PER_PAGE)
-  const paginatedAnimals = animals.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+  const confirmSell = useCallback(() => {
+    if (animalToSell) {
+      setIsProcessing(true)
+      sellAnimal(animalToSell)
+      setIsProcessing(false)
+      setSellDialogOpen(false)
+      setAnimalToSell(null)
+    }
+  }, [animalToSell, sellAnimal])
 
-  if (loading) {
+  const totalPages = Math.ceil(activeAnimals.length / ITEMS_PER_PAGE)
+  const paginatedAnimals = activeAnimals.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -142,7 +226,7 @@ export function LivestockList() {
     )
   }
 
-  if (animals.length === 0) {
+  if (activeAnimals.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <p className="text-muted-foreground">Aucun animal enregistre pour le moment.</p>
@@ -157,7 +241,7 @@ export function LivestockList() {
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {paginatedAnimals.map((animal) => (
-          <AnimalCard key={animal.id} animal={animal} onDelete={handleDelete} />
+          <AnimalCard key={animal.id} animal={animal} onDelete={handleDelete} onSell={handleSell} />
         ))}
       </div>
 
@@ -180,6 +264,7 @@ export function LivestockList() {
         </div>
       )}
 
+      {/* Delete Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -189,19 +274,44 @@ export function LivestockList() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogCancel disabled={isProcessing}>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              disabled={isDeleting}
+              disabled={isProcessing}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? (
+              {isProcessing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Suppression...
                 </>
               ) : (
                 "Supprimer"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Sell Dialog */}
+      <AlertDialog open={sellDialogOpen} onOpenChange={setSellDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la vente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Voulez-vous marquer cet animal comme vendu ? Il ne sera plus visible dans la liste active.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessing}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSell} disabled={isProcessing}>
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Traitement...
+                </>
+              ) : (
+                "Confirmer la vente"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

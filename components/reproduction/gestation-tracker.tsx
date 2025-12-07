@@ -10,114 +10,97 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Baby, Calendar, Eye, Plus, Edit, Trash2 } from "lucide-react"
-
-const initialGestations = [
-  {
-    id: 1,
-    sow: "Truie #32",
-    boar: "Verrat #8",
-    breedingDate: "25 Août 2025",
-    dueDate: "18 Déc 2025",
-    day: 104,
-    totalDays: 114,
-    status: "Proche terme",
-    statusColor: "bg-red-500",
-    image: "/pregnant-sow.jpg",
-    notes: "Échographie OK - 12 fœtus détectés",
-  },
-  {
-    id: 2,
-    sow: "Truie #18",
-    boar: "Verrat #5",
-    breedingDate: "15 Sept 2025",
-    dueDate: "7 Jan 2026",
-    day: 82,
-    totalDays: 114,
-    status: "En cours",
-    statusColor: "bg-green-500",
-    image: "/sow-pig.jpg",
-    notes: "Gestation confirmée",
-  },
-  {
-    id: 3,
-    sow: "Truie #51",
-    boar: "Verrat #8",
-    breedingDate: "1 Oct 2025",
-    dueDate: "23 Jan 2026",
-    day: 66,
-    totalDays: 114,
-    status: "En cours",
-    statusColor: "bg-green-500",
-    image: "/healthy-sow.jpg",
-    notes: "RAS - Appétit normal",
-  },
-  {
-    id: 4,
-    sow: "Truie #27",
-    boar: "Verrat #3",
-    breedingDate: "20 Oct 2025",
-    dueDate: "11 Fév 2026",
-    day: 47,
-    totalDays: 114,
-    status: "Début gestation",
-    statusColor: "bg-blue-500",
-    image: "/young-sow.jpg",
-    notes: "Échographie prévue J+28",
-  },
-]
+import { Baby, Calendar, Eye, Plus, Trash2, CheckCircle, Loader2 } from "lucide-react"
+import { useApp } from "@/contexts/app-context"
+import { FormSelect } from "@/components/common/form-field"
 
 export function GestationTracker() {
   const router = useRouter()
-  const [gestations, setGestations] = useState(initialGestations)
-  const [selectedGestation, setSelectedGestation] = useState<(typeof initialGestations)[0] | null>(null)
+  const { gestations, addGestation, deleteGestation, completeGestation, animals } = useApp()
+  const [selectedGestation, setSelectedGestation] = useState<(typeof gestations)[0] | null>(null)
   const [isViewOpen, setIsViewOpen] = useState(false)
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isCompleteOpen, setIsCompleteOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [completeData, setCompleteData] = useState({ pigletCount: "", pigletsSurvived: "" })
   const [newGestation, setNewGestation] = useState({
-    sow: "",
-    boar: "",
+    sowId: "",
+    boarId: "",
     breedingDate: "",
     notes: "",
   })
 
-  const handleView = (gest: (typeof initialGestations)[0]) => {
+  const sows = animals.filter((a) => a.category === "truie" && a.status === "actif")
+  const boars = animals.filter((a) => a.category === "verrat" && a.status === "actif")
+
+  const sowOptions = sows.map((s) => ({ value: s.id, label: s.name }))
+  const boarOptions = [{ value: "", label: "Inconnu" }, ...boars.map((b) => ({ value: b.id, label: b.name }))]
+
+  const handleView = (gest: (typeof gestations)[0]) => {
     setSelectedGestation(gest)
     setIsViewOpen(true)
   }
 
-  const handleDelete = (id: number) => {
-    setGestations(gestations.filter((g) => g.id !== id))
+  const handleDelete = (id: string) => {
+    deleteGestation(id)
     setIsViewOpen(false)
   }
 
   const handleAddGestation = () => {
-    if (!newGestation.sow || !newGestation.boar || !newGestation.breedingDate) return
+    if (!newGestation.sowId || !newGestation.breedingDate) return
 
-    const breedingDate = new Date(newGestation.breedingDate)
-    const dueDate = new Date(breedingDate)
-    dueDate.setDate(dueDate.getDate() + 114)
+    setIsLoading(true)
 
+    const sow = animals.find((a) => a.id === newGestation.sowId)
+    const boar = animals.find((a) => a.id === newGestation.boarId)
+
+    addGestation({
+      sowId: newGestation.sowId,
+      sowName: sow?.name || "Truie inconnue",
+      boarId: newGestation.boarId || undefined,
+      boarName: boar?.name,
+      breedingDate: newGestation.breedingDate,
+      status: "active",
+      notes: newGestation.notes || undefined,
+    })
+
+    setIsLoading(false)
+    setIsAddOpen(false)
+    setNewGestation({ sowId: "", boarId: "", breedingDate: "", notes: "" })
+  }
+
+  const handleComplete = () => {
+    if (!selectedGestation) return
+
+    const pigletCount = Number.parseInt(completeData.pigletCount) || 0
+    const pigletsSurvived = Number.parseInt(completeData.pigletsSurvived) || pigletCount
+
+    completeGestation(selectedGestation.id, pigletCount, pigletsSurvived)
+    setIsCompleteOpen(false)
+    setIsViewOpen(false)
+    setCompleteData({ pigletCount: "", pigletsSurvived: "" })
+  }
+
+  const getGestationProgress = (gest: (typeof gestations)[0]) => {
+    const breedingDate = new Date(gest.breedingDate)
     const today = new Date()
     const daysPassed = Math.floor((today.getTime() - breedingDate.getTime()) / (1000 * 60 * 60 * 24))
-
-    const newGest = {
-      id: Date.now(),
-      sow: newGestation.sow,
-      boar: newGestation.boar,
-      breedingDate: breedingDate.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
-      dueDate: dueDate.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
-      day: Math.max(0, daysPassed),
+    return {
+      day: Math.max(0, Math.min(114, daysPassed)),
       totalDays: 114,
-      status: daysPassed < 30 ? "Début gestation" : daysPassed < 100 ? "En cours" : "Proche terme",
-      statusColor: daysPassed < 30 ? "bg-blue-500" : daysPassed < 100 ? "bg-green-500" : "bg-red-500",
-      image: "/sow-pig.jpg",
-      notes: newGestation.notes || "Nouvelle gestation enregistrée",
+      percent: Math.round((Math.min(114, daysPassed) / 114) * 100),
     }
-
-    setGestations([newGest, ...gestations])
-    setIsAddOpen(false)
-    setNewGestation({ sow: "", boar: "", breedingDate: "", notes: "" })
   }
+
+  const getStatusStyle = (gest: (typeof gestations)[0]) => {
+    const { day } = getGestationProgress(gest)
+    if (day >= 107) return { status: "Proche terme", color: "bg-red-500" }
+    if (day >= 84) return { status: "3ème tiers", color: "bg-amber-500" }
+    if (day >= 28) return { status: "En cours", color: "bg-green-500" }
+    return { status: "Début gestation", color: "bg-blue-500" }
+  }
+
+  const activeGestations = gestations.filter((g) => g.status === "active")
 
   return (
     <>
@@ -125,7 +108,7 @@ export function GestationTracker() {
         <CardHeader className="flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Baby className="h-5 w-5 text-pink-500" />
-            Suivi des gestations
+            Suivi des gestations ({activeGestations.length})
           </CardTitle>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setIsAddOpen(true)}>
@@ -138,54 +121,66 @@ export function GestationTracker() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {gestations.map((gest) => (
-            <div key={gest.id} className="rounded-xl border border-border p-4 transition hover:bg-muted/50">
-              <div className="flex items-start gap-4">
-                <img
-                  src={gest.image || "/placeholder.svg"}
-                  alt={gest.sow}
-                  className="h-14 w-14 rounded-xl object-cover"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold text-foreground">{gest.sow}</h4>
-                      <p className="text-sm text-muted-foreground">Père: {gest.boar}</p>
-                    </div>
-                    <Badge className={`${gest.statusColor} text-white`}>{gest.status}</Badge>
-                  </div>
-
-                  <div className="mt-3">
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Jour {gest.day} / {gest.totalDays}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {Math.round((gest.day / gest.totalDays) * 100)}%
-                      </span>
-                    </div>
-                    <Progress value={(gest.day / gest.totalDays) * 100} className="h-2" />
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      Saillie: {gest.breedingDate}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Baby className="h-3 w-3" />
-                      Terme prévu: {gest.dueDate}
-                    </span>
-                  </div>
-
-                  <p className="mt-2 text-xs text-muted-foreground">{gest.notes}</p>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => handleView(gest)}>
-                  <Eye className="h-4 w-4" />
-                </Button>
-              </div>
+          {activeGestations.length === 0 ? (
+            <div className="text-center py-8">
+              <Baby className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
+              <p className="text-muted-foreground">Aucune gestation en cours.</p>
+              <Button variant="outline" className="mt-4 bg-transparent" onClick={() => setIsAddOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" />
+                Enregistrer une saillie
+              </Button>
             </div>
-          ))}
+          ) : (
+            activeGestations.map((gest) => {
+              const progress = getGestationProgress(gest)
+              const statusStyle = getStatusStyle(gest)
+
+              return (
+                <div key={gest.id} className="rounded-xl border border-border p-4 transition hover:bg-muted/50">
+                  <div className="flex items-start gap-4">
+                    <div className="h-14 w-14 rounded-xl bg-pink-100 flex items-center justify-center">
+                      <Baby className="h-7 w-7 text-pink-500" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold text-foreground">{gest.sowName}</h4>
+                          <p className="text-sm text-muted-foreground">Père: {gest.boarName || "Inconnu"}</p>
+                        </div>
+                        <Badge className={`${statusStyle.color} text-white`}>{statusStyle.status}</Badge>
+                      </div>
+
+                      <div className="mt-3">
+                        <div className="mb-1 flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Jour {progress.day} / {progress.totalDays}
+                          </span>
+                          <span className="font-medium text-foreground">{progress.percent}%</span>
+                        </div>
+                        <Progress value={progress.percent} className="h-2" />
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Saillie: {new Date(gest.breedingDate).toLocaleDateString("fr-FR")}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Baby className="h-3 w-3" />
+                          Terme: {new Date(gest.expectedDueDate).toLocaleDateString("fr-FR")}
+                        </span>
+                      </div>
+
+                      {gest.notes && <p className="mt-2 text-xs text-muted-foreground">{gest.notes}</p>}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleView(gest)}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )
+            })
+          )}
         </CardContent>
       </Card>
 
@@ -198,51 +193,61 @@ export function GestationTracker() {
           {selectedGestation && (
             <div className="space-y-4 py-4">
               <div className="flex items-center gap-4">
-                <img
-                  src={selectedGestation.image || "/placeholder.svg"}
-                  alt={selectedGestation.sow}
-                  className="h-20 w-20 rounded-xl object-cover"
-                />
+                <div className="h-16 w-16 rounded-xl bg-pink-100 flex items-center justify-center">
+                  <Baby className="h-8 w-8 text-pink-500" />
+                </div>
                 <div>
-                  <h3 className="font-semibold text-lg">{selectedGestation.sow}</h3>
-                  <p className="text-muted-foreground">Père: {selectedGestation.boar}</p>
-                  <Badge className={`${selectedGestation.statusColor} text-white mt-2`}>
-                    {selectedGestation.status}
-                  </Badge>
+                  <h3 className="font-semibold text-lg">{selectedGestation.sowName}</h3>
+                  <p className="text-muted-foreground">Père: {selectedGestation.boarName || "Inconnu"}</p>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Progression</span>
-                  <span className="font-medium">
-                    Jour {selectedGestation.day} / {selectedGestation.totalDays}
-                  </span>
-                </div>
-                <Progress value={(selectedGestation.day / selectedGestation.totalDays) * 100} className="h-3" />
-              </div>
+              {(() => {
+                const progress = getGestationProgress(selectedGestation)
+                return (
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Progression</span>
+                      <span className="font-medium">
+                        Jour {progress.day} / {progress.totalDays}
+                      </span>
+                    </div>
+                    <Progress value={progress.percent} className="h-3" />
+                  </div>
+                )
+              })()}
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Date de saillie</span>
-                  <p className="font-medium">{selectedGestation.breedingDate}</p>
+                  <p className="font-medium">{new Date(selectedGestation.breedingDate).toLocaleDateString("fr-FR")}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Terme prévu</span>
-                  <p className="font-medium">{selectedGestation.dueDate}</p>
+                  <p className="font-medium">
+                    {new Date(selectedGestation.expectedDueDate).toLocaleDateString("fr-FR")}
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <span className="text-muted-foreground text-sm">Notes</span>
-                <p className="mt-1 p-3 bg-muted rounded-lg text-sm">{selectedGestation.notes}</p>
-              </div>
+              {selectedGestation.notes && (
+                <div>
+                  <span className="text-muted-foreground text-sm">Notes</span>
+                  <p className="mt-1 p-3 bg-muted rounded-lg text-sm">{selectedGestation.notes}</p>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter className="flex gap-2">
-            <Button variant="outline" className="gap-2 bg-transparent">
-              <Edit className="h-4 w-4" />
-              Modifier
+            <Button
+              variant="default"
+              className="gap-2"
+              onClick={() => {
+                setIsCompleteOpen(true)
+              }}
+            >
+              <CheckCircle className="h-4 w-4" />
+              Mise-bas effectuée
             </Button>
             <Button
               variant="destructive"
@@ -256,6 +261,43 @@ export function GestationTracker() {
         </DialogContent>
       </Dialog>
 
+      {/* Complete Gestation Dialog */}
+      <Dialog open={isCompleteOpen} onOpenChange={setIsCompleteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enregistrer la mise-bas</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="pigletCount">Nombre de porcelets nés</Label>
+              <Input
+                id="pigletCount"
+                type="number"
+                value={completeData.pigletCount}
+                onChange={(e) => setCompleteData({ ...completeData, pigletCount: e.target.value })}
+                placeholder="Ex: 12"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pigletsSurvived">Nombre de porcelets vivants</Label>
+              <Input
+                id="pigletsSurvived"
+                type="number"
+                value={completeData.pigletsSurvived}
+                onChange={(e) => setCompleteData({ ...completeData, pigletsSurvived: e.target.value })}
+                placeholder="Ex: 11"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCompleteOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleComplete}>Enregistrer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Add Gestation Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="sm:max-w-md">
@@ -263,24 +305,23 @@ export function GestationTracker() {
             <DialogTitle>Nouvelle gestation</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="sow">Truie</Label>
-              <Input
-                id="sow"
-                value={newGestation.sow}
-                onChange={(e) => setNewGestation({ ...newGestation, sow: e.target.value })}
-                placeholder="Ex: Truie #45"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="boar">Verrat</Label>
-              <Input
-                id="boar"
-                value={newGestation.boar}
-                onChange={(e) => setNewGestation({ ...newGestation, boar: e.target.value })}
-                placeholder="Ex: Verrat #12"
-              />
-            </div>
+            <FormSelect
+              label="Truie"
+              name="sowId"
+              options={sowOptions}
+              value={newGestation.sowId}
+              onChange={(v) => setNewGestation({ ...newGestation, sowId: v })}
+              required
+              placeholder="Sélectionner une truie"
+            />
+            <FormSelect
+              label="Verrat"
+              name="boarId"
+              options={boarOptions}
+              value={newGestation.boarId}
+              onChange={(v) => setNewGestation({ ...newGestation, boarId: v })}
+              placeholder="Sélectionner un verrat"
+            />
             <div className="space-y-2">
               <Label htmlFor="breedingDate">Date de saillie</Label>
               <Input
@@ -288,6 +329,7 @@ export function GestationTracker() {
                 type="date"
                 value={newGestation.breedingDate}
                 onChange={(e) => setNewGestation({ ...newGestation, breedingDate: e.target.value })}
+                required
               />
             </div>
             <div className="space-y-2">
@@ -304,7 +346,16 @@ export function GestationTracker() {
             <Button variant="outline" onClick={() => setIsAddOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={handleAddGestation}>Enregistrer</Button>
+            <Button onClick={handleAddGestation} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                "Enregistrer"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

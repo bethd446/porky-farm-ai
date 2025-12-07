@@ -1,45 +1,43 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Baby, Syringe, Weight, Utensils, Camera } from "lucide-react"
+"use client"
 
-const activities = [
-  {
-    icon: Baby,
-    title: "Nouvelle portée",
-    description: "Truie #32 a mis bas 11 porcelets",
-    time: "Aujourd'hui, 06:45",
-    color: "bg-pink-500",
-  },
-  {
-    icon: Syringe,
-    title: "Vaccination effectuée",
-    description: "15 porcelets vaccinés (Lot A12)",
-    time: "Hier, 14:30",
-    color: "bg-blue-500",
-  },
-  {
-    icon: Weight,
-    title: "Pesée enregistrée",
-    description: "Verrat #8 - 285kg (+12kg)",
-    time: "Hier, 10:00",
-    color: "bg-amber-500",
-  },
-  {
-    icon: Utensils,
-    title: "Ration modifiée",
-    description: "Truies allaitantes - Formule enrichie",
-    time: "Il y a 2 jours",
-    color: "bg-green-500",
-  },
-  {
-    icon: Camera,
-    title: "Photo ajoutée",
-    description: "Truie #45 - Suivi dermatologique",
-    time: "Il y a 2 jours",
-    color: "bg-purple-500",
-  },
-]
+import { useApp } from "@/contexts/app-context"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Baby, Syringe, Weight, Utensils, Camera, PiggyBank, Heart, AlertTriangle } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
+import { fr } from "date-fns/locale"
 
 export function DashboardRecentActivity() {
+  const { activities } = useApp()
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case "animal_added":
+        return { icon: PiggyBank, color: "bg-green-500" }
+      case "animal_sold":
+        return { icon: Weight, color: "bg-blue-500" }
+      case "health_case":
+        return { icon: AlertTriangle, color: "bg-amber-500" }
+      case "gestation":
+        return { icon: Baby, color: "bg-pink-500" }
+      case "vaccination":
+        return { icon: Syringe, color: "bg-blue-500" }
+      case "feeding":
+        return { icon: Utensils, color: "bg-green-500" }
+      case "death":
+        return { icon: Heart, color: "bg-red-500" }
+      default:
+        return { icon: Camera, color: "bg-purple-500" }
+    }
+  }
+
+  const formatTime = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true, locale: fr })
+    } catch {
+      return dateString
+    }
+  }
+
   return (
     <Card className="shadow-soft">
       <CardHeader className="pb-2">
@@ -47,18 +45,32 @@ export function DashboardRecentActivity() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {activities.map((activity, i) => (
-            <div key={i} className="flex items-start gap-4">
-              <div className={`rounded-xl ${activity.color} p-2`}>
-                <activity.icon className="h-5 w-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-foreground">{activity.title}</p>
-                <p className="text-sm text-muted-foreground">{activity.description}</p>
-              </div>
-              <span className="text-xs text-muted-foreground">{activity.time}</span>
+          {activities.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <Camera className="h-12 w-12 text-muted-foreground/50 mb-2" />
+              <p className="text-sm text-muted-foreground">Aucune activité récente</p>
+              <p className="text-xs text-muted-foreground mt-1">Vos actions seront enregistrées ici</p>
             </div>
-          ))}
+          ) : (
+            activities.slice(0, 5).map((activity) => {
+              const { icon: Icon, color } = getActivityIcon(activity.type)
+
+              return (
+                <div key={activity.id} className="flex items-start gap-4">
+                  <div className={`rounded-xl ${color} p-2`}>
+                    <Icon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">{activity.title}</p>
+                    <p className="text-sm text-muted-foreground truncate">{activity.description}</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {formatTime(activity.createdAt)}
+                  </span>
+                </div>
+              )
+            })
+          )}
         </div>
       </CardContent>
     </Card>
