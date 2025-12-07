@@ -1,0 +1,13 @@
+# PorkyFarm - Robots.txt
+# https://www.porkyfarm.app
+
+User-agent: *
+Allow: /
+
+# Pages privees - ne pas indexer
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://www.porkyfarm.app/sitemap.xml

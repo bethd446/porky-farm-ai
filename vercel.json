@@ -2,6 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["cdg1"],
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "headers": [
     {
       "source": "/(.*)",
@@ -21,6 +23,10 @@
         {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(self)"
         }
       ]
     },
@@ -30,6 +36,33 @@
         {
           "key": "Cache-Control",
           "value": "no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/(.*).js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*).css",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
         }
       ]
     }
@@ -49,6 +82,27 @@
       "source": "/signup",
       "destination": "/auth/register",
       "permanent": true
+    },
+    {
+      "source": "/signin",
+      "destination": "/auth/login",
+      "permanent": true
+    },
+    {
+      "source": "/connexion",
+      "destination": "/auth/login",
+      "permanent": true
+    },
+    {
+      "source": "/inscription",
+      "destination": "/auth/register",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
     }
   ]
 }

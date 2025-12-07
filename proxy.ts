@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
-  // Just pass through all requests - auth protection will be client-side
+// Next.js 16 proxy (replaces middleware.ts)
+export async function proxy(request: NextRequest) {
+  // Pass through all requests - auth protection is client-side
   return NextResponse.next()
 }
 
