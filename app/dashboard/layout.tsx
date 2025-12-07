@@ -2,11 +2,12 @@
 
 import type React from "react"
 import { useEffect, useState, useRef } from "react"
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation"
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
+import { LivestockProvider } from "@/contexts/livestock-context"
 import { supabase } from "@/lib/supabase/client"
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from "lucide-react"
 
 export default function DashboardLayout({
   children,
@@ -23,8 +24,10 @@ export default function DashboardLayout({
     hasCheckedAuth.current = true
 
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
       if (session) {
         setIsAuthenticated(true)
         setIsLoading(false)
@@ -35,7 +38,9 @@ export default function DashboardLayout({
 
     checkAuth()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
         router.replace("/auth/login")
       } else if (event === "SIGNED_IN" && session) {
@@ -65,12 +70,14 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-muted/30">
-      <DashboardSidebar />
-      <div className="flex flex-1 flex-col md:ml-64">
-        <DashboardHeader />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+    <LivestockProvider>
+      <div className="flex min-h-screen bg-muted/30">
+        <DashboardSidebar />
+        <div className="flex flex-1 flex-col md:ml-64">
+          <DashboardHeader />
+          <main className="flex-1 p-4 md:p-6">{children}</main>
+        </div>
       </div>
-    </div>
+    </LivestockProvider>
   )
 }

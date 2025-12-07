@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar, CheckCircle2, Clock, AlertCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 const vaccinations = [
   {
@@ -49,11 +50,13 @@ const vaccinations = [
 ]
 
 export function HealthVaccinations() {
+  const router = useRouter()
+
   return (
     <Card className="shadow-soft">
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle className="text-base font-medium">Calendrier vaccinal</CardTitle>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard/health?tab=vaccinations")}>
           Voir calendrier
         </Button>
       </CardHeader>

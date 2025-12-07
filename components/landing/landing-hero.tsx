@@ -210,14 +210,21 @@ export function LandingHero() {
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
-          <Button
-            size="lg"
-            variant="outline"
-            className="w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full border-white/30 bg-white/10 px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-white/20 backdrop-blur-sm"
+          <a
+            href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto"
           >
-            <Play className="h-5 w-5" />
-            Voir la démo
-          </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full border-white/30 bg-white/10 px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-white/20 backdrop-blur-sm"
+            >
+              <Play className="h-5 w-5" />
+              Voir la démo
+            </Button>
+          </a>
         </div>
 
         {/* Feature Pills */}

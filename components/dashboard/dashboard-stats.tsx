@@ -1,43 +1,49 @@
+"use client"
+
+import { useLivestock } from "@/contexts/livestock-context"
 import { PiggyBank, Baby, Stethoscope, TrendingUp } from "lucide-react"
 import { Card } from "@/components/ui/card"
 
-const stats = [
-  {
-    label: "Total Cheptel",
-    value: "247",
-    change: "+12",
-    changeType: "positive",
-    icon: PiggyBank,
-    color: "bg-primary",
-  },
-  {
-    label: "Truies Gestantes",
-    value: "28",
-    change: "+3",
-    changeType: "positive",
-    icon: Baby,
-    color: "bg-pink-500",
-  },
-  {
-    label: "Cas Sanitaires",
-    value: "5",
-    change: "-2",
-    changeType: "positive",
-    icon: Stethoscope,
-    color: "bg-amber-500",
-  },
-  {
-    label: "Revenus du Mois",
-    value: "2.4M",
-    suffix: " FCFA",
-    change: "+18%",
-    changeType: "positive",
-    icon: TrendingUp,
-    color: "bg-emerald-500",
-  },
-]
-
 export function DashboardStats() {
+  const { getStats } = useLivestock()
+  const livestockStats = getStats()
+
+  const stats = [
+    {
+      label: "Total Cheptel",
+      value: livestockStats.total.toString(),
+      change: "+12",
+      changeType: "positive" as const,
+      icon: PiggyBank,
+      color: "bg-primary",
+    },
+    {
+      label: "Truies Gestantes",
+      value: livestockStats.truies.toString(),
+      change: "+3",
+      changeType: "positive" as const,
+      icon: Baby,
+      color: "bg-pink-500",
+    },
+    {
+      label: "Cas Sanitaires",
+      value: "5",
+      change: "-2",
+      changeType: "positive" as const,
+      icon: Stethoscope,
+      color: "bg-amber-500",
+    },
+    {
+      label: "Revenus du Mois",
+      value: "2.4M",
+      suffix: " FCFA",
+      change: "+18%",
+      changeType: "positive" as const,
+      icon: TrendingUp,
+      color: "bg-emerald-500",
+    },
+  ]
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat, i) => (

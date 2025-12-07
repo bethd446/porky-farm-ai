@@ -19,10 +19,10 @@ export function DashboardQuickActions() {
           Signaler maladie
         </Button>
       </Link>
-      <Link href="/dashboard/reproduction">
+      <Link href="/dashboard/feeding">
         <Button variant="outline" className="gap-2 bg-transparent">
           <FileText className="h-4 w-4" />
-          Rapport
+          Calculer rations
         </Button>
       </Link>
     </div>

@@ -10,9 +10,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Camera, Loader2, Upload, X, CheckCircle } from "lucide-react"
+import { useLivestock } from "@/contexts/livestock-context"
 
 export function AddAnimalForm() {
   const router = useRouter()
+  const { addAnimal } = useLivestock()
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [photo, setPhoto] = useState<string | null>(null)
@@ -58,8 +60,48 @@ export function AddAnimalForm() {
     setIsLoading(true)
 
     try {
-      // Simuler la sauvegarde (à remplacer par Supabase)
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const birthDate = new Date(formData.birthDate)
+      const ageInMonths = Math.floor((Date.now() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30))
+      const ageYears = Math.floor(ageInMonths / 12)
+      const ageMonthsRem = ageInMonths % 12
+      const age =
+        ageYears > 0 ? `${ageYears} an${ageYears > 1 ? "s" : ""} ${ageMonthsRem} mois` : `${ageMonthsRem} mois`
+
+      const statusMap: Record<string, { status: string; color: string }> = {
+        truie: { status: "Active", color: "bg-pink-500" },
+        verrat: { status: "Reproducteur", color: "bg-blue-500" },
+        porcelet: { status: "Croissance", color: "bg-green-500" },
+        porc_engraissement: { status: "Engraissement", color: "bg-emerald-500" },
+      }
+
+      const statusInfo = statusMap[formData.category] || { status: "Active", color: "bg-gray-500" }
+
+      addAnimal({
+        name: formData.name,
+        type:
+          formData.category === "truie"
+            ? "Truie"
+            : formData.category === "verrat"
+              ? "Verrat"
+              : formData.category === "porcelet"
+                ? "Porcelets"
+                : "Engraissement",
+        breed: formData.breed,
+        age: age,
+        weight: formData.weight ? `${formData.weight} kg` : "Non renseigné",
+        status: statusInfo.status,
+        statusColor: statusInfo.color,
+        image: photo,
+        healthScore: 100,
+        nextEvent: "Pas d'événement prévu",
+        tagNumber: formData.tagNumber,
+        birthDate: formData.birthDate,
+        acquisitionDate: formData.acquisitionDate,
+        acquisitionPrice: formData.acquisitionPrice,
+        motherId: formData.motherId,
+        fatherId: formData.fatherId,
+        notes: formData.notes,
+      })
 
       setSuccess(true)
       setTimeout(() => {

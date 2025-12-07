@@ -1,26 +1,30 @@
 "use client"
 
+import { useLivestock } from "@/contexts/livestock-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts"
 
-const pieData = [
-  { name: "Truies", value: 45, color: "#ec4899" },
-  { name: "Verrats", value: 8, color: "#3b82f6" },
-  { name: "Porcelets", value: 124, color: "#22c55e" },
-  { name: "Engraissement", value: 70, color: "#f59e0b" },
-]
-
-const barData = [
-  { month: "Jan", naissances: 45, ventes: 32 },
-  { month: "Fév", naissances: 52, ventes: 28 },
-  { month: "Mar", naissances: 38, ventes: 45 },
-  { month: "Avr", naissances: 65, ventes: 38 },
-  { month: "Mai", naissances: 48, ventes: 52 },
-  { month: "Jun", naissances: 55, ventes: 42 },
-]
-
 export function DashboardLivestockOverview() {
+  const { getStats } = useLivestock()
+  const stats = getStats()
+
+  const pieData = [
+    { name: "Truies", value: stats.truies, color: "#ec4899" },
+    { name: "Verrats", value: stats.verrats, color: "#3b82f6" },
+    { name: "Porcelets", value: stats.porcelets, color: "#22c55e" },
+    { name: "Engraissement", value: stats.engraissement, color: "#f59e0b" },
+  ]
+
+  const barData = [
+    { month: "Jan", naissances: 45, ventes: 32 },
+    { month: "Fév", naissances: 52, ventes: 28 },
+    { month: "Mar", naissances: 38, ventes: 45 },
+    { month: "Avr", naissances: 65, ventes: 38 },
+    { month: "Mai", naissances: 48, ventes: 52 },
+    { month: "Jun", naissances: 55, ventes: 42 },
+  ]
+
   return (
     <Card className="shadow-soft">
       <CardHeader className="pb-2">

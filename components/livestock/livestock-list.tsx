@@ -1,8 +1,11 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
+
+import { useState } from "react"
+
 import { useRouter } from "next/navigation"
+import { useLivestock } from "@/contexts/livestock-context"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -19,91 +22,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-const initialAnimals = [
-  {
-    id: 1,
-    name: "Truie #32",
-    type: "Truie",
-    breed: "Large White",
-    age: "2 ans 3 mois",
-    weight: "185 kg",
-    status: "Gestante",
-    statusColor: "bg-pink-500",
-    image: "/white-sow-pig-healthy-farm.jpg",
-    healthScore: 95,
-    nextEvent: "Mise-bas dans 8 jours",
-  },
-  {
-    id: 2,
-    name: "Verrat #8",
-    type: "Verrat",
-    breed: "Duroc",
-    age: "3 ans",
-    weight: "285 kg",
-    status: "Reproducteur",
-    statusColor: "bg-blue-500",
-    image: "/duroc-boar-pig-farm.jpg",
-    healthScore: 98,
-    nextEvent: "Saillie prévue demain",
-  },
-  {
-    id: 3,
-    name: "Truie #45",
-    type: "Truie",
-    breed: "Landrace",
-    age: "1 an 8 mois",
-    weight: "165 kg",
-    status: "Sous traitement",
-    statusColor: "bg-amber-500",
-    image: "/landrace-sow-pig-farm.jpg",
-    healthScore: 72,
-    nextEvent: "Fin traitement dans 3 jours",
-  },
-  {
-    id: 4,
-    name: "Lot Porcelets A12",
-    type: "Porcelets",
-    breed: "Croisé",
-    age: "6 semaines",
-    weight: "12 kg moy.",
-    status: "Sevrage",
-    statusColor: "bg-green-500",
-    image: "/piglets-group-farm-cute.jpg",
-    healthScore: 100,
-    count: 11,
-    nextEvent: "Vaccination dans 2 jours",
-  },
-  {
-    id: 5,
-    name: "Truie #28",
-    type: "Truie",
-    breed: "Large White",
-    age: "4 ans",
-    weight: "195 kg",
-    status: "Allaitante",
-    statusColor: "bg-purple-500",
-    image: "/nursing-sow-with-piglets-farm.jpg",
-    healthScore: 90,
-    nextEvent: "Sevrage dans 12 jours",
-  },
-  {
-    id: 6,
-    name: "Porc #67",
-    type: "Engraissement",
-    breed: "Croisé",
-    age: "5 mois",
-    weight: "85 kg",
-    status: "Croissance",
-    statusColor: "bg-emerald-500",
-    image: "/fattening-pig-farm-healthy.jpg",
-    healthScore: 96,
-    nextEvent: "Pesée dans 5 jours",
-  },
-]
-
 export function LivestockList() {
   const router = useRouter()
-  const [animals, setAnimals] = useState(initialAnimals)
+  const { animals, deleteAnimal } = useLivestock()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [animalToDelete, setAnimalToDelete] = useState<number | null>(null)
 
@@ -114,7 +35,7 @@ export function LivestockList() {
 
   const confirmDelete = () => {
     if (animalToDelete) {
-      setAnimals(animals.filter((a) => a.id !== animalToDelete))
+      deleteAnimal(animalToDelete)
       setDeleteDialogOpen(false)
       setAnimalToDelete(null)
     }
