@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { useState, memo, useCallback } from "react"
+import { useState, memo, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useApp } from "@/contexts/app-context"
 import { Card } from "@/components/ui/card"
@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { Animal } from "@/lib/storage/local-database"
+import { getStatusColor, getHealthScore, getCategoryLabel, getAge } from "@/lib/utils/animal-helpers"
 
 interface AnimalCardProps {
   animal: Animal
@@ -30,56 +31,6 @@ interface AnimalCardProps {
 
 const AnimalCard = memo(function AnimalCard({ animal, onDelete, onSell }: AnimalCardProps) {
   const router = useRouter()
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "actif":
-        return "bg-green-500"
-      case "malade":
-        return "bg-red-500"
-      case "vendu":
-        return "bg-blue-500"
-      case "mort":
-        return "bg-gray-500"
-      default:
-        return "bg-green-500"
-    }
-  }
-
-  const getHealthScore = (healthStatus: string) => {
-    switch (healthStatus) {
-      case "bon":
-        return 95
-      case "moyen":
-        return 70
-      case "mauvais":
-        return 40
-      default:
-        return 85
-    }
-  }
-
-  const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      truie: "Truie",
-      verrat: "Verrat",
-      porcelet: "Porcelet",
-      porc: "Porc",
-    }
-    return labels[category] || category
-  }
-
-  const getAge = (birthDate: string) => {
-    if (!birthDate) return "Age inconnu"
-    const birth = new Date(birthDate)
-    const now = new Date()
-    const months = Math.floor((now.getTime() - birth.getTime()) / (1000 * 60 * 60 * 24 * 30))
-    if (months < 12) return `${months} mois`
-    const years = Math.floor(months / 12)
-    const remainingMonths = months % 12
-    return remainingMonths > 0 ? `${years} an(s) ${remainingMonths} mois` : `${years} an(s)`
-  }
-
   const healthScore = getHealthScore(animal.healthStatus)
 
   return (
@@ -181,8 +132,14 @@ export function LivestockList() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [page, setPage] = useState(1)
 
-  // Filter only active animals
-  const activeAnimals = animals.filter((a) => a.status === "actif" || a.status === "malade")
+  const activeAnimals = useMemo(() => animals.filter((a) => a.status === "actif" || a.status === "malade"), [animals])
+
+  const totalPages = useMemo(() => Math.ceil(activeAnimals.length / ITEMS_PER_PAGE), [activeAnimals.length])
+
+  const paginatedAnimals = useMemo(
+    () => activeAnimals.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE),
+    [activeAnimals, page],
+  )
 
   const handleDelete = useCallback((id: string) => {
     setAnimalToDelete(id)
@@ -213,9 +170,6 @@ export function LivestockList() {
       setAnimalToSell(null)
     }
   }, [animalToSell, sellAnimal])
-
-  const totalPages = Math.ceil(activeAnimals.length / ITEMS_PER_PAGE)
-  const paginatedAnimals = activeAnimals.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
 
   if (isLoading) {
     return (

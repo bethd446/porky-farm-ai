@@ -6,13 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Baby, Calendar, Eye, Plus, Trash2, CheckCircle, Loader2 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { Baby, Calendar, Eye, Plus, Trash2, CheckCircle, Loader2, AlertCircle } from "lucide-react"
 import { useApp } from "@/contexts/app-context"
-import { FormSelect } from "@/components/common/form-field"
+import { FormSelect, FormInput, FormTextarea } from "@/components/common/form-field"
+import { gestationSchema } from "@/lib/validations/schemas"
 
 export function GestationTracker() {
   const router = useRouter()
@@ -21,11 +26,14 @@ export function GestationTracker() {
   const [isViewOpen, setIsViewOpen] = useState(false)
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isCompleteOpen, setIsCompleteOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [errorMessage, setErrorMessage] = useState("")
   const [completeData, setCompleteData] = useState({ pigletCount: "", pigletsSurvived: "" })
+  const [completeErrors, setCompleteErrors] = useState<Record<string, string>>({})
   const [newGestation, setNewGestation] = useState({
-    sowId: "",
-    boarId: "",
+    sow: "",
+    boar: "",
     breedingDate: "",
     notes: "",
   })
@@ -34,7 +42,14 @@ export function GestationTracker() {
   const boars = animals.filter((a) => a.category === "verrat" && a.status === "actif")
 
   const sowOptions = sows.map((s) => ({ value: s.id, label: s.name }))
-  const boarOptions = [{ value: "", label: "Inconnu" }, ...boars.map((b) => ({ value: b.id, label: b.name }))]
+  const boarOptions = [{ value: "unknown", label: "Inconnu" }, ...boars.map((b) => ({ value: b.id, label: b.name }))]
+
+  const updateField = (field: string, value: string) => {
+    setNewGestation((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }))
+    }
+  }
 
   const handleView = (gest: (typeof gestations)[0]) => {
     setSelectedGestation(gest)
@@ -47,35 +62,86 @@ export function GestationTracker() {
   }
 
   const handleAddGestation = () => {
-    if (!newGestation.sowId || !newGestation.breedingDate) return
+    setErrors({})
+    setErrorMessage("")
 
-    setIsLoading(true)
-
-    const sow = animals.find((a) => a.id === newGestation.sowId)
-    const boar = animals.find((a) => a.id === newGestation.boarId)
-
-    addGestation({
-      sowId: newGestation.sowId,
-      sowName: sow?.name || "Truie inconnue",
-      boarId: newGestation.boarId || undefined,
-      boarName: boar?.name,
+    const dataToValidate = {
+      sow: newGestation.sow,
+      boar: newGestation.boar || "unknown",
       breedingDate: newGestation.breedingDate,
-      status: "active",
-      notes: newGestation.notes || undefined,
-    })
+      notes: newGestation.notes,
+    }
 
-    setIsLoading(false)
-    setIsAddOpen(false)
-    setNewGestation({ sowId: "", boarId: "", breedingDate: "", notes: "" })
+    const result = gestationSchema.safeParse(dataToValidate)
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {}
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as string
+        fieldErrors[field] = err.message
+      })
+      setErrors(fieldErrors)
+      return
+    }
+
+    setStatus("loading")
+
+    try {
+      const sow = animals.find((a) => a.id === newGestation.sow)
+      const boar = animals.find((a) => a.id === newGestation.boar)
+
+      if (!sow) {
+        setErrors({ sow: "Truie non trouvée" })
+        setStatus("error")
+        return
+      }
+
+      addGestation({
+        sowId: newGestation.sow,
+        sowName: sow.name,
+        boarId: newGestation.boar || undefined,
+        boarName: boar?.name,
+        breedingDate: newGestation.breedingDate,
+        status: "active",
+        notes: newGestation.notes || undefined,
+      })
+
+      setStatus("success")
+
+      setTimeout(() => {
+        setNewGestation({ sow: "", boar: "", breedingDate: "", notes: "" })
+        setIsAddOpen(false)
+        setStatus("idle")
+      }, 1500)
+    } catch (error) {
+      setStatus("error")
+      setErrorMessage(error instanceof Error ? error.message : "Une erreur est survenue")
+    }
   }
 
   const handleComplete = () => {
+    setCompleteErrors({})
+
     if (!selectedGestation) return
 
-    const pigletCount = Number.parseInt(completeData.pigletCount) || 0
-    const pigletsSurvived = Number.parseInt(completeData.pigletsSurvived) || pigletCount
+    const pigletCount = Number.parseInt(completeData.pigletCount)
+    const pigletsSurvived = Number.parseInt(completeData.pigletsSurvived)
 
-    completeGestation(selectedGestation.id, pigletCount, pigletsSurvived)
+    if (!completeData.pigletCount || isNaN(pigletCount) || pigletCount < 0) {
+      setCompleteErrors({ pigletCount: "Entrez un nombre valide de porcelets" })
+      return
+    }
+
+    if (completeData.pigletsSurvived && (isNaN(pigletsSurvived) || pigletsSurvived < 0)) {
+      setCompleteErrors({ pigletsSurvived: "Entrez un nombre valide" })
+      return
+    }
+
+    if (pigletsSurvived > pigletCount) {
+      setCompleteErrors({ pigletsSurvived: "Ne peut pas dépasser le nombre total" })
+      return
+    }
+
+    completeGestation(selectedGestation.id, pigletCount, pigletsSurvived || pigletCount)
     setIsCompleteOpen(false)
     setIsViewOpen(false)
     setCompleteData({ pigletCount: "", pigletsSurvived: "" })
@@ -89,6 +155,7 @@ export function GestationTracker() {
       day: Math.max(0, Math.min(114, daysPassed)),
       totalDays: 114,
       percent: Math.round((Math.min(114, daysPassed) / 114) * 100),
+      daysRemaining: Math.max(0, 114 - daysPassed),
     }
   }
 
@@ -111,9 +178,17 @@ export function GestationTracker() {
             Suivi des gestations ({activeGestations.length})
           </CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setIsAddOpen(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsAddOpen(true)
+                setErrors({})
+                setStatus("idle")
+              }}
+            >
               <Plus className="h-4 w-4 mr-1" />
-              Ajouter
+              Enregistrer une saillie
             </Button>
             <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/reproduction")}>
               Voir tout
@@ -155,7 +230,9 @@ export function GestationTracker() {
                           <span className="text-muted-foreground">
                             Jour {progress.day} / {progress.totalDays}
                           </span>
-                          <span className="font-medium text-foreground">{progress.percent}%</span>
+                          <span className="font-medium text-foreground">
+                            {progress.daysRemaining > 0 ? `${progress.daysRemaining} jours restants` : "Terme atteint"}
+                          </span>
                         </div>
                         <Progress value={progress.percent} className="h-2" />
                       </div>
@@ -209,7 +286,7 @@ export function GestationTracker() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Progression</span>
                       <span className="font-medium">
-                        Jour {progress.day} / {progress.totalDays}
+                        Jour {progress.day} / {progress.totalDays} ({progress.daysRemaining} jours restants)
                       </span>
                     </div>
                     <Progress value={progress.percent} className="h-3" />
@@ -244,6 +321,7 @@ export function GestationTracker() {
               className="gap-2"
               onClick={() => {
                 setIsCompleteOpen(true)
+                setCompleteErrors({})
               }}
             >
               <CheckCircle className="h-4 w-4" />
@@ -266,94 +344,137 @@ export function GestationTracker() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Enregistrer la mise-bas</DialogTitle>
+            <DialogDescription>Félicitations ! Enregistrez les informations de la portée.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="pigletCount">Nombre de porcelets nés</Label>
-              <Input
-                id="pigletCount"
-                type="number"
-                value={completeData.pigletCount}
-                onChange={(e) => setCompleteData({ ...completeData, pigletCount: e.target.value })}
-                placeholder="Ex: 12"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pigletsSurvived">Nombre de porcelets vivants</Label>
-              <Input
-                id="pigletsSurvived"
-                type="number"
-                value={completeData.pigletsSurvived}
-                onChange={(e) => setCompleteData({ ...completeData, pigletsSurvived: e.target.value })}
-                placeholder="Ex: 11"
-              />
-            </div>
+            <FormInput
+              label="Nombre de porcelets nés"
+              name="pigletCount"
+              type="number"
+              value={completeData.pigletCount}
+              onChange={(e) => {
+                setCompleteData({ ...completeData, pigletCount: e.target.value })
+                if (completeErrors.pigletCount) setCompleteErrors({ ...completeErrors, pigletCount: "" })
+              }}
+              placeholder="Ex: 12"
+              error={completeErrors.pigletCount}
+              required
+            />
+            <FormInput
+              label="Nombre de porcelets vivants"
+              name="pigletsSurvived"
+              type="number"
+              value={completeData.pigletsSurvived}
+              onChange={(e) => {
+                setCompleteData({ ...completeData, pigletsSurvived: e.target.value })
+                if (completeErrors.pigletsSurvived) setCompleteErrors({ ...completeErrors, pigletsSurvived: "" })
+              }}
+              placeholder="Ex: 11 (laisser vide si tous vivants)"
+              error={completeErrors.pigletsSurvived}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCompleteOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={handleComplete}>Enregistrer</Button>
+            <Button onClick={handleComplete}>
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Enregistrer la mise-bas
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Add Gestation Dialog */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+      <Dialog
+        open={isAddOpen}
+        onOpenChange={(open) => {
+          setIsAddOpen(open)
+          if (!open) {
+            setErrors({})
+            setStatus("idle")
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Nouvelle gestation</DialogTitle>
+            <DialogTitle>Enregistrer une saillie</DialogTitle>
+            <DialogDescription>Enregistrez une nouvelle gestation pour suivre le terme prévu.</DialogDescription>
           </DialogHeader>
+
+          {status === "success" && (
+            <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
+              <CheckCircle className="h-4 w-4" />
+              Gestation enregistrée ! Terme prévu dans 114 jours.
+            </div>
+          )}
+
+          {status === "error" && (
+            <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4" />
+              {errorMessage || "Une erreur est survenue"}
+            </div>
+          )}
+
           <div className="space-y-4 py-4">
             <FormSelect
               label="Truie"
-              name="sowId"
+              name="sow"
               options={sowOptions}
-              value={newGestation.sowId}
-              onChange={(v) => setNewGestation({ ...newGestation, sowId: v })}
+              value={newGestation.sow}
+              onChange={(v) => updateField("sow", v)}
               required
               placeholder="Sélectionner une truie"
+              error={errors.sow}
+              disabled={status === "loading" || status === "success"}
             />
             <FormSelect
-              label="Verrat"
-              name="boarId"
+              label="Verrat (optionnel)"
+              name="boar"
               options={boarOptions}
-              value={newGestation.boarId}
-              onChange={(v) => setNewGestation({ ...newGestation, boarId: v })}
+              value={newGestation.boar}
+              onChange={(v) => updateField("boar", v)}
               placeholder="Sélectionner un verrat"
+              error={errors.boar}
+              disabled={status === "loading" || status === "success"}
             />
-            <div className="space-y-2">
-              <Label htmlFor="breedingDate">Date de saillie</Label>
-              <Input
-                id="breedingDate"
-                type="date"
-                value={newGestation.breedingDate}
-                onChange={(e) => setNewGestation({ ...newGestation, breedingDate: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={newGestation.notes}
-                onChange={(e) => setNewGestation({ ...newGestation, notes: e.target.value })}
-                placeholder="Observations, remarques..."
-              />
-            </div>
+            <FormInput
+              label="Date de saillie"
+              name="breedingDate"
+              type="date"
+              value={newGestation.breedingDate}
+              onChange={(e) => updateField("breedingDate", e.target.value)}
+              required
+              error={errors.breedingDate}
+              disabled={status === "loading" || status === "success"}
+            />
+            <FormTextarea
+              label="Notes (optionnel)"
+              name="notes"
+              value={newGestation.notes}
+              onChange={(e) => updateField("notes", e.target.value)}
+              placeholder="Observations, remarques..."
+              error={errors.notes}
+              disabled={status === "loading" || status === "success"}
+            />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>
+            <Button variant="outline" onClick={() => setIsAddOpen(false)} disabled={status === "loading"}>
               Annuler
             </Button>
-            <Button onClick={handleAddGestation} disabled={isLoading}>
-              {isLoading ? (
+            <Button onClick={handleAddGestation} disabled={status === "loading" || status === "success"}>
+              {status === "loading" ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Enregistrement...
                 </>
+              ) : status === "success" ? (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Enregistré !
+                </>
               ) : (
-                "Enregistrer"
+                "Enregistrer la saillie"
               )}
             </Button>
           </DialogFooter>

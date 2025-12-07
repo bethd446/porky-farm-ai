@@ -4,6 +4,7 @@ import { memo } from "react"
 import { useApp } from "@/contexts/app-context"
 import { PiggyBank, Baby, Stethoscope, TrendingUp } from "lucide-react"
 import { Card } from "@/components/ui/card"
+import { iconColors, typography, shadows } from "@/lib/design-system"
 
 export const DashboardStats = memo(function DashboardStats() {
   const { stats } = useApp()
@@ -15,7 +16,7 @@ export const DashboardStats = memo(function DashboardStats() {
       change: "+12",
       changeType: "positive" as const,
       icon: PiggyBank,
-      color: "bg-primary",
+      colorClass: iconColors.stats,
     },
     {
       label: "Truies Gestantes",
@@ -23,7 +24,7 @@ export const DashboardStats = memo(function DashboardStats() {
       change: `${stats.truies} truies`,
       changeType: "positive" as const,
       icon: Baby,
-      color: "bg-pink-500",
+      colorClass: iconColors.reproduction,
     },
     {
       label: "Cas Sanitaires",
@@ -31,7 +32,7 @@ export const DashboardStats = memo(function DashboardStats() {
       change: stats.cassSanteActifs === 0 ? "Aucun cas" : "En cours",
       changeType: stats.cassSanteActifs === 0 ? ("positive" as const) : ("negative" as const),
       icon: Stethoscope,
-      color: stats.cassSanteActifs === 0 ? "bg-green-500" : "bg-amber-500",
+      colorClass: stats.cassSanteActifs === 0 ? iconColors.success : iconColors.warning,
     },
     {
       label: "Coût Alimentation",
@@ -40,31 +41,31 @@ export const DashboardStats = memo(function DashboardStats() {
       change: "Ce mois",
       changeType: "positive" as const,
       icon: TrendingUp,
-      color: "bg-emerald-500",
+      colorClass: iconColors.success,
     },
   ]
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {statCards.map((stat, i) => (
-        <Card key={i} className="p-6 shadow-soft">
+        <Card key={i} className={`p-4 sm:p-6 ${shadows.md}`}>
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">
+              <p className={typography.caption}>{stat.label}</p>
+              <p className={`mt-1 ${typography.h3} text-foreground`}>
                 {stat.value}
-                {stat.suffix && <span className="text-base">{stat.suffix}</span>}
+                {stat.suffix && <span className="text-base font-normal">{stat.suffix}</span>}
               </p>
               <p
                 className={`mt-1 text-xs font-medium ${
-                  stat.changeType === "positive" ? "text-green-600" : "text-amber-600"
+                  stat.changeType === "positive" ? "text-success" : "text-warning"
                 }`}
               >
                 {stat.change}
               </p>
             </div>
-            <div className={`rounded-xl ${stat.color} p-3`}>
-              <stat.icon className="h-6 w-6 text-white" />
+            <div className={`rounded-xl p-2.5 sm:p-3 ${stat.colorClass}`}>
+              <stat.icon className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
           </div>
         </Card>

@@ -1,12 +1,12 @@
 "use client"
 
 import { useEffect, useState, useRef, memo } from "react"
-import { Shield, Zap, Clock, HeartHandshake } from "lucide-react"
+import { Shield, Zap, Smartphone, HeartHandshake } from "lucide-react"
 
 const STATS = [
   { value: 100, suffix: "%", label: "Données sécurisées", icon: Shield, color: "from-emerald-500 to-green-600" },
   { value: 5, suffix: "min", label: "Prise en main", icon: Zap, color: "from-amber-500 to-orange-500" },
-  { value: 24, suffix: "/7", label: "Support disponible", icon: Clock, color: "from-blue-500 to-indigo-600" },
+  { value: 100, suffix: "%", label: "Compatible mobile", icon: Smartphone, color: "from-blue-500 to-indigo-600" },
   {
     value: 100,
     suffix: "%",

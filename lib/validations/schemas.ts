@@ -38,7 +38,7 @@ export type RegisterFormData = z.infer<typeof registerSchema>
 export const animalSchema = z.object({
   name: z.string().min(1, messages.required).min(2, messages.minLength(2)).max(100, messages.maxLength(100)),
   tagNumber: z.string().min(1, messages.required).max(50, messages.maxLength(50)),
-  category: z.enum(["truie", "verrat", "porcelet", "porc_engraissement"], {
+  category: z.enum(["truie", "verrat", "porcelet", "porc_engraissement", "porc"], {
     errorMap: () => ({ message: "Sélectionnez une catégorie" }),
   }),
   breed: z.string().optional(),
@@ -59,7 +59,6 @@ export const animalSchema = z.object({
 
 export type AnimalFormData = z.infer<typeof animalSchema>
 
-// Schema Health Case
 export const healthCaseSchema = z.object({
   animal: z.string().min(1, "Sélectionnez un animal"),
   issue: z
@@ -67,7 +66,7 @@ export const healthCaseSchema = z.object({
     .min(1, messages.required)
     .min(10, "Décrivez le problème en au moins 10 caractères")
     .max(500, messages.maxLength(500)),
-  priority: z.enum(["Haute", "Moyenne", "Basse"], {
+  priority: z.enum(["Basse", "Moyenne", "Haute"], {
     errorMap: () => ({ message: "Sélectionnez une priorité" }),
   }),
   treatment: z.string().max(500, messages.maxLength(500)).optional(),
@@ -75,10 +74,9 @@ export const healthCaseSchema = z.object({
 
 export type HealthCaseFormData = z.infer<typeof healthCaseSchema>
 
-// Schema Gestation
 export const gestationSchema = z.object({
-  sow: z.string().min(1, "Sélectionnez ou entrez le nom de la truie"),
-  boar: z.string().min(1, "Sélectionnez ou entrez le nom du verrat"),
+  sow: z.string().min(1, "Sélectionnez une truie"),
+  boar: z.string().optional(),
   breedingDate: z.string().min(1, "La date de saillie est requise"),
   notes: z.string().max(500, messages.maxLength(500)).optional(),
 })
@@ -114,3 +112,16 @@ export const passwordSchema = z
   })
 
 export type PasswordFormData = z.infer<typeof passwordSchema>
+
+export const pigletBirthSchema = z.object({
+  pigletCount: z
+    .string()
+    .min(1, "Entrez le nombre de porcelets")
+    .refine((val) => Number(val) >= 0 && Number(val) <= 25, "Entre 0 et 25 porcelets"),
+  pigletsSurvived: z
+    .string()
+    .optional()
+    .refine((val) => !val || (Number(val) >= 0 && Number(val) <= 25), "Entre 0 et 25 porcelets"),
+})
+
+export type PigletBirthFormData = z.infer<typeof pigletBirthSchema>

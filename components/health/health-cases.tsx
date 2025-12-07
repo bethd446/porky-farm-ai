@@ -16,12 +16,12 @@ import {
 } from "@/components/ui/dialog"
 import { useApp } from "@/contexts/app-context"
 import { FormInput, FormTextarea, FormSelect } from "@/components/common/form-field"
+import { healthCaseSchema } from "@/lib/validations/schemas"
 
 const priorityOptions = [
-  { value: "low", label: "Basse" },
-  { value: "medium", label: "Moyenne" },
-  { value: "high", label: "Haute - Urgent" },
-  { value: "critical", label: "Critique - Très urgent" },
+  { value: "Basse", label: "Basse" },
+  { value: "Moyenne", label: "Moyenne" },
+  { value: "Haute", label: "Haute - Urgent" },
 ]
 
 export function HealthCases() {
@@ -29,11 +29,12 @@ export function HealthCases() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [errorMessage, setErrorMessage] = useState("")
 
   const [newCase, setNewCase] = useState({
     animal: "",
     issue: "",
-    priority: "medium" as "low" | "medium" | "high" | "critical",
+    priority: "Moyenne" as "Basse" | "Moyenne" | "Haute",
     treatment: "",
     photo: null as string | null,
   })
@@ -59,10 +60,16 @@ export function HealthCases() {
 
   const handleAddCase = () => {
     setErrors({})
+    setErrorMessage("")
 
-    if (!newCase.animal || !newCase.issue) {
-      if (!newCase.animal) setErrors((prev) => ({ ...prev, animal: "Sélectionnez un animal" }))
-      if (!newCase.issue) setErrors((prev) => ({ ...prev, issue: "Décrivez le problème" }))
+    const result = healthCaseSchema.safeParse(newCase)
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {}
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as string
+        fieldErrors[field] = err.message
+      })
+      setErrors(fieldErrors)
       return
     }
 
@@ -71,12 +78,18 @@ export function HealthCases() {
     try {
       const selectedAnimal = animals.find((a) => a.id === newCase.animal)
 
+      if (!selectedAnimal) {
+        setErrors({ animal: "Animal non trouvé" })
+        setStatus("error")
+        return
+      }
+
       addHealthCase({
         animalId: newCase.animal,
-        animalName: selectedAnimal?.name || "Animal inconnu",
+        animalName: selectedAnimal.name || "Animal inconnu",
         issue: newCase.issue,
         description: newCase.issue,
-        priority: newCase.priority,
+        priority: newCase.priority.toLowerCase() as "low" | "medium" | "high",
         status: "open",
         treatment: newCase.treatment || undefined,
         photo: newCase.photo || undefined,
@@ -86,12 +99,13 @@ export function HealthCases() {
       setStatus("success")
 
       setTimeout(() => {
-        setNewCase({ animal: "", issue: "", priority: "medium", treatment: "", photo: null })
+        setNewCase({ animal: "", issue: "", priority: "Moyenne", treatment: "", photo: null })
         setDialogOpen(false)
         setStatus("idle")
       }, 1500)
     } catch (error) {
       setStatus("error")
+      setErrorMessage(error instanceof Error ? error.message : "Une erreur est survenue")
     }
   }
 
@@ -112,7 +126,6 @@ export function HealthCases() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "critical":
-        return "bg-red-600"
       case "high":
         return "bg-red-500"
       case "medium":
@@ -174,30 +187,42 @@ export function HealthCases() {
     <Card className="shadow-soft">
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle className="text-base font-medium">Cas sanitaires actifs ({activeCases.length})</CardTitle>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open)
+            if (!open) {
+              setErrors({})
+              setErrorMessage("")
+              setStatus("idle")
+            }
+          }}
+        >
           <DialogTrigger asChild>
             <Button variant="default" size="sm" className="gap-1">
               <Plus className="h-4 w-4" />
-              Nouveau cas
+              Signaler un problème
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Signaler un cas sanitaire</DialogTitle>
-              <DialogDescription>Enregistrez un nouveau problème de santé pour un animal.</DialogDescription>
+              <DialogTitle>Signaler un problème de santé</DialogTitle>
+              <DialogDescription>
+                Enregistrez un nouveau cas sanitaire pour un animal de votre cheptel.
+              </DialogDescription>
             </DialogHeader>
 
             {status === "success" && (
               <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
                 <CheckCircle className="h-4 w-4" />
-                Cas enregistré avec succès !
+                Cas enregistré ! Pensez à suivre l'évolution.
               </div>
             )}
 
             {status === "error" && (
               <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4" />
-                Une erreur est survenue
+                {errorMessage || "Une erreur est survenue. Réessayez."}
               </div>
             )}
 
@@ -215,15 +240,18 @@ export function HealthCases() {
               />
 
               <FormTextarea
-                label="Problème observé"
+                label="Description du symptôme"
                 name="issue"
-                placeholder="Décrivez les symptômes en détail..."
+                placeholder="Ex: Boiterie patte arrière droite, refus de s'alimenter depuis 2 jours..."
                 value={newCase.issue}
                 onChange={(e) => updateField("issue", e.target.value)}
                 error={errors.issue}
                 required
                 disabled={status === "loading" || status === "success"}
               />
+              <p className="text-xs text-muted-foreground -mt-2">
+                Minimum 10 caractères. Soyez précis pour faciliter le suivi.
+              </p>
 
               <FormSelect
                 label="Priorité"
@@ -237,9 +265,9 @@ export function HealthCases() {
               />
 
               <FormInput
-                label="Traitement initial"
+                label="Traitement initial (optionnel)"
                 name="treatment"
-                placeholder="Ex: Antibiotiques"
+                placeholder="Ex: Antibiotiques administrés"
                 value={newCase.treatment}
                 onChange={(e) => updateField("treatment", e.target.value)}
                 error={errors.treatment}
@@ -247,7 +275,7 @@ export function HealthCases() {
               />
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Photo</label>
+                <label className="text-sm font-medium">Photo (optionnel)</label>
                 <div className="flex gap-2">
                   <input
                     ref={newCasePhotoRef}
@@ -303,7 +331,7 @@ export function HealthCases() {
                     Enregistré !
                   </>
                 ) : (
-                  "Enregistrer"
+                  "Enregistrer le cas"
                 )}
               </Button>
             </div>
@@ -315,7 +343,7 @@ export function HealthCases() {
           <div className="text-center py-8">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
             <p className="text-muted-foreground">Aucun cas sanitaire actif.</p>
-            <p className="text-sm text-muted-foreground">Tous vos animaux sont en bonne santé!</p>
+            <p className="text-sm text-muted-foreground">Tous vos animaux sont en bonne santé !</p>
           </div>
         ) : (
           activeCases.map((caseItem) => (
@@ -349,9 +377,12 @@ export function HealthCases() {
                     {getStatusLabel(caseItem.status)}
                   </Badge>
                 </div>
-                {caseItem.treatment && <p className="mt-2 text-xs text-muted-foreground">Tx: {caseItem.treatment}</p>}
+                {caseItem.treatment && (
+                  <p className="mt-2 text-xs text-muted-foreground">Traitement: {caseItem.treatment}</p>
+                )}
                 <div className="mt-2 flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleResolveCase(caseItem.id)}>
+                    <CheckCircle className="h-3 w-3 mr-1" />
                     Marquer résolu
                   </Button>
                 </div>

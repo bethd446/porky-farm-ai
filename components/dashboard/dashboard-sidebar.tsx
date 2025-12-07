@@ -2,19 +2,33 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from 'next/navigation'
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase/client"
-import { LayoutDashboard, PiggyBank, Stethoscope, Baby, Calculator, Brain, User, Settings, LogOut, Menu, X, ChevronDown, Loader2 } from 'lucide-react'
+import {
+  LayoutDashboard,
+  PiggyBank,
+  Stethoscope,
+  Baby,
+  Calculator,
+  Brain,
+  User,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  ChevronDown,
+  Loader2,
+} from "lucide-react"
 
 const menuItems = [
   {
-    label: "Tableau de bord",
+    label: "Mon elevage",
     icon: LayoutDashboard,
     href: "/dashboard",
   },
   {
-    label: "Cheptel",
+    label: "Mes porcs",
     icon: PiggyBank,
     href: "/dashboard/livestock",
     submenu: [
@@ -25,7 +39,7 @@ const menuItems = [
     ],
   },
   {
-    label: "Santé & Vétérinaire",
+    label: "Suivi sanitaire",
     icon: Stethoscope,
     href: "/dashboard/health",
   },
@@ -35,7 +49,7 @@ const menuItems = [
     href: "/dashboard/reproduction",
   },
   {
-    label: "Alimentation",
+    label: "Rations alimentaires",
     icon: Calculator,
     href: "/dashboard/feeding",
   },
@@ -50,7 +64,7 @@ const menuItems = [
     href: "/dashboard/profile",
   },
   {
-    label: "Paramètres",
+    label: "Parametres",
     icon: Settings,
     href: "/dashboard/settings",
   },
@@ -115,8 +129,8 @@ export function DashboardSidebar() {
                 <item.icon className="h-5 w-5" />
                 <span className="flex-1">{item.label}</span>
                 {hasSubmenu && (
-                  <ChevronDown 
-                    className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} 
+                  <ChevronDown
+                    className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")}
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()

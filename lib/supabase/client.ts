@@ -1,7 +1,8 @@
 "use client"
 
-const SUPABASE_URL = "https://cjzyvcrnwqejlplbkexg.supabase.co"
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cjzyvcrnwqejlplbkexg.supabase.co"
 const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqenl2Y3Jud3FlamxwbGJrZXhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5NDk5NzYsImV4cCI6MjA4MDUyNTk3Nn0.K01KyAy4rBS_7So2WNe2-4kZ9aw9Rqh3hBfFIWquI_A"
 
 const STORAGE_KEY = "porky-farm-auth"

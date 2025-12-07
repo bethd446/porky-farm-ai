@@ -2,13 +2,31 @@ import type * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Card({ className, interactive = false, ...props }: React.ComponentProps<"div"> & { interactive?: boolean }) {
+type CardVariant = "default" | "interactive" | "elevated" | "ghost"
+
+function Card({
+  className,
+  interactive = false,
+  variant = "default",
+  ...props
+}: React.ComponentProps<"div"> & {
+  interactive?: boolean
+  variant?: CardVariant
+}) {
+  const variantStyles: Record<CardVariant, string> = {
+    default: "shadow-sm",
+    interactive: "card-interactive cursor-pointer",
+    elevated: "shadow-soft hover:shadow-lg transition-shadow duration-200",
+    ghost: "border-transparent shadow-none bg-transparent",
+  }
+
   return (
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
-        interactive && "card-interactive cursor-pointer",
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6",
+        variantStyles[variant],
+        interactive && variantStyles.interactive,
         className,
       )}
       {...props}

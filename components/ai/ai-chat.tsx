@@ -5,8 +5,8 @@ import { useState, useEffect, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Send, Bot, User, Sparkles, Loader2, RefreshCw } from "lucide-react"
-import { useLivestock } from "@/contexts/livestock-context"
+import { Send, Bot, User, Sparkles, Loader2, RefreshCw, MessageCircle, Heart, Utensils, Baby } from "lucide-react"
+import { useApp } from "@/contexts/app-context"
 
 interface Message {
   id: string
@@ -14,38 +14,59 @@ interface Message {
   content: string
 }
 
-const suggestedQuestions = [
-  "Quel est le meilleur régime pour une truie gestante ?",
-  "Comment reconnaître les signes de mise-bas imminente ?",
-  "Quelle est la durée normale d'allaitement ?",
-  "Comment prévenir la diarrhée chez les porcelets ?",
-  "Quel calendrier vaccinal pour mon élevage ?",
-  "Comment calculer la ration alimentaire ?",
+const questionCategories = [
+  {
+    icon: Utensils,
+    label: "Alimentation",
+    questions: [
+      "Quelle ration pour une truie gestante ?",
+      "Comment calculer les besoins alimentaires ?",
+      "Quel complement pour les porcelets ?",
+    ],
+  },
+  {
+    icon: Heart,
+    label: "Sante",
+    questions: [
+      "Comment prevenir la diarrhee chez les porcelets ?",
+      "Quel calendrier vaccinal pour mon elevage ?",
+      "Symptomes de la PPA a surveiller ?",
+    ],
+  },
+  {
+    icon: Baby,
+    label: "Reproduction",
+    questions: [
+      "Signes de mise-bas imminente ?",
+      "Duree normale d'allaitement ?",
+      "Comment ameliorer le taux de fecondite ?",
+    ],
+  },
 ]
 
 export function AIChat() {
-  const { animals, stats } = useLivestock()
+  const { animals, stats } = useApp()
 
   const getWelcomeMessage = (): Message => ({
     id: "welcome",
     role: "assistant",
-    content: `Bonjour ! Je suis **PorkyAssistant**, votre conseiller IA spécialisé en élevage porcin.
+    content: `Bonjour ! Je suis **PorkyAssistant**, votre conseiller IA specialise en elevage porcin.
 
-${stats.total > 0 ? `Je vois que vous avez **${stats.total} animaux** dans votre cheptel (${stats.truies} truies, ${stats.verrats} verrats, ${stats.porcelets} porcelets).` : ""}
+${stats.total > 0 ? `Je vois que vous avez **${stats.total} animaux** dans votre cheptel (${stats.truies} truies, ${stats.verrats} verrats, ${stats.porcelets} porcelets).` : "Commencez par ajouter vos premiers animaux pour que je puisse vous donner des conseils personnalises."}
 
-Je peux vous aider sur :
-- **Alimentation** : rations, besoins nutritionnels
-- **Reproduction** : gestation, mise-bas, sevrage
-- **Santé** : prévention, vaccinations, traitements
-- **Gestion** : suivi du cheptel, rentabilité
+**Demandez-moi conseil sur :**
+- L'alimentation et les rations
+- La sante et les vaccinations
+- La reproduction et le sevrage
 
-Comment puis-je vous aider aujourd'hui ?`,
+Selectionnez une question ci-dessous ou posez la votre !`,
   })
 
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -59,25 +80,17 @@ Comment puis-je vous aider aujourd'hui ?`,
   const buildLivestockContext = () => {
     if (animals.length === 0) return ""
 
-    const categories = {
-      truies: animals.filter((a) => a.category === "Truie"),
-      verrats: animals.filter((a) => a.category === "Verrat"),
-      porcelets: animals.filter((a) => a.category === "Porcelet"),
-      engraissement: animals.filter((a) => a.category === "Engraissement"),
-    }
-
     let context = `\n\nContexte du cheptel de l'utilisateur:\n`
     context += `- Total: ${animals.length} animaux\n`
-    context += `- Truies: ${categories.truies.length}\n`
-    context += `- Verrats: ${categories.verrats.length}\n`
-    context += `- Porcelets: ${categories.porcelets.length}\n`
-    context += `- Engraissement: ${categories.engraissement.length}\n`
+    context += `- Truies: ${stats.truies}\n`
+    context += `- Verrats: ${stats.verrats}\n`
+    context += `- Porcelets: ${stats.porcelets}\n`
+    context += `- Porcs d'engraissement: ${stats.porcs}\n`
 
-    // Add health status if available
-    const healthyCount = animals.filter((a) => a.status === "Bonne santé" || a.status === "healthy").length
-    const sickCount = animals.filter((a) => a.status === "Malade" || a.status === "sick").length
+    const healthyCount = animals.filter((a) => a.healthStatus === "bon").length
+    const sickCount = animals.filter((a) => a.healthStatus === "malade" || a.healthStatus === "critique").length
     if (healthyCount > 0 || sickCount > 0) {
-      context += `- En bonne santé: ${healthyCount}, Malades: ${sickCount}\n`
+      context += `- En bonne sante: ${healthyCount}, Necessitant attention: ${sickCount}\n`
     }
 
     return context
@@ -97,6 +110,7 @@ Comment puis-je vous aider aujourd'hui ?`,
     setInput("")
     setIsLoading(true)
     setError(null)
+    setSelectedCategory(null)
 
     try {
       const livestockContext = buildLivestockContext()
@@ -109,7 +123,7 @@ Comment puis-je vous aider aujourd'hui ?`,
             role: m.role,
             content: m.content,
           })),
-          livestockContext, // Pass context to API
+          livestockContext,
         }),
       })
 
@@ -122,13 +136,12 @@ Comment puis-je vous aider aujourd'hui ?`,
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.content || data.message || "Désolé, je n'ai pas pu générer une réponse.",
+        content: data.content || data.message || "Desole, je n'ai pas pu generer une reponse.",
       }
 
       setMessages((prev) => [...prev, assistantMessage])
     } catch (err) {
-      setError("Une erreur est survenue. Veuillez réessayer.")
-      console.error("Chat error:", err)
+      setError("Une erreur est survenue. Veuillez reessayer.")
     } finally {
       setIsLoading(false)
     }
@@ -136,11 +149,13 @@ Comment puis-je vous aider aujourd'hui ?`,
 
   const handleQuestionClick = (question: string) => {
     setInput(question)
+    setSelectedCategory(null)
   }
 
   const handleReset = () => {
     setMessages([getWelcomeMessage()])
     setError(null)
+    setSelectedCategory(null)
   }
 
   return (
@@ -154,7 +169,7 @@ Comment puis-je vous aider aujourd'hui ?`,
           <div>
             <h3 className="font-semibold text-foreground">PorkyAssistant</h3>
             <p className="text-xs text-muted-foreground">
-              {stats.total > 0 ? `${stats.total} animaux dans votre cheptel` : "Expert en élevage porcin"}
+              {stats.total > 0 ? `${stats.total} animaux dans votre cheptel` : "Expert en elevage porcin"}
             </p>
           </div>
         </div>
@@ -200,7 +215,7 @@ Comment puis-je vous aider aujourd'hui ?`,
             </div>
             <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-3 border border-border">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">Réflexion en cours...</span>
+              <span className="text-sm text-muted-foreground">Reflexion en cours...</span>
             </div>
           </div>
         )}
@@ -219,24 +234,46 @@ Comment puis-je vous aider aujourd'hui ?`,
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Suggested Questions */}
       {messages.length <= 1 && (
         <div className="border-t border-border px-4 py-3 bg-muted/30">
-          <p className="mb-2 text-xs font-medium text-muted-foreground flex items-center gap-1">
+          <p className="mb-3 text-xs font-medium text-muted-foreground flex items-center gap-1">
             <Sparkles className="h-3 w-3 text-primary" />
-            Questions suggérées
+            Choisissez un sujet ou posez votre question
           </p>
-          <div className="flex flex-wrap gap-2">
-            {suggestedQuestions.map((q, i) => (
+
+          {/* Category buttons */}
+          <div className="flex gap-2 mb-3">
+            {questionCategories.map((cat, i) => (
               <button
                 key={i}
-                onClick={() => handleQuestionClick(q)}
-                className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-all hover:bg-primary hover:text-white hover:border-primary"
+                onClick={() => setSelectedCategory(selectedCategory === i ? null : i)}
+                className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                  selectedCategory === i
+                    ? "bg-primary text-white"
+                    : "border border-border bg-background text-muted-foreground hover:bg-muted"
+                }`}
               >
-                {q}
+                <cat.icon className="h-3.5 w-3.5" />
+                {cat.label}
               </button>
             ))}
           </div>
+
+          {/* Questions for selected category */}
+          {selectedCategory !== null && (
+            <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2">
+              {questionCategories[selectedCategory].questions.map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleQuestionClick(q)}
+                  className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-left text-foreground transition-all hover:bg-primary hover:text-white hover:border-primary"
+                >
+                  <MessageCircle className="h-4 w-4 shrink-0" />
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -246,7 +283,7 @@ Comment puis-je vous aider aujourd'hui ?`,
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Posez votre question sur l'élevage porcin..."
+            placeholder="Posez votre question sur l'elevage porcin..."
             className="flex-1"
             disabled={isLoading}
           />

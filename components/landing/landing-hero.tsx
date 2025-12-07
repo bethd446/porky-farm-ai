@@ -137,7 +137,7 @@ export function LandingHero() {
             </Link>
             <Link href="/auth/register">
               <Button className="h-11 bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105">
-                Commencer gratuitement
+                Créer mon élevage
               </Button>
             </Link>
           </div>
@@ -180,7 +180,7 @@ export function LandingHero() {
                 </Button>
               </Link>
               <Link href="/auth/register" className="w-full">
-                <Button className="w-full h-12 bg-primary text-white shadow-lg">Commencer gratuitement</Button>
+                <Button className="w-full h-12 bg-primary text-white shadow-lg">Créer mon élevage</Button>
               </Link>
             </div>
           </div>
@@ -218,7 +218,7 @@ export function LandingHero() {
               size="lg"
               className="group w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full bg-primary px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-primary-dark shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105"
             >
-              Démarrer gratuitement
+              Créer mon élevage
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>

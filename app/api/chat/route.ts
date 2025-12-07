@@ -2,6 +2,16 @@ import { generateText } from "ai"
 
 export async function POST(req: Request) {
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      return Response.json(
+        {
+          content:
+            "L'assistant IA n'est pas configuré. Veuillez ajouter la clé OPENAI_API_KEY dans les variables d'environnement.",
+        },
+        { status: 200 },
+      )
+    }
+
     const { messages, livestockContext } = await req.json()
 
     const systemPrompt = `Tu es PorkyAssistant, un assistant IA expert en élevage porcin, spécialement conçu pour aider les éleveurs ivoiriens. 
@@ -43,6 +53,11 @@ RÈGLES DE RÉPONSE:
     return Response.json({ content: text })
   } catch (error) {
     console.error("Chat API error:", error)
-    return Response.json({ error: "Erreur lors de la génération de la réponse" }, { status: 500 })
+    return Response.json(
+      {
+        content: "Désolé, je rencontre des difficultés techniques. Veuillez réessayer dans quelques instants.",
+      },
+      { status: 200 },
+    )
   }
 }

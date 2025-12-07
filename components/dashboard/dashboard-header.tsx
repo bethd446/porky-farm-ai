@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, Search, Sun, Cloud, CloudRain, MapPin, User, Settings, LogOut, HelpCircle } from "lucide-react"
+import { Bell, Search, Sun, Cloud, CloudRain, MapPin, User, Settings, LogOut, HelpCircle, Check } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,12 +16,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAuthContext } from "@/contexts/auth-context"
-import { supabase } from "@/lib/supabase/client"
+import { useApp } from "@/contexts/app-context"
+
+interface UserProfile {
+  fullName: string
+  farmName: string
+  location: string
+  email: string
+}
 
 export function DashboardHeader() {
   const router = useRouter()
-  const { profile } = useAuthContext()
+  const { alerts } = useApp()
+
+  const [profile, setProfile] = useState<UserProfile>({
+    fullName: "Eleveur PorkyFarm",
+    farmName: "Ma Ferme",
+    location: "Cote d'Ivoire",
+    email: "contact@porkyfarm.app",
+  })
+
   const [weather, setWeather] = useState({
     temp: 28,
     condition: "sunny",
@@ -30,25 +44,42 @@ export function DashboardHeader() {
   })
   const [currentTime, setCurrentTime] = useState(new Date())
   const [searchQuery, setSearchQuery] = useState("")
-  const [showSearch, setShowSearch] = useState(false)
 
-  const [notifications] = useState([
-    {
-      id: 1,
-      title: "Vaccination requise",
-      message: "3 porcs nécessitent une vaccination",
-      time: "Il y a 2h",
-      type: "warning",
-    },
-    {
-      id: 2,
-      title: "Mise bas imminente",
-      message: "Truie #T-042 - prévoir dans 3 jours",
-      time: "Il y a 5h",
-      type: "info",
-    },
-    { id: 3, title: "Stock aliment bas", message: "Seulement 15% du stock restant", time: "Hier", type: "alert" },
-  ])
+  const [notifications, setNotifications] = useState<
+    Array<{
+      id: string
+      title: string
+      message: string
+      time: string
+      type: string
+      read: boolean
+    }>
+  >([])
+
+  useEffect(() => {
+    // Load saved profile
+    const savedProfile = localStorage.getItem("porkyfarm-user-profile")
+    if (savedProfile) {
+      const parsed = JSON.parse(savedProfile)
+      setProfile({
+        fullName: parsed.fullName || "Eleveur PorkyFarm",
+        farmName: parsed.farmName || "Ma Ferme",
+        location: parsed.location || "Cote d'Ivoire",
+        email: parsed.email || "contact@porkyfarm.app",
+      })
+    }
+
+    // Generate notifications from alerts
+    const notifs = alerts.slice(0, 5).map((alert, idx) => ({
+      id: `notif-${idx}`,
+      title: alert.title,
+      message: alert.description,
+      time: "Maintenant",
+      type: alert.type,
+      read: false,
+    }))
+    setNotifications(notifs)
+  }, [alerts])
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
@@ -68,20 +99,30 @@ export function DashboardHeader() {
     }
   }
 
-  const firstName = profile?.full_name?.split(" ")[0] || "Utilisateur"
+  const firstName = profile.fullName.split(" ")[0]
+
+  const unreadCount = notifications.filter((n) => !n.read).length
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
       router.push(`/dashboard/livestock?search=${encodeURIComponent(searchQuery)}`)
       setSearchQuery("")
-      setShowSearch(false)
     }
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
+  const handleLogout = () => {
+    // Clear session data
+    localStorage.removeItem("porkyfarm-session")
     window.location.href = "/auth/login"
+  }
+
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+  }
+
+  const handleNotificationClick = (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
   }
 
   return (
@@ -123,28 +164,44 @@ export function DashboardHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative rounded-full">
               <Bell className="h-5 w-5" />
-              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
-                {notifications.length}
-              </span>
+              {unreadCount > 0 && (
+                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
+                  {unreadCount}
+                </span>
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
             <DropdownMenuLabel className="flex items-center justify-between">
               <span>Notifications</span>
-              <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary hover:bg-transparent">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 text-xs text-primary hover:bg-transparent"
+                onClick={handleMarkAllRead}
+              >
+                <Check className="h-3 w-3 mr-1" />
                 Tout marquer comme lu
               </Button>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {notifications.map((notif) => (
-              <DropdownMenuItem key={notif.id} className="flex flex-col items-start gap-1 p-3 cursor-pointer">
-                <div className="flex w-full items-center justify-between">
-                  <span className="font-medium text-sm">{notif.title}</span>
-                  <span className="text-xs text-muted-foreground">{notif.time}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">{notif.message}</span>
-              </DropdownMenuItem>
-            ))}
+            {notifications.length > 0 ? (
+              notifications.map((notif) => (
+                <DropdownMenuItem
+                  key={notif.id}
+                  className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${notif.read ? "opacity-60" : ""}`}
+                  onClick={() => handleNotificationClick(notif.id)}
+                >
+                  <div className="flex w-full items-center justify-between">
+                    <span className="font-medium text-sm">{notif.title}</span>
+                    <span className="text-xs text-muted-foreground">{notif.time}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{notif.message}</span>
+                </DropdownMenuItem>
+              ))
+            ) : (
+              <div className="py-6 text-center text-sm text-muted-foreground">Aucune notification</div>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/dashboard/settings" className="w-full text-center text-sm text-primary">
@@ -165,8 +222,8 @@ export function DashboardHeader() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col">
-                <span>{profile?.full_name || "Utilisateur"}</span>
-                <span className="text-xs font-normal text-muted-foreground">{profile?.email}</span>
+                <span>{profile.fullName}</span>
+                <span className="text-xs font-normal text-muted-foreground">{profile.email}</span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -179,7 +236,7 @@ export function DashboardHeader() {
             <DropdownMenuItem asChild>
               <Link href="/dashboard/settings" className="flex items-center gap-2 cursor-pointer">
                 <Settings className="h-4 w-4" />
-                Paramètres
+                Parametres
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
@@ -194,7 +251,7 @@ export function DashboardHeader() {
               className="flex items-center gap-2 text-destructive cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
-              Déconnexion
+              Deconnexion
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -3,36 +3,67 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Updated color palette for PorkyFarm - green agricultural theme */
+/* 
+ * PORKYFARM DESIGN SYSTEM - TOKENS CSS
+ * =====================================
+ * Palette agricole verte avec accents dores
+ */
 :root {
+  /* Fond et texte */
   --background: oklch(0.99 0.002 120);
   --foreground: oklch(0.2 0.02 120);
+
+  /* Surfaces */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.2 0.02 120);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.02 120);
+
+  /* Couleur primaire - Vert agricole */
   --primary: oklch(0.55 0.18 142);
   --primary-foreground: oklch(0.99 0 0);
   --primary-light: oklch(0.65 0.16 142);
   --primary-dark: oklch(0.45 0.16 142);
+
+  /* Secondaire - Gris neutre */
   --secondary: oklch(0.95 0.02 120);
   --secondary-foreground: oklch(0.3 0.05 120);
+
+  /* Muted - Elements discrets */
   --muted: oklch(0.96 0.01 120);
   --muted-foreground: oklch(0.5 0.02 120);
+
+  /* Accent - Dore/Ambre pour highlights */
   --accent: oklch(0.85 0.15 85);
   --accent-light: oklch(0.9 0.12 85);
   --accent-foreground: oklch(0.25 0.05 85);
+
+  /* Etats semantiques */
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
+  --success: oklch(0.6 0.18 145);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.75 0.18 75);
+  --warning-foreground: oklch(0.25 0.05 75);
+  --info: oklch(0.6 0.15 230);
+  --info-foreground: oklch(0.99 0 0);
+
+  /* Bordures et inputs */
   --border: oklch(0.9 0.02 120);
   --input: oklch(0.92 0.01 120);
   --ring: oklch(0.55 0.18 142);
+
+  /* Charts */
   --chart-1: oklch(0.55 0.18 142);
   --chart-2: oklch(0.65 0.15 85);
   --chart-3: oklch(0.5 0.12 200);
   --chart-4: oklch(0.7 0.18 60);
   --chart-5: oklch(0.6 0.2 30);
+
+  /* Radius - 0.75rem = 12px base */
   --radius: 0.75rem;
+
+  /* Sidebar */
   --sidebar: oklch(0.98 0.01 120);
   --sidebar-foreground: oklch(0.2 0.02 120);
   --sidebar-primary: oklch(0.55 0.18 142);
@@ -42,15 +73,7 @@
   --sidebar-border: oklch(0.9 0.02 120);
   --sidebar-ring: oklch(0.55 0.18 142);
 
-  /* Custom PorkyFarm colors */
-  --success: oklch(0.6 0.18 145);
-  --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.75 0.18 75);
-  --warning-foreground: oklch(0.25 0.05 75);
-  --info: oklch(0.6 0.15 230);
-  --info-foreground: oklch(0.99 0 0);
-
-  /* Animation timing variables */
+  /* Animation timing */
   --duration-fast: 150ms;
   --duration-normal: 200ms;
   --duration-slow: 300ms;
@@ -95,7 +118,6 @@
   --sidebar-accent-foreground: oklch(0.9 0.01 120);
   --sidebar-border: oklch(0.28 0.02 120);
   --sidebar-ring: oklch(0.65 0.18 142);
-
   --success: oklch(0.55 0.16 145);
   --success-foreground: oklch(0.95 0 0);
   --warning: oklch(0.7 0.16 75);
@@ -104,10 +126,11 @@
   --info-foreground: oklch(0.95 0 0);
 }
 
-/* Updated font configuration for Poppins and Inter */
 @theme inline {
   --font-sans: "Poppins", "Inter", system-ui, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
+
+  /* Mapping des couleurs */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -127,6 +150,12 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -135,18 +164,16 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
-  --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
-  --color-info: var(--info);
-  --color-info-foreground: var(--info-foreground);
+
+  /* Radius scale */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
+
+  /* Sidebar */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -165,53 +192,39 @@
     @apply bg-background text-foreground;
   }
 
-  /* Custom scrollbar styling */
+  /* Scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-
   ::-webkit-scrollbar-track {
     background: var(--muted);
     border-radius: 4px;
   }
-
   ::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 4px;
   }
-
   ::-webkit-scrollbar-thumb:hover {
     background: var(--muted-foreground);
   }
 }
 
-/* Custom utility classes for PorkyFarm */
 @layer utilities {
+  /* Glass effects */
   .glass {
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
-
   .dark .glass {
     background: rgba(30, 30, 30, 0.85);
   }
 
-  .glass-dark {
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
+  /* Gradients */
   .gradient-primary {
     background: linear-gradient(135deg, oklch(0.55 0.18 142) 0%, oklch(0.5 0.16 155) 100%);
   }
-
-  .gradient-accent {
-    background: linear-gradient(135deg, oklch(0.85 0.15 85) 0%, oklch(0.8 0.18 70) 100%);
-  }
-
   .text-gradient {
     background: linear-gradient(135deg, oklch(0.55 0.18 142) 0%, oklch(0.5 0.16 155) 100%);
     -webkit-background-clip: text;
@@ -219,26 +232,21 @@
     background-clip: text;
   }
 
+  /* Shadows */
   .shadow-soft {
     box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.1), 0 2px 8px -2px rgba(0, 0, 0, 0.06);
   }
-
   .shadow-glow {
     box-shadow: 0 0 40px -10px oklch(0.55 0.18 142 / 0.4);
   }
 
-  /* Unified animation utilities */
-
-  /* Hover interactions */
+  /* Hover effects */
   .hover-lift {
     transition: transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out);
   }
   .hover-lift:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 10px -5px rgba(0, 0, 0, 0.04);
-  }
-  .hover-lift:active {
-    transform: translateY(0);
   }
 
   .hover-scale {
@@ -247,79 +255,43 @@
   .hover-scale:hover {
     transform: scale(1.02);
   }
-  .hover-scale:active {
-    transform: scale(0.98);
+
+  /* Card interactive */
+  .card-interactive {
+    transition: transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out),
+      border-color var(--duration-normal) var(--ease-out);
+  }
+  .card-interactive:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.12);
+    border-color: var(--primary);
   }
 
-  .hover-glow {
-    transition: box-shadow var(--duration-normal) var(--ease-out);
-  }
-  .hover-glow:hover {
-    box-shadow: 0 0 20px -5px oklch(0.55 0.18 142 / 0.3);
-  }
-
-  /* Button press effect */
-  .press {
-    transition: transform var(--duration-fast) var(--ease-spring);
-  }
-  .press:active {
-    transform: scale(0.97);
-  }
-
-  /* Fade animations */
+  /* Animations */
   .animate-fade-in {
     animation: fadeIn var(--duration-normal) var(--ease-out) forwards;
   }
-
   .animate-fade-up {
     animation: fadeUp var(--duration-slow) var(--ease-out) forwards;
   }
-
-  .animate-fade-down {
-    animation: fadeDown var(--duration-slow) var(--ease-out) forwards;
-  }
-
-  /* Scale animations */
   .animate-scale-in {
     animation: scaleIn var(--duration-normal) var(--ease-spring) forwards;
   }
-
-  .animate-scale-out {
-    animation: scaleOut var(--duration-fast) var(--ease-out) forwards;
-  }
-
-  /* Slide animations */
   .animate-slide-up {
     animation: slideUp var(--duration-slow) var(--ease-out) forwards;
   }
-
-  .animate-slide-down {
-    animation: slideDown var(--duration-slow) var(--ease-out) forwards;
-  }
-
-  .animate-slide-left {
-    animation: slideLeft var(--duration-slow) var(--ease-out) forwards;
-  }
-
-  .animate-slide-right {
-    animation: slideRight var(--duration-slow) var(--ease-out) forwards;
-  }
-
-  /* Float animations */
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
-
   .animate-float-delayed {
     animation: float 6s ease-in-out infinite;
     animation-delay: 2s;
   }
-
   .animate-pulse-slow {
     animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
-  /* Stagger children animation helper */
+  /* Stagger children */
   .stagger-children > * {
     opacity: 0;
     animation: fadeUp var(--duration-slow) var(--ease-out) forwards;
@@ -349,63 +321,153 @@
     animation-delay: 350ms;
   }
 
-  /* Loading states */
-  .animate-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
+  /* Nouvelles classes d'animation */
+  .animate-slide-in-right {
+    animation: slideInRight var(--duration-normal) var(--ease-out) forwards;
   }
-
-  .animate-skeleton {
-    background: linear-gradient(90deg, var(--muted) 25%, var(--muted-foreground) 50%, var(--muted) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    opacity: 0.1;
+  .animate-slide-in-left {
+    animation: slideInLeft var(--duration-normal) var(--ease-out) forwards;
   }
-
-  /* Spin with easing */
-  .animate-spin-slow {
-    animation: spin 2s linear infinite;
+  .animate-slide-in-down {
+    animation: slideInDown var(--duration-normal) var(--ease-out) forwards;
   }
-
-  /* Success/Error pulse */
+  .animate-bounce-in {
+    animation: bounceIn var(--duration-slow) var(--ease-spring) forwards;
+  }
   .animate-success-pulse {
     animation: successPulse var(--duration-slow) var(--ease-out);
   }
-
   .animate-error-shake {
-    animation: errorShake var(--duration-slow) var(--ease-out);
+    animation: errorShake var(--duration-normal) var(--ease-out);
+  }
+  .animate-count-up {
+    animation: countUp var(--duration-normal) var(--ease-out) forwards;
+  }
+  .animate-progress-fill {
+    animation: progressFill var(--duration-slow) var(--ease-out) forwards;
   }
 
-  /* Icon bounce on interaction */
-  .icon-bounce {
+  /* Skeleton loading */
+  .skeleton {
+    background: linear-gradient(90deg, var(--muted) 25%, var(--muted-foreground) 50%, var(--muted) 75%);
+    background-size: 200px 100%;
+    animation: skeleton 1.5s ease-in-out infinite;
+  }
+
+  /* Button ripple effect */
+  .btn-ripple {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-ripple::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+    transform: scale(0);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .btn-ripple:active::after {
+    animation: ripple 0.4s ease-out;
+  }
+
+  /* Icon hover rotation */
+  .icon-hover-rotate {
+    transition: transform var(--duration-normal) var(--ease-out);
+  }
+  .group:hover .icon-hover-rotate,
+  .icon-hover-rotate:hover {
+    transform: rotate(12deg);
+  }
+
+  /* Icon hover scale */
+  .icon-hover-scale {
     transition: transform var(--duration-fast) var(--ease-spring);
   }
-  .icon-bounce:hover {
-    transform: scale(1.15);
+  .group:hover .icon-hover-scale,
+  .icon-hover-scale:hover {
+    transform: scale(1.1);
   }
 
-  /* Card interactive state */
-  .card-interactive {
-    transition: transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out),
-      border-color var(--duration-normal) var(--ease-out);
+  /* Icon hover bounce */
+  .icon-hover-bounce {
+    transition: transform var(--duration-fast) var(--ease-spring);
   }
-  .card-interactive:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.12);
-    border-color: var(--primary);
+  .group:hover .icon-hover-bounce,
+  .icon-hover-bounce:hover {
+    transform: translateY(-2px);
   }
 
-  /* Focus ring animation */
-  .focus-ring-animate {
-    transition: box-shadow var(--duration-fast) var(--ease-out);
+  /* Link underline animation */
+  .link-underline {
+    position: relative;
   }
-  .focus-ring-animate:focus {
-    box-shadow: 0 0 0 3px oklch(0.55 0.18 142 / 0.2);
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: currentColor;
+    transition: width var(--duration-normal) var(--ease-out);
+  }
+  .link-underline:hover::after {
+    width: 100%;
+  }
+
+  /* Focus glow */
+  .focus-glow:focus-visible {
+    box-shadow: 0 0 0 3px var(--ring), 0 0 20px -5px var(--primary);
+  }
+
+  /* Success state */
+  .state-success {
+    border-color: var(--success) !important;
+    box-shadow: 0 0 0 3px oklch(0.6 0.18 145 / 0.2);
+  }
+
+  /* Error state */
+  .state-error {
+    border-color: var(--destructive) !important;
+    box-shadow: 0 0 0 3px oklch(0.55 0.22 25 / 0.2);
+    animation: errorShake var(--duration-normal) var(--ease-out);
+  }
+
+  /* Counter animation helper */
+  .counter-animate {
+    display: inline-block;
+    animation: countUp var(--duration-normal) var(--ease-out) forwards;
+  }
+
+  /* Stagger with more items */
+  .stagger-children > *:nth-child(9) {
+    animation-delay: 400ms;
+  }
+  .stagger-children > *:nth-child(10) {
+    animation-delay: 450ms;
+  }
+  .stagger-children > *:nth-child(11) {
+    animation-delay: 500ms;
+  }
+  .stagger-children > *:nth-child(12) {
+    animation-delay: 550ms;
+  }
+
+  /* Page transition */
+  .page-enter {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .page-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity var(--duration-normal) var(--ease-out), transform var(--duration-normal) var(--ease-out);
   }
 }
 
-/* Keyframe animations */
+/* Keyframes */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -426,17 +488,6 @@
   }
 }
 
-@keyframes fadeDown {
-  from {
-    opacity: 0;
-    transform: translateY(-16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @keyframes scaleIn {
   from {
     opacity: 0;
@@ -448,17 +499,6 @@
   }
 }
 
-@keyframes scaleOut {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-}
-
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -467,39 +507,6 @@
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideLeft {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideRight {
-  from {
-    opacity: 0;
-    transform: translateX(-100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
 
@@ -519,15 +526,6 @@
   }
   100% {
     background-position: 200% 0;
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
   }
 }
 
@@ -558,29 +556,8 @@
   }
 }
 
-/* Modal/Dialog backdrop animation */
-@keyframes backdropFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -48%) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-/* Toast animations */
-@keyframes toastSlideIn {
+/* Nouvelles animations pour micro-interactions */
+@keyframes slideInRight {
   from {
     opacity: 0;
     transform: translateX(100%);
@@ -591,23 +568,87 @@
   }
 }
 
-@keyframes toastSlideOut {
+@keyframes slideInLeft {
   from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
     opacity: 1;
     transform: translateX(0);
   }
-  to {
+}
+
+@keyframes slideInDown {
+  from {
     opacity: 0;
-    transform: translateX(100%);
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Checkbox tick animation */
-@keyframes checkTick {
+@keyframes bounceIn {
   0% {
-    stroke-dashoffset: 16;
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes checkmark {
+  0% {
+    stroke-dashoffset: 50;
   }
   100% {
     stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes progressFill {
+  from {
+    width: 0%;
+  }
+}
+
+@keyframes skeleton {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
   }
 }

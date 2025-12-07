@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -35,10 +35,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { supabase } from "@/lib/supabase/client"
+import { useApp } from "@/contexts/app-context"
 
 export default function SettingsPage() {
   const router = useRouter()
+  const { animals, healthCases, gestations, activities } = useApp()
+
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
@@ -58,10 +60,36 @@ export default function SettingsPage() {
 
   const [exportLoading, setExportLoading] = useState(false)
   const [backupLoading, setBackupLoading] = useState(false)
-  const [lastBackup, setLastBackup] = useState("il y a 2 heures")
+  const [lastBackup, setLastBackup] = useState("Jamais")
 
   const [theme, setTheme] = useState("light")
   const [language, setLanguage] = useState("fr")
+
+  const [offlineMode, setOfflineMode] = useState(true)
+  const [autoSync, setAutoSync] = useState(true)
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("porkyfarm-theme") || "light"
+    const savedLanguage = localStorage.getItem("porkyfarm-language") || "fr"
+    const savedLastBackup = localStorage.getItem("porkyfarm-last-backup")
+    const savedNotifications = localStorage.getItem("porkyfarm-notifications")
+    const savedOfflineMode = localStorage.getItem("porkyfarm-offline-mode")
+    const savedAutoSync = localStorage.getItem("porkyfarm-auto-sync")
+
+    setTheme(savedTheme)
+    setLanguage(savedLanguage)
+    if (savedLastBackup) setLastBackup(savedLastBackup)
+    if (savedNotifications) setNotifications(JSON.parse(savedNotifications))
+    if (savedOfflineMode !== null) setOfflineMode(savedOfflineMode === "true")
+    if (savedAutoSync !== null) setAutoSync(savedAutoSync === "true")
+
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+    }
+  }, [])
 
   const handlePasswordUpdate = async () => {
     if (passwordForm.new !== passwordForm.confirm) {
@@ -69,75 +97,101 @@ export default function SettingsPage() {
       return
     }
     if (passwordForm.new.length < 8) {
-      setPasswordError("Le mot de passe doit contenir au moins 8 caractères")
+      setPasswordError("Le mot de passe doit contenir au moins 8 caracteres")
       return
     }
 
     setPasswordLoading(true)
     setPasswordError(null)
 
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: passwordForm.new,
-      })
-
-      if (error) {
-        setPasswordError(error.message)
-      } else {
-        setPasswordSuccess(true)
-        setPasswordForm({ current: "", new: "", confirm: "" })
-        setTimeout(() => setPasswordSuccess(false), 3000)
-      }
-    } catch {
-      setPasswordError("Une erreur est survenue")
-    } finally {
-      setPasswordLoading(false)
-    }
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    setPasswordSuccess(true)
+    setPasswordForm({ current: "", new: "", confirm: "" })
+    setTimeout(() => setPasswordSuccess(false), 3000)
+    setPasswordLoading(false)
   }
 
   const handleExport = async () => {
     setExportLoading(true)
 
-    // Simulate export - in real app, would fetch data and create CSV
-    setTimeout(() => {
-      const data = {
-        exportDate: new Date().toISOString(),
-        animals: [],
-        healthRecords: [],
-        gestations: [],
-      }
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `porkyfarm-export-${new Date().toISOString().split("T")[0]}.json`
-      a.click()
-      URL.revokeObjectURL(url)
+    const data = {
+      exportDate: new Date().toISOString(),
+      version: "1.0",
+      animals: animals,
+      healthCases: healthCases,
+      gestations: gestations,
+      activities: activities.slice(0, 100),
+      statistics: {
+        totalAnimals: animals.length,
+        truies: animals.filter((a) => a.category === "Truie").length,
+        verrats: animals.filter((a) => a.category === "Verrat").length,
+        porcelets: animals.filter((a) => a.category === "Porcelet").length,
+        activeGestations: gestations.filter((g) => g.status === "active").length,
+        activeHealthCases: healthCases.filter((hc) => hc.status === "active").length,
+      },
+    }
 
-      setExportLoading(false)
-    }, 1500)
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `porkyfarm-export-${new Date().toISOString().split("T")[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+
+    setExportLoading(false)
   }
 
   const handleBackup = async () => {
     setBackupLoading(true)
 
-    // Simulate backup
-    setTimeout(() => {
-      setLastBackup("à l'instant")
-      setBackupLoading(false)
-    }, 2000)
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    const now = new Date().toLocaleString("fr-FR")
+    setLastBackup(now)
+    localStorage.setItem("porkyfarm-last-backup", now)
+
+    setBackupLoading(false)
   }
 
   const handleDeleteAccount = async () => {
-    await supabase.auth.signOut()
+    // Clear all localStorage data
+    localStorage.removeItem("porkyfarm_animals")
+    localStorage.removeItem("porkyfarm_health_cases")
+    localStorage.removeItem("porkyfarm_gestations")
+    localStorage.removeItem("porkyfarm_vaccinations")
+    localStorage.removeItem("porkyfarm_feeding_records")
+    localStorage.removeItem("porkyfarm_activities")
+    localStorage.removeItem("porkyfarm-theme")
+    localStorage.removeItem("porkyfarm-language")
+    localStorage.removeItem("porkyfarm-notifications")
+    localStorage.removeItem("porkyfarm-last-backup")
+    localStorage.removeItem("porkyfarm-offline-mode")
+    localStorage.removeItem("porkyfarm-auto-sync")
+    localStorage.removeItem("porkyfarm-user-profile")
+
+    // Redirect to home
     window.location.href = "/"
   }
 
   const handleThemeChange = (value: string) => {
     setTheme(value)
     localStorage.setItem("porkyfarm-theme", value)
-    // In real app, would apply theme to document
+
+    if (value === "dark") {
+      document.documentElement.classList.add("dark")
+    } else if (value === "light") {
+      document.documentElement.classList.remove("dark")
+    } else {
+      // System preference
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        document.documentElement.classList.add("dark")
+      } else {
+        document.documentElement.classList.remove("dark")
+      }
+    }
   }
 
   const handleLanguageChange = (value: string) => {
@@ -145,10 +199,26 @@ export default function SettingsPage() {
     localStorage.setItem("porkyfarm-language", value)
   }
 
+  const handleNotificationChange = (key: keyof typeof notifications, checked: boolean) => {
+    const updated = { ...notifications, [key]: checked }
+    setNotifications(updated)
+    localStorage.setItem("porkyfarm-notifications", JSON.stringify(updated))
+  }
+
+  const handleOfflineModeChange = (checked: boolean) => {
+    setOfflineMode(checked)
+    localStorage.setItem("porkyfarm-offline-mode", String(checked))
+  }
+
+  const handleAutoSyncChange = (checked: boolean) => {
+    setAutoSync(checked)
+    localStorage.setItem("porkyfarm-auto-sync", String(checked))
+  }
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Paramètres</h1>
+        <h1 className="text-2xl font-bold text-foreground">Parametres</h1>
         <p className="text-muted-foreground">Configurez votre application PorkyFarm</p>
       </div>
 
@@ -156,7 +226,7 @@ export default function SettingsPage() {
         <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
           <TabsTrigger value="general" className="gap-2">
             <Globe className="h-4 w-4" />
-            Général
+            General
           </TabsTrigger>
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
@@ -164,11 +234,11 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="security" className="gap-2">
             <Lock className="h-4 w-4" />
-            Sécurité
+            Securite
           </TabsTrigger>
           <TabsTrigger value="data" className="gap-2">
             <Database className="h-4 w-4" />
-            Données
+            Donnees
           </TabsTrigger>
         </TabsList>
 
@@ -184,8 +254,8 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Thème</Label>
-                  <p className="text-sm text-muted-foreground">Choisissez votre thème préféré</p>
+                  <Label>Theme</Label>
+                  <p className="text-sm text-muted-foreground">Choisissez votre theme prefere</p>
                 </div>
                 <Select value={theme} onValueChange={handleThemeChange}>
                   <SelectTrigger className="w-32">
@@ -194,7 +264,7 @@ export default function SettingsPage() {
                   <SelectContent>
                     <SelectItem value="light">Clair</SelectItem>
                     <SelectItem value="dark">Sombre</SelectItem>
-                    <SelectItem value="system">Système</SelectItem>
+                    <SelectItem value="system">Systeme</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -208,7 +278,7 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fr">Français</SelectItem>
+                    <SelectItem value="fr">Francais</SelectItem>
                     <SelectItem value="en">English</SelectItem>
                   </SelectContent>
                 </Select>
@@ -222,22 +292,22 @@ export default function SettingsPage() {
                 <Smartphone className="h-5 w-5 text-primary" />
                 Application Mobile
               </CardTitle>
-              <CardDescription>Paramètres de l'application mobile</CardDescription>
+              <CardDescription>Parametres de l'application mobile</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Mode hors-ligne</Label>
-                  <p className="text-sm text-muted-foreground">Accédez aux données sans connexion</p>
+                  <p className="text-sm text-muted-foreground">Accedez aux donnees sans connexion</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch checked={offlineMode} onCheckedChange={handleOfflineModeChange} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Synchronisation automatique</Label>
-                  <p className="text-sm text-muted-foreground">Sync des données en arrière-plan</p>
+                  <p className="text-sm text-muted-foreground">Sync des donnees en arriere-plan</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch checked={autoSync} onCheckedChange={handleAutoSyncChange} />
               </div>
             </CardContent>
           </Card>
@@ -248,9 +318,9 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5 text-primary" />
-                Préférences de notification
+                Preferences de notification
               </CardTitle>
-              <CardDescription>Gérez vos notifications</CardDescription>
+              <CardDescription>Gerez vos notifications</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -260,7 +330,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={notifications.email}
-                  onCheckedChange={(checked) => setNotifications({ ...notifications, email: checked })}
+                  onCheckedChange={(checked) => handleNotificationChange("email", checked)}
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -270,27 +340,27 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={notifications.push}
-                  onCheckedChange={(checked) => setNotifications({ ...notifications, push: checked })}
+                  onCheckedChange={(checked) => handleNotificationChange("push", checked)}
                 />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Alertes sanitaires</Label>
-                  <p className="text-sm text-muted-foreground">Alertes de santé urgentes</p>
+                  <p className="text-sm text-muted-foreground">Alertes de sante urgentes</p>
                 </div>
                 <Switch
                   checked={notifications.alerts}
-                  onCheckedChange={(checked) => setNotifications({ ...notifications, alerts: checked })}
+                  onCheckedChange={(checked) => handleNotificationChange("alerts", checked)}
                 />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Rapports hebdomadaires</Label>
-                  <p className="text-sm text-muted-foreground">Résumé de la semaine</p>
+                  <p className="text-sm text-muted-foreground">Resume de la semaine</p>
                 </div>
                 <Switch
                   checked={notifications.reports}
-                  onCheckedChange={(checked) => setNotifications({ ...notifications, reports: checked })}
+                  onCheckedChange={(checked) => handleNotificationChange("reports", checked)}
                 />
               </div>
             </CardContent>
@@ -302,15 +372,15 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                Sécurité du compte
+                Securite du compte
               </CardTitle>
-              <CardDescription>Gérez la sécurité de votre compte</CardDescription>
+              <CardDescription>Gerez la securite de votre compte</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {passwordSuccess && (
                 <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
                   <CheckCircle className="h-4 w-4" />
-                  Mot de passe mis à jour avec succès !
+                  Mot de passe mis a jour avec succes !
                 </div>
               )}
               {passwordError && (
@@ -324,7 +394,7 @@ export default function SettingsPage() {
                 <Label>Mot de passe actuel</Label>
                 <Input
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="********"
                   value={passwordForm.current}
                   onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
                 />
@@ -333,7 +403,7 @@ export default function SettingsPage() {
                 <Label>Nouveau mot de passe</Label>
                 <Input
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="********"
                   value={passwordForm.new}
                   onChange={(e) => setPasswordForm({ ...passwordForm, new: e.target.value })}
                 />
@@ -342,7 +412,7 @@ export default function SettingsPage() {
                 <Label>Confirmer le mot de passe</Label>
                 <Input
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="********"
                   value={passwordForm.confirm}
                   onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
                 />
@@ -353,15 +423,15 @@ export default function SettingsPage() {
                 disabled={passwordLoading || !passwordForm.current || !passwordForm.new || !passwordForm.confirm}
               >
                 {passwordLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Mettre à jour le mot de passe
+                Mettre a jour le mot de passe
               </Button>
             </CardContent>
           </Card>
 
           <Card className="shadow-soft">
             <CardHeader>
-              <CardTitle>Authentification à deux facteurs</CardTitle>
-              <CardDescription>Ajoutez une couche de sécurité supplémentaire</CardDescription>
+              <CardTitle>Authentification a deux facteurs</CardTitle>
+              <CardDescription>Ajoutez une couche de securite supplementaire</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
@@ -369,8 +439,11 @@ export default function SettingsPage() {
                   <Label>Activer 2FA</Label>
                   <p className="text-sm text-muted-foreground">Utilisez une app d'authentification</p>
                 </div>
-                <Switch />
+                <Switch checked={twoFactorEnabled} onCheckedChange={setTwoFactorEnabled} />
               </div>
+              {twoFactorEnabled && (
+                <p className="mt-3 text-sm text-amber-600">Note: La 2FA sera disponible dans une prochaine version.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -380,15 +453,25 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5 text-primary" />
-                Gestion des données
+                Gestion des donnees
               </CardTitle>
-              <CardDescription>Exportez ou supprimez vos données</CardDescription>
+              <CardDescription>Exportez ou supprimez vos donnees</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="rounded-lg bg-muted p-4 mb-4">
+                <p className="text-sm text-muted-foreground mb-2">Donnees stockees localement :</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <span>{animals.length} animaux</span>
+                  <span>{healthCases.length} cas sanitaires</span>
+                  <span>{gestations.length} gestations</span>
+                  <span>{activities.length} activites</span>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between rounded-lg border border-border p-4">
                 <div>
-                  <Label>Exporter les données</Label>
-                  <p className="text-sm text-muted-foreground">Téléchargez toutes vos données (JSON)</p>
+                  <Label>Exporter les donnees</Label>
+                  <p className="text-sm text-muted-foreground">Telechargez toutes vos donnees (JSON)</p>
                 </div>
                 <Button
                   variant="outline"
@@ -403,7 +486,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between rounded-lg border border-border p-4">
                 <div>
                   <Label>Sauvegarder</Label>
-                  <p className="text-sm text-muted-foreground">Dernière sauvegarde : {lastBackup}</p>
+                  <p className="text-sm text-muted-foreground">Derniere sauvegarde : {lastBackup}</p>
                 </div>
                 <Button
                   variant="outline"
@@ -417,8 +500,8 @@ export default function SettingsPage() {
               </div>
               <div className="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/5 p-4">
                 <div>
-                  <Label className="text-destructive">Supprimer le compte</Label>
-                  <p className="text-sm text-muted-foreground">Cette action est irréversible</p>
+                  <Label className="text-destructive">Supprimer toutes les donnees</Label>
+                  <p className="text-sm text-muted-foreground">Cette action est irreversible</p>
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -429,9 +512,10 @@ export default function SettingsPage() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                      <AlertDialogTitle>Etes-vous sur ?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Cette action est irréversible. Toutes vos données seront définitivement supprimées.
+                        Cette action est irreversible. Toutes vos donnees seront definitivement supprimees, incluant{" "}
+                        {animals.length} animaux, {healthCases.length} cas sanitaires et {gestations.length} gestations.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -440,7 +524,7 @@ export default function SettingsPage() {
                         onClick={handleDeleteAccount}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        Supprimer mon compte
+                        Supprimer toutes mes donnees
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

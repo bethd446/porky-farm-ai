@@ -37,7 +37,9 @@ export function AnimatedModal({
   useEffect(() => {
     if (isOpen) {
       setIsAnimating(true)
-      requestAnimationFrame(() => setIsVisible(true))
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setIsVisible(true))
+      })
     } else {
       setIsVisible(false)
       const timer = setTimeout(() => setIsAnimating(false), 200)
@@ -45,50 +47,84 @@ export function AnimatedModal({
     }
   }, [isOpen])
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", handleEscape)
+    return () => window.removeEventListener("keydown", handleEscape)
+  }, [isOpen, onClose])
+
   if (!isAnimating && !isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+      {/* Backdrop avec blur */}
       <div
         className={cn(
-          "absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-200",
+          "absolute inset-0 bg-black/50 backdrop-blur-sm",
+          "transition-opacity duration-200 ease-out",
           isVisible ? "opacity-100" : "opacity-0",
         )}
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Modal avec animation amelioree */}
       <div
         className={cn(
-          "relative w-full bg-card rounded-xl shadow-2xl border transform transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "relative w-full bg-card rounded-xl shadow-2xl border overflow-hidden",
+          "transform transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
           sizeClasses[size],
           isVisible ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-4",
         )}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? "modal-title" : undefined}
       >
         {/* Header */}
         {(title || showCloseButton) && (
           <div className="flex items-start justify-between p-6 pb-0">
-            <div>
-              {title && <h2 className="text-lg font-semibold">{title}</h2>}
+            <div
+              className={cn(
+                "transition-all duration-300",
+                isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2",
+              )}
+            >
+              {title && (
+                <h2 id="modal-title" className="text-lg font-semibold">
+                  {title}
+                </h2>
+              )}
               {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
             </div>
             {showCloseButton && (
-              <Button variant="ghost" size="icon-sm" onClick={onClose} className="shrink-0 -mt-1 -mr-1">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onClose}
+                className={cn("shrink-0 -mt-1 -mr-1", "hover:rotate-90 transition-transform duration-200")}
+              >
                 <X className="size-4" />
               </Button>
             )}
           </div>
         )}
 
-        {/* Content */}
-        <div className="p-6">{children}</div>
+        {/* Content avec animation */}
+        <div
+          className={cn("p-6", "transition-opacity duration-300", isVisible ? "opacity-100" : "opacity-0")}
+          style={{ transitionDelay: isVisible ? "100ms" : "0ms" }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   )
 }
 
-// Confirmation modal variant
+// Confirmation modal avec animation de succes/erreur
 interface ConfirmModalProps {
   isOpen: boolean
   onClose: () => void
@@ -115,13 +151,14 @@ export function ConfirmModal({
   return (
     <AnimatedModal isOpen={isOpen} onClose={onClose} title={title} description={description} size="sm">
       <div className="flex gap-3 justify-end mt-2">
-        <Button variant="outline" onClick={onClose} disabled={isLoading}>
+        <Button variant="outline" onClick={onClose} disabled={isLoading} className="btn-ripple bg-transparent">
           {cancelText}
         </Button>
         <Button
           variant={variant === "destructive" ? "destructive" : "default"}
           onClick={onConfirm}
           disabled={isLoading}
+          className="btn-ripple"
         >
           {isLoading ? (
             <span className="flex items-center gap-2">

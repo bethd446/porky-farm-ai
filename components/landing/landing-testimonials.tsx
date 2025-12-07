@@ -1,32 +1,32 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronLeft, ChevronRight, Star, Quote } from "lucide-react"
+import { ChevronLeft, ChevronRight, Star, Quote, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const testimonials = [
   {
-    name: "Kouamé Yao",
+    name: "Kouamé Y.",
     role: "Éleveur à Bouaké",
     image: "/african-farmer-man-portrait-smiling.jpg",
     content:
-      "PorkyFarm a révolutionné ma façon de gérer mon élevage. Le suivi de gestation est incroyable, je ne perds plus aucun porcelet.",
+      "Le suivi de gestation est incroyable. Je sais exactement quand chaque truie va mettre bas et je peux me préparer.",
     rating: 5,
   },
   {
-    name: "Aminata Koné",
+    name: "Aminata K.",
     role: "Propriétaire de ferme à Abidjan",
     image: "/african-woman-farmer-portrait.jpg",
     content:
-      "L'assistant IA m'aide à prendre les bonnes décisions. Mes coûts d'alimentation ont baissé de 20% en 3 mois.",
+      "Le calculateur de rations m'aide à optimiser l'alimentation. J'ai une meilleure visibilité sur mes coûts.",
     rating: 5,
   },
   {
-    name: "Jean-Baptiste Diouf",
-    role: "Vétérinaire conseil",
+    name: "Jean-Baptiste D.",
+    role: "Technicien d'élevage",
     image: "/african-veterinarian-man-professional.jpg",
     content:
-      "En tant que vétérinaire, j'apprécie la qualité du module sanitaire. Les photos et l'historique médical sont très utiles.",
+      "Le module sanitaire avec les photos est très pratique pour documenter l'évolution des cas et partager avec le vétérinaire.",
     rating: 5,
   },
 ]
@@ -38,15 +38,18 @@ export function LandingTestimonials() {
   const prev = () => setActiveIndex((i) => (i - 1 + testimonials.length) % testimonials.length)
 
   return (
-    <section className="bg-muted py-20 px-4 md:py-32">
+    <section id="testimonials" className="bg-muted py-20 px-4 md:py-32">
       <div className="mx-auto max-w-4xl">
         <div className="text-center">
           <span className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
-            Témoignages
+            Retours utilisateurs
           </span>
           <h2 className="mt-4 text-balance text-3xl font-bold text-foreground md:text-4xl">
-            Ce que disent nos éleveurs
+            Ce que disent nos utilisateurs
           </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Témoignages représentatifs des retours de nos premiers utilisateurs
+          </p>
         </div>
 
         <div className="relative mt-12">
@@ -92,6 +95,20 @@ export function LandingTestimonials() {
               <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
+        </div>
+
+        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            "Module vétérinaire complet",
+            "Suivi gestation J/114",
+            "Calcul rations automatique",
+            "Photos intégrées",
+          ].map((feature, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+              <span>{feature}</span>
+            </div>
+          ))}
         </div>
       </div>
     </section>

@@ -4,12 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react"
 
-const benefits = [
-  "Essai gratuit de 14 jours",
-  "Aucune carte bancaire requise",
-  "Support en français",
-  "Accès à toutes les fonctionnalités",
-]
+const benefits = ["Inscription gratuite", "Aucune carte bancaire", "Données 100% sécurisées", "Fonctionne sur mobile"]
 
 export function LandingCTA() {
   return (
@@ -34,15 +29,16 @@ export function LandingCTA() {
         {/* Badge */}
         <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm border border-white/20">
           <Sparkles className="h-4 w-4 text-accent-light" />
-          <span className="text-sm font-medium text-white">Offre de lancement</span>
+          <span className="text-sm font-medium text-white">Commencez dès maintenant</span>
         </div>
 
         <h2 className="text-balance text-3xl font-bold text-white md:text-5xl lg:text-6xl">
-          Prêt à transformer
+          Prêt à mieux gérer
           <span className="block mt-2 text-accent-light">votre élevage ?</span>
         </h2>
         <p className="mt-6 text-pretty text-lg text-white/80 md:text-xl max-w-2xl mx-auto">
-          Rejoignez les éleveurs ivoiriens qui utilisent PorkyFarm pour gérer leur exploitation plus efficacement.
+          Rejoignez les éleveurs qui utilisent PorkyFarm pour suivre leur cheptel, gérer les gestations et optimiser
+          l'alimentation.
         </p>
 
         {/* Benefits grid */}
@@ -65,7 +61,7 @@ export function LandingCTA() {
               size="lg"
               className="group h-14 gap-3 rounded-full bg-white px-8 text-lg text-primary hover:bg-white/90 shadow-xl shadow-black/20 transition-all hover:scale-105"
             >
-              Créer mon compte gratuit
+              Créer mon élevage gratuitement
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>

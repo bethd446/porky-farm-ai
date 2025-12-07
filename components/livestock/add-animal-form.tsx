@@ -128,8 +128,34 @@ export function AddAnimalForm() {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-        <h2 className="text-xl font-semibold text-foreground">Animal enregistré avec succès !</h2>
+        <h2 className="text-xl font-semibold text-foreground">Animal ajouté à votre cheptel !</h2>
         <p className="text-muted-foreground mt-2">Redirection vers la liste...</p>
+        <div className="flex gap-3 mt-6">
+          <Button variant="outline" onClick={() => router.push("/dashboard/livestock")}>
+            Voir mon cheptel
+          </Button>
+          <Button
+            onClick={() => {
+              setStatus("idle")
+              setFormData({
+                name: "",
+                tagNumber: "",
+                category: "truie",
+                breed: "",
+                birthDate: "",
+                weight: "",
+                acquisitionDate: "",
+                acquisitionPrice: "",
+                motherId: "",
+                fatherId: "",
+                notes: "",
+              })
+              setPhoto(null)
+            }}
+          >
+            Ajouter un autre animal
+          </Button>
+        </div>
       </div>
     )
   }
@@ -222,7 +248,7 @@ export function AddAnimalForm() {
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <FormInput
-                label="Nom / Identifiant"
+                label="Nom ou numéro de l'animal"
                 name="name"
                 placeholder="Ex: Truie #32"
                 value={formData.name}
@@ -231,16 +257,19 @@ export function AddAnimalForm() {
                 required
                 disabled={status === "loading"}
               />
-              <FormInput
-                label="Numéro de boucle"
-                name="tagNumber"
-                placeholder="Ex: CI-2024-0032"
-                value={formData.tagNumber}
-                onChange={(e) => updateField("tagNumber", e.target.value)}
-                error={errors.tagNumber}
-                required
-                disabled={status === "loading"}
-              />
+              <div className="space-y-2">
+                <FormInput
+                  label="Numéro de boucle"
+                  name="tagNumber"
+                  placeholder="Ex: CI-2024-0032"
+                  value={formData.tagNumber}
+                  onChange={(e) => updateField("tagNumber", e.target.value)}
+                  error={errors.tagNumber}
+                  required
+                  disabled={status === "loading"}
+                />
+                <p className="text-xs text-muted-foreground">Numéro officiel d'identification de l'animal</p>
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -276,16 +305,19 @@ export function AddAnimalForm() {
                 error={errors.birthDate}
                 disabled={status === "loading"}
               />
-              <FormInput
-                label="Poids actuel (kg)"
-                name="weight"
-                type="number"
-                placeholder="Ex: 185"
-                value={formData.weight || ""}
-                onChange={(e) => updateField("weight", e.target.value)}
-                error={errors.weight}
-                disabled={status === "loading"}
-              />
+              <div className="space-y-2">
+                <FormInput
+                  label="Poids actuel (kg)"
+                  name="weight"
+                  type="number"
+                  placeholder="Ex: 185"
+                  value={formData.weight || ""}
+                  onChange={(e) => updateField("weight", e.target.value)}
+                  error={errors.weight}
+                  disabled={status === "loading"}
+                />
+                <p className="text-xs text-muted-foreground">(optionnel)</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -322,7 +354,7 @@ export function AddAnimalForm() {
 
         <Card className="shadow-soft">
           <CardHeader>
-            <CardTitle className="text-base">Généalogie</CardTitle>
+            <CardTitle className="text-base">Parents</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormSelect
@@ -372,7 +404,7 @@ export function AddAnimalForm() {
           Annuler
         </Button>
         <SubmitButton isLoading={status === "loading"} loadingText="Enregistrement...">
-          Enregistrer l'animal
+          Ajouter à mon cheptel
         </SubmitButton>
       </div>
     </form>
