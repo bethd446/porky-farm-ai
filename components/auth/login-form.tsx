@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,6 +19,7 @@ export function LoginForm() {
     email: "",
     password: "",
   })
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,10 +47,13 @@ export function LoginForm() {
 
       if (data?.session) {
         setSuccess(true)
-        window.location.href = "/dashboard"
+        setTimeout(() => {
+          router.push("/dashboard")
+          router.refresh()
+        }, 500)
       }
     } catch (err) {
-      setError("Une erreur est survenue. Veuillez réessayer.")
+      setError("Une erreur est survenue. Veuillez reessayer.")
       setIsLoading(false)
     }
   }
@@ -65,7 +70,7 @@ export function LoginForm() {
       {success && (
         <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
           <CheckCircle className="h-4 w-4 shrink-0" />
-          Connexion réussie ! Redirection en cours...
+          Connexion reussie ! Redirection en cours...
         </div>
       )}
 
@@ -90,7 +95,7 @@ export function LoginForm() {
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Mot de passe</Label>
           <Link href="/support" className="text-sm text-primary hover:underline">
-            Mot de passe oublié ?
+            Mot de passe oublie ?
           </Link>
         </div>
         <div className="relative">
@@ -98,7 +103,7 @@ export function LoginForm() {
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
+            placeholder="********"
             className="h-12 pl-10 pr-10"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -124,7 +129,7 @@ export function LoginForm() {
         ) : success ? (
           <>
             <CheckCircle className="mr-2 h-5 w-5" />
-            Connecté !
+            Connecte !
           </>
         ) : (
           "Se connecter"

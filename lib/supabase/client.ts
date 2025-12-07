@@ -32,12 +32,27 @@ type AuthChangeCallback = (event: string, session: Session | null) => void
 
 class SupabaseAuth {
   private listeners: AuthChangeCallback[] = []
+  private currentSession: Session | null = null
+  private initialized = false
+
+  constructor() {
+    if (typeof window !== "undefined") {
+      this.currentSession = this.getStoredSession()
+      this.initialized = true
+    }
+  }
 
   private getStoredSession(): Session | null {
     if (typeof window === "undefined") return null
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
-      return stored ? JSON.parse(stored) : null
+      if (!stored) return null
+      const session = JSON.parse(stored)
+      if (session.expires_at && session.expires_at * 1000 < Date.now()) {
+        localStorage.removeItem(STORAGE_KEY)
+        return null
+      }
+      return session
     } catch {
       return null
     }
@@ -45,25 +60,35 @@ class SupabaseAuth {
 
   private setStoredSession(session: Session | null) {
     if (typeof window === "undefined") return
+    this.currentSession = session
     if (session) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
     } else {
       localStorage.removeItem(STORAGE_KEY)
     }
-    this.notifyListeners("SIGNED_IN", session)
   }
 
   private notifyListeners(event: string, session: Session | null) {
-    this.listeners.forEach((callback) => callback(event, session))
+    this.listeners.forEach((callback) => {
+      try {
+        callback(event, session)
+      } catch (e) {
+        console.error("Auth listener error:", e)
+      }
+    })
   }
 
   async getSession(): Promise<{ data: { session: Session | null }; error: null }> {
-    const session = this.getStoredSession()
-    return { data: { session }, error: null }
+    if (!this.currentSession && typeof window !== "undefined") {
+      this.currentSession = this.getStoredSession()
+    }
+    return { data: { session: this.currentSession }, error: null }
   }
 
   async getUser(): Promise<{ data: { user: User | null }; error: null }> {
-    const session = this.getStoredSession()
+    const {
+      data: { session },
+    } = await this.getSession()
     return { data: { user: session?.user ?? null }, error: null }
   }
 
@@ -101,6 +126,7 @@ class SupabaseAuth {
       }
 
       this.setStoredSession(session)
+      this.notifyListeners("SIGNED_IN", session)
 
       return {
         data: { user: data.user, session },
@@ -154,6 +180,7 @@ class SupabaseAuth {
           user: data.user,
         }
         this.setStoredSession(session)
+        this.notifyListeners("SIGNED_IN", session)
         return { data: { user: data.user, session }, error: null }
       }
 
@@ -170,7 +197,7 @@ class SupabaseAuth {
   }
 
   async signOut(): Promise<{ error: null }> {
-    const session = this.getStoredSession()
+    const session = this.currentSession
     if (session?.access_token) {
       try {
         await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
@@ -193,9 +220,10 @@ class SupabaseAuth {
   onAuthStateChange(callback: AuthChangeCallback): { data: { subscription: { unsubscribe: () => void } } } {
     this.listeners.push(callback)
 
-    // Call with initial session
-    const session = this.getStoredSession()
-    setTimeout(() => callback("INITIAL_SESSION", session), 0)
+    const session = this.currentSession || this.getStoredSession()
+    if (session) {
+      callback("INITIAL_SESSION", session)
+    }
 
     return {
       data: {

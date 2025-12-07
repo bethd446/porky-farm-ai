@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
@@ -18,21 +18,23 @@ export default function DashboardLayout({
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
-  const hasCheckedAuth = useRef(false)
 
   useEffect(() => {
-    if (hasCheckedAuth.current) return
-    hasCheckedAuth.current = true
-
     const checkAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
 
-      if (session) {
-        setIsAuthenticated(true)
-        setIsLoading(false)
-      } else {
+        if (session) {
+          setIsAuthenticated(true)
+          setIsLoading(false)
+        } else {
+          // No session, redirect to login
+          router.replace("/auth/login")
+        }
+      } catch (error) {
+        console.error("Auth check error:", error)
         router.replace("/auth/login")
       }
     }
@@ -42,9 +44,10 @@ export default function DashboardLayout({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") {
+      if (event === "SIGNED_OUT" || !session) {
+        setIsAuthenticated(false)
         router.replace("/auth/login")
-      } else if (event === "SIGNED_IN" && session) {
+      } else if (session) {
         setIsAuthenticated(true)
         setIsLoading(false)
       }
@@ -67,7 +70,14 @@ export default function DashboardLayout({
   }
 
   if (!isAuthenticated) {
-    return null
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/30">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground">Redirection...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
