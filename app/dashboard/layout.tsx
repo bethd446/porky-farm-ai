@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { LivestockProvider } from "@/contexts/livestock-context"
+import { HealthProvider } from "@/contexts/health-context"
 import { supabase } from "@/lib/supabase/client"
 import { Loader2 } from "lucide-react"
 
@@ -71,13 +72,15 @@ export default function DashboardLayout({
 
   return (
     <LivestockProvider>
-      <div className="flex min-h-screen bg-muted/30">
-        <DashboardSidebar />
-        <div className="flex flex-1 flex-col md:ml-64">
-          <DashboardHeader />
-          <main className="flex-1 p-4 md:p-6">{children}</main>
+      <HealthProvider>
+        <div className="flex min-h-screen bg-muted/30">
+          <DashboardSidebar />
+          <div className="flex flex-1 flex-col md:ml-64">
+            <DashboardHeader />
+            <main className="flex-1 p-4 md:p-6">{children}</main>
+          </div>
         </div>
-      </div>
+      </HealthProvider>
     </LivestockProvider>
   )
 }

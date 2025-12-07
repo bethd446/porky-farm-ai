@@ -1,12 +1,26 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
-import { Bell, Search, Sun, Cloud, CloudRain, MapPin } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Bell, Search, Sun, Cloud, CloudRain, MapPin, User, Settings, LogOut, HelpCircle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useAuthContext } from "@/contexts/auth-context"
+import { supabase } from "@/lib/supabase/client"
 
 export function DashboardHeader() {
+  const router = useRouter()
   const { profile } = useAuthContext()
   const [weather, setWeather] = useState({
     temp: 28,
@@ -15,6 +29,26 @@ export function DashboardHeader() {
     location: "Abidjan, CI",
   })
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showSearch, setShowSearch] = useState(false)
+
+  const [notifications] = useState([
+    {
+      id: 1,
+      title: "Vaccination requise",
+      message: "3 porcs nécessitent une vaccination",
+      time: "Il y a 2h",
+      type: "warning",
+    },
+    {
+      id: 2,
+      title: "Mise bas imminente",
+      message: "Truie #T-042 - prévoir dans 3 jours",
+      time: "Il y a 5h",
+      type: "info",
+    },
+    { id: 3, title: "Stock aliment bas", message: "Seulement 15% du stock restant", time: "Hier", type: "alert" },
+  ])
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
@@ -35,6 +69,20 @@ export function DashboardHeader() {
   }
 
   const firstName = profile?.full_name?.split(" ")[0] || "Utilisateur"
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/dashboard/livestock?search=${encodeURIComponent(searchQuery)}`)
+      setSearchQuery("")
+      setShowSearch(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = "/auth/login"
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/60 md:px-6">
@@ -61,26 +109,95 @@ export function DashboardHeader() {
           <span className="text-xs text-muted-foreground">{weather.location}</span>
         </div>
 
-        {/* Search */}
-        <div className="relative hidden md:block">
+        <form onSubmit={handleSearch} className="relative hidden md:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Rechercher..." className="h-10 w-56 rounded-full border-muted bg-muted pl-10" />
-        </div>
+          <Input
+            placeholder="Rechercher un animal..."
+            className="h-10 w-56 rounded-full border-muted bg-muted pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </form>
 
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative rounded-full">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
-            3
-          </span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative rounded-full">
+              <Bell className="h-5 w-5" />
+              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">
+                {notifications.length}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80">
+            <DropdownMenuLabel className="flex items-center justify-between">
+              <span>Notifications</span>
+              <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary hover:bg-transparent">
+                Tout marquer comme lu
+              </Button>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {notifications.map((notif) => (
+              <DropdownMenuItem key={notif.id} className="flex flex-col items-start gap-1 p-3 cursor-pointer">
+                <div className="flex w-full items-center justify-between">
+                  <span className="font-medium text-sm">{notif.title}</span>
+                  <span className="text-xs text-muted-foreground">{notif.time}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">{notif.message}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings" className="w-full text-center text-sm text-primary">
+                Voir toutes les notifications
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        {/* Profile */}
-        <button className="flex items-center gap-2 rounded-full p-1 transition hover:bg-muted">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-            {firstName.charAt(0).toUpperCase()}
-          </div>
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 rounded-full p-1 transition hover:bg-muted">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
+                {firstName.charAt(0).toUpperCase()}
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <div className="flex flex-col">
+                <span>{profile?.full_name || "Utilisateur"}</span>
+                <span className="text-xs font-normal text-muted-foreground">{profile?.email}</span>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/profile" className="flex items-center gap-2 cursor-pointer">
+                <User className="h-4 w-4" />
+                Mon profil
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/settings" className="flex items-center gap-2 cursor-pointer">
+                <Settings className="h-4 w-4" />
+                Paramètres
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/support" className="flex items-center gap-2 cursor-pointer">
+                <HelpCircle className="h-4 w-4" />
+                Aide & Support
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-destructive cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+              Déconnexion
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   )

@@ -5,27 +5,43 @@ import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Camera, Loader2, Upload, X, CheckCircle } from "lucide-react"
+import { Camera, Upload, X, CheckCircle } from "lucide-react"
 import { useLivestock } from "@/contexts/livestock-context"
+import { FormInput, FormSelect } from "@/components/common/form-field"
+import { FormStatus, SubmitButton } from "@/components/common/form-status"
+import { animalSchema, type AnimalFormData } from "@/lib/validations/schemas"
+
+const categoryOptions = [
+  { value: "truie", label: "Truie" },
+  { value: "verrat", label: "Verrat" },
+  { value: "porcelet", label: "Porcelet" },
+  { value: "porc_engraissement", label: "Porc d'engraissement" },
+]
+
+const breedOptions = [
+  { value: "Large White", label: "Large White" },
+  { value: "Landrace", label: "Landrace" },
+  { value: "Duroc", label: "Duroc" },
+  { value: "Piétrain", label: "Piétrain" },
+  { value: "Croisé", label: "Croisé" },
+  { value: "Race locale", label: "Race locale" },
+]
 
 export function AddAnimalForm() {
   const router = useRouter()
-  const { addAnimal } = useLivestock()
-  const [isLoading, setIsLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const { addAnimal, animals } = useLivestock()
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [errorMessage, setErrorMessage] = useState("")
   const [photo, setPhoto] = useState<string | null>(null)
-  const [photoFile, setPhotoFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AnimalFormData>({
     name: "",
     tagNumber: "",
-    category: "",
+    category: "truie",
     breed: "",
     birthDate: "",
     weight: "",
@@ -36,10 +52,17 @@ export function AddAnimalForm() {
     notes: "",
   })
 
+  const updateField = (field: keyof AnimalFormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+    // Clear error when user types
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }))
+    }
+  }
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setPhotoFile(file)
       const reader = new FileReader()
       reader.onloadend = () => {
         setPhoto(reader.result as string)
@@ -50,71 +73,68 @@ export function AddAnimalForm() {
 
   const removePhoto = () => {
     setPhoto(null)
-    setPhotoFile(null)
     if (fileInputRef.current) fileInputRef.current.value = ""
     if (cameraInputRef.current) cameraInputRef.current.value = ""
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setErrors({})
+    setErrorMessage("")
+
+    // Validate with Zod
+    const result = animalSchema.safeParse(formData)
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {}
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as string
+        fieldErrors[field] = err.message
+      })
+      setErrors(fieldErrors)
+      return
+    }
+
+    setStatus("loading")
 
     try {
-      const birthDate = new Date(formData.birthDate)
-      const ageInMonths = Math.floor((Date.now() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30))
-      const ageYears = Math.floor(ageInMonths / 12)
-      const ageMonthsRem = ageInMonths % 12
-      const age =
-        ageYears > 0 ? `${ageYears} an${ageYears > 1 ? "s" : ""} ${ageMonthsRem} mois` : `${ageMonthsRem} mois`
-
-      const statusMap: Record<string, { status: string; color: string }> = {
-        truie: { status: "Active", color: "bg-pink-500" },
-        verrat: { status: "Reproducteur", color: "bg-blue-500" },
-        porcelet: { status: "Croissance", color: "bg-green-500" },
-        porc_engraissement: { status: "Engraissement", color: "bg-emerald-500" },
+      const categoryMap: Record<string, "sow" | "boar" | "piglet" | "fattening"> = {
+        truie: "sow",
+        verrat: "boar",
+        porcelet: "piglet",
+        porc_engraissement: "fattening",
       }
 
-      const statusInfo = statusMap[formData.category] || { status: "Active", color: "bg-gray-500" }
-
-      addAnimal({
+      const addResult = await addAnimal({
         name: formData.name,
-        type:
-          formData.category === "truie"
-            ? "Truie"
-            : formData.category === "verrat"
-              ? "Verrat"
-              : formData.category === "porcelet"
-                ? "Porcelets"
-                : "Engraissement",
+        identifier: formData.tagNumber || formData.name,
+        category: categoryMap[formData.category] || "sow",
         breed: formData.breed,
-        age: age,
-        weight: formData.weight ? `${formData.weight} kg` : "Non renseigné",
-        status: statusInfo.status,
-        statusColor: statusInfo.color,
-        image: photo,
-        healthScore: 100,
-        nextEvent: "Pas d'événement prévu",
-        tagNumber: formData.tagNumber,
-        birthDate: formData.birthDate,
-        acquisitionDate: formData.acquisitionDate,
-        acquisitionPrice: formData.acquisitionPrice,
-        motherId: formData.motherId,
-        fatherId: formData.fatherId,
-        notes: formData.notes,
+        birth_date: formData.birthDate || undefined,
+        weight: formData.weight ? Number.parseFloat(formData.weight) : undefined,
+        status: "active",
+        acquisition_date: formData.acquisitionDate || undefined,
+        acquisition_price: formData.acquisitionPrice ? Number.parseFloat(formData.acquisitionPrice) : undefined,
+        mother_id: formData.motherId && formData.motherId !== "none" ? formData.motherId : undefined,
+        father_id: formData.fatherId && formData.fatherId !== "none" ? formData.fatherId : undefined,
+        notes: formData.notes || undefined,
+        image_url: photo || undefined,
       })
 
-      setSuccess(true)
-      setTimeout(() => {
-        router.push("/dashboard/livestock")
-      }, 1500)
+      if (addResult) {
+        setStatus("success")
+        setTimeout(() => {
+          router.push("/dashboard/livestock")
+        }, 1500)
+      } else {
+        throw new Error("Échec de l'enregistrement")
+      }
     } catch (error) {
-      console.error("Erreur lors de l'enregistrement:", error)
-    } finally {
-      setIsLoading(false)
+      setStatus("error")
+      setErrorMessage(error instanceof Error ? error.message : "Une erreur est survenue")
     }
   }
 
-  if (success) {
+  if (status === "success") {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
@@ -124,17 +144,26 @@ export function AddAnimalForm() {
     )
   }
 
+  const sows = animals.filter((a) => a.category === "sow" || a.type === "Truie")
+  const boars = animals.filter((a) => a.category === "boar" || a.type === "Verrat")
+
+  const parentOptions = (list: typeof animals) => [
+    { value: "none", label: "Non renseigné" },
+    ...list.map((a) => ({ value: a.id, label: a.name || a.identifier })),
+  ]
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <FormStatus status={status === "error" ? "error" : "idle"} errorMessage={errorMessage} />
+
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Photo Upload - Section entièrement fonctionnelle */}
+        {/* Photo Upload */}
         <Card className="shadow-soft">
           <CardHeader>
             <CardTitle className="text-base">Photo de l'animal</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center gap-4">
-              {/* Zone d'aperçu/upload */}
               <div
                 className="relative flex h-48 w-full items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/50 overflow-hidden cursor-pointer hover:bg-muted/70 transition"
                 onClick={() => fileInputRef.current?.click()}
@@ -161,7 +190,6 @@ export function AddAnimalForm() {
                 )}
               </div>
 
-              {/* Inputs cachés */}
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
               <input
                 ref={cameraInputRef}
@@ -172,7 +200,6 @@ export function AddAnimalForm() {
                 onChange={handlePhotoUpload}
               />
 
-              {/* Boutons fonctionnels */}
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -204,84 +231,71 @@ export function AddAnimalForm() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nom / Identifiant</Label>
-                <Input
-                  id="name"
-                  placeholder="Ex: Truie #32"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tagNumber">Numéro de boucle</Label>
-                <Input
-                  id="tagNumber"
-                  placeholder="Ex: CI-2024-0032"
-                  value={formData.tagNumber}
-                  onChange={(e) => setFormData({ ...formData, tagNumber: e.target.value })}
-                  required
-                />
-              </div>
+              <FormInput
+                label="Nom / Identifiant"
+                name="name"
+                placeholder="Ex: Truie #32"
+                value={formData.name}
+                onChange={(e) => updateField("name", e.target.value)}
+                error={errors.name}
+                required
+                disabled={status === "loading"}
+              />
+              <FormInput
+                label="Numéro de boucle"
+                name="tagNumber"
+                placeholder="Ex: CI-2024-0032"
+                value={formData.tagNumber}
+                onChange={(e) => updateField("tagNumber", e.target.value)}
+                error={errors.tagNumber}
+                required
+                disabled={status === "loading"}
+              />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Catégorie</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="truie">Truie</SelectItem>
-                    <SelectItem value="verrat">Verrat</SelectItem>
-                    <SelectItem value="porcelet">Porcelet</SelectItem>
-                    <SelectItem value="porc_engraissement">Porc d'engraissement</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="breed">Race</Label>
-                <Select value={formData.breed} onValueChange={(value) => setFormData({ ...formData, breed: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="large_white">Large White</SelectItem>
-                    <SelectItem value="landrace">Landrace</SelectItem>
-                    <SelectItem value="duroc">Duroc</SelectItem>
-                    <SelectItem value="pietrain">Piétrain</SelectItem>
-                    <SelectItem value="croise">Croisé</SelectItem>
-                    <SelectItem value="local">Race locale</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <FormSelect
+                label="Catégorie"
+                name="category"
+                options={categoryOptions}
+                value={formData.category}
+                onChange={(v) => updateField("category", v)}
+                error={errors.category}
+                required
+                disabled={status === "loading"}
+              />
+              <FormSelect
+                label="Race"
+                name="breed"
+                options={breedOptions}
+                value={formData.breed || ""}
+                onChange={(v) => updateField("breed", v)}
+                error={errors.breed}
+                placeholder="Sélectionner une race"
+                disabled={status === "loading"}
+              />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="birthDate">Date de naissance</Label>
-                <Input
-                  id="birthDate"
-                  type="date"
-                  value={formData.birthDate}
-                  onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="weight">Poids actuel (kg)</Label>
-                <Input
-                  id="weight"
-                  type="number"
-                  placeholder="Ex: 185"
-                  value={formData.weight}
-                  onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                />
-              </div>
+              <FormInput
+                label="Date de naissance"
+                name="birthDate"
+                type="date"
+                value={formData.birthDate || ""}
+                onChange={(e) => updateField("birthDate", e.target.value)}
+                error={errors.birthDate}
+                disabled={status === "loading"}
+              />
+              <FormInput
+                label="Poids actuel (kg)"
+                name="weight"
+                type="number"
+                placeholder="Ex: 185"
+                value={formData.weight || ""}
+                onChange={(e) => updateField("weight", e.target.value)}
+                error={errors.weight}
+                disabled={status === "loading"}
+              />
             </div>
           </CardContent>
         </Card>
@@ -294,25 +308,25 @@ export function AddAnimalForm() {
             <CardTitle className="text-base">Acquisition</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="acquisitionDate">Date d'acquisition</Label>
-              <Input
-                id="acquisitionDate"
-                type="date"
-                value={formData.acquisitionDate}
-                onChange={(e) => setFormData({ ...formData, acquisitionDate: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="acquisitionPrice">Prix d'achat (FCFA)</Label>
-              <Input
-                id="acquisitionPrice"
-                type="number"
-                placeholder="Ex: 150000"
-                value={formData.acquisitionPrice}
-                onChange={(e) => setFormData({ ...formData, acquisitionPrice: e.target.value })}
-              />
-            </div>
+            <FormInput
+              label="Date d'acquisition"
+              name="acquisitionDate"
+              type="date"
+              value={formData.acquisitionDate || ""}
+              onChange={(e) => updateField("acquisitionDate", e.target.value)}
+              error={errors.acquisitionDate}
+              disabled={status === "loading"}
+            />
+            <FormInput
+              label="Prix d'achat (FCFA)"
+              name="acquisitionPrice"
+              type="number"
+              placeholder="Ex: 150000"
+              value={formData.acquisitionPrice || ""}
+              onChange={(e) => updateField("acquisitionPrice", e.target.value)}
+              error={errors.acquisitionPrice}
+              disabled={status === "loading"}
+            />
           </CardContent>
         </Card>
 
@@ -321,39 +335,26 @@ export function AddAnimalForm() {
             <CardTitle className="text-base">Généalogie</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Mère</Label>
-              <Select
-                value={formData.motherId}
-                onValueChange={(value) => setFormData({ ...formData, motherId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner la mère" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Non renseigné</SelectItem>
-                  <SelectItem value="truie-32">Truie #32</SelectItem>
-                  <SelectItem value="truie-28">Truie #28</SelectItem>
-                  <SelectItem value="truie-45">Truie #45</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Père</Label>
-              <Select
-                value={formData.fatherId}
-                onValueChange={(value) => setFormData({ ...formData, fatherId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner le père" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Non renseigné</SelectItem>
-                  <SelectItem value="verrat-8">Verrat #8</SelectItem>
-                  <SelectItem value="verrat-5">Verrat #5</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <FormSelect
+              label="Mère"
+              name="motherId"
+              options={parentOptions(sows)}
+              value={formData.motherId || "none"}
+              onChange={(v) => updateField("motherId", v)}
+              error={errors.motherId}
+              placeholder="Sélectionner la mère"
+              disabled={status === "loading"}
+            />
+            <FormSelect
+              label="Père"
+              name="fatherId"
+              options={parentOptions(boars)}
+              value={formData.fatherId || "none"}
+              onChange={(v) => updateField("fatherId", v)}
+              error={errors.fatherId}
+              placeholder="Sélectionner le père"
+              disabled={status === "loading"}
+            />
           </CardContent>
         </Card>
       </div>
@@ -367,27 +368,22 @@ export function AddAnimalForm() {
           <Textarea
             placeholder="Ajoutez des observations ou informations supplémentaires..."
             className="min-h-24"
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            value={formData.notes || ""}
+            onChange={(e) => updateField("notes", e.target.value)}
+            disabled={status === "loading"}
           />
+          {errors.notes && <p className="text-xs text-destructive mt-1">{errors.notes}</p>}
         </CardContent>
       </Card>
 
       {/* Actions */}
       <div className="flex justify-end gap-4">
-        <Button type="button" variant="outline" onClick={() => router.back()}>
+        <Button type="button" variant="outline" onClick={() => router.back()} disabled={status === "loading"}>
           Annuler
         </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Enregistrement...
-            </>
-          ) : (
-            "Enregistrer l'animal"
-          )}
-        </Button>
+        <SubmitButton isLoading={status === "loading"} loadingText="Enregistrement...">
+          Enregistrer l'animal
+        </SubmitButton>
       </div>
     </form>
   )

@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,15 +25,11 @@ export function LoginForm() {
     setError(null)
     setSuccess(false)
 
-    console.log("[v0] Attempting login with email:", formData.email)
-
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       })
-
-      console.log("[v0] Auth response:", { user: data?.user?.email, error: authError?.message })
 
       if (authError) {
         if (authError.message === "Invalid login credentials") {
@@ -47,14 +44,10 @@ export function LoginForm() {
       }
 
       if (data?.session) {
-        console.log("[v0] Login successful! User:", data.user?.email)
-        console.log("[v0] Session stored, redirecting to dashboard...")
         setSuccess(true)
-
         window.location.href = "/dashboard"
       }
     } catch (err) {
-      console.error("[v0] Login error:", err)
       setError("Une erreur est survenue. Veuillez réessayer.")
       setIsLoading(false)
     }
@@ -96,9 +89,9 @@ export function LoginForm() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Mot de passe</Label>
-          <a href="#" className="text-sm text-primary hover:underline">
+          <Link href="/support" className="text-sm text-primary hover:underline">
             Mot de passe oublié ?
-          </a>
+          </Link>
         </div>
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />

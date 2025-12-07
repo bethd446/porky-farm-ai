@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Menu, X, ArrowRight, Sparkles, Shield, TrendingUp, Heart, Play, ChevronDown } from "lucide-react"
 
 export function LandingHero() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [showDemoModal, setShowDemoModal] = useState(false)
 
   const slides = [
     {
@@ -109,7 +111,14 @@ export function LandingHero() {
               <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
             </Link>
             <Link
-              href="#contact"
+              href="/pricing"
+              className="text-sm font-medium text-white/80 transition hover:text-white relative group"
+            >
+              Tarifs
+              <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+            </Link>
+            <Link
+              href="/support"
               className="text-sm font-medium text-white/80 transition hover:text-white relative group"
             >
               Contact
@@ -155,7 +164,10 @@ export function LandingHero() {
               >
                 Témoignages
               </Link>
-              <Link href="#contact" className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors">
+              <Link href="/pricing" className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors">
+                Tarifs
+              </Link>
+              <Link href="/support" className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors">
                 Contact
               </Link>
               <hr className="my-2 border-white/10" />
@@ -210,21 +222,15 @@ export function LandingHero() {
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
-          <a
-            href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto"
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full border-white/30 bg-white/10 px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-white/20 backdrop-blur-sm"
+            onClick={() => setShowDemoModal(true)}
           >
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full border-white/30 bg-white/10 px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-white/20 backdrop-blur-sm"
-            >
-              <Play className="h-5 w-5" />
-              Voir la démo
-            </Button>
-          </a>
+            <Play className="h-5 w-5" />
+            Voir la démo
+          </Button>
         </div>
 
         {/* Feature Pills */}
@@ -273,6 +279,39 @@ export function LandingHero() {
           </div>
         </Link>
       </div>
+
+      <Dialog open={showDemoModal} onOpenChange={setShowDemoModal}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Découvrez PorkyFarm</DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                <Play className="h-10 w-10 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Vidéo de démonstration</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Découvrez comment PorkyFarm peut transformer votre élevage porcin
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                <p>✓ Gestion simplifiée du cheptel</p>
+                <p>✓ Suivi sanitaire intelligent</p>
+                <p>✓ Assistant IA intégré</p>
+                <p>✓ Rapports automatiques</p>
+              </div>
+              <Link href="/auth/register">
+                <Button className="mt-4">
+                  Essayer gratuitement
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Styles for animations */}
       <style jsx>{`

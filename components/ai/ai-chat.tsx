@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send, Bot, User, Sparkles, Loader2, RefreshCw } from "lucide-react"
+import { useLivestock } from "@/contexts/livestock-context"
 
 interface Message {
   id: string
@@ -22,23 +23,65 @@ const suggestedQuestions = [
   "Comment calculer la ration alimentaire ?",
 ]
 
-const welcomeMessage: Message = {
-  id: "welcome",
-  role: "assistant",
-  content:
-    "Bonjour ! Je suis **PorkyAssistant**, votre conseiller IA spécialisé en élevage porcin.\n\nJe peux vous aider sur :\n- **Alimentation** : rations, besoins nutritionnels\n- **Reproduction** : gestation, mise-bas, sevrage\n- **Santé** : prévention, vaccinations, traitements\n- **Gestion** : suivi du cheptel, rentabilité\n\nComment puis-je vous aider aujourd'hui ?",
-}
-
 export function AIChat() {
-  const [messages, setMessages] = useState<Message[]>([welcomeMessage])
+  const { animals, stats } = useLivestock()
+
+  const getWelcomeMessage = (): Message => ({
+    id: "welcome",
+    role: "assistant",
+    content: `Bonjour ! Je suis **PorkyAssistant**, votre conseiller IA spécialisé en élevage porcin.
+
+${stats.total > 0 ? `Je vois que vous avez **${stats.total} animaux** dans votre cheptel (${stats.truies} truies, ${stats.verrats} verrats, ${stats.porcelets} porcelets).` : ""}
+
+Je peux vous aider sur :
+- **Alimentation** : rations, besoins nutritionnels
+- **Reproduction** : gestation, mise-bas, sevrage
+- **Santé** : prévention, vaccinations, traitements
+- **Gestion** : suivi du cheptel, rentabilité
+
+Comment puis-je vous aider aujourd'hui ?`,
+  })
+
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    setMessages([getWelcomeMessage()])
+  }, [stats.total])
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  const buildLivestockContext = () => {
+    if (animals.length === 0) return ""
+
+    const categories = {
+      truies: animals.filter((a) => a.category === "Truie"),
+      verrats: animals.filter((a) => a.category === "Verrat"),
+      porcelets: animals.filter((a) => a.category === "Porcelet"),
+      engraissement: animals.filter((a) => a.category === "Engraissement"),
+    }
+
+    let context = `\n\nContexte du cheptel de l'utilisateur:\n`
+    context += `- Total: ${animals.length} animaux\n`
+    context += `- Truies: ${categories.truies.length}\n`
+    context += `- Verrats: ${categories.verrats.length}\n`
+    context += `- Porcelets: ${categories.porcelets.length}\n`
+    context += `- Engraissement: ${categories.engraissement.length}\n`
+
+    // Add health status if available
+    const healthyCount = animals.filter((a) => a.status === "Bonne santé" || a.status === "healthy").length
+    const sickCount = animals.filter((a) => a.status === "Malade" || a.status === "sick").length
+    if (healthyCount > 0 || sickCount > 0) {
+      context += `- En bonne santé: ${healthyCount}, Malades: ${sickCount}\n`
+    }
+
+    return context
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,6 +99,8 @@ export function AIChat() {
     setError(null)
 
     try {
+      const livestockContext = buildLivestockContext()
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,6 +109,7 @@ export function AIChat() {
             role: m.role,
             content: m.content,
           })),
+          livestockContext, // Pass context to API
         }),
       })
 
@@ -93,7 +139,7 @@ export function AIChat() {
   }
 
   const handleReset = () => {
-    setMessages([welcomeMessage])
+    setMessages([getWelcomeMessage()])
     setError(null)
   }
 
@@ -107,7 +153,9 @@ export function AIChat() {
           </div>
           <div>
             <h3 className="font-semibold text-foreground">PorkyAssistant</h3>
-            <p className="text-xs text-muted-foreground">Expert en élevage porcin</p>
+            <p className="text-xs text-muted-foreground">
+              {stats.total > 0 ? `${stats.total} animaux dans votre cheptel` : "Expert en élevage porcin"}
+            </p>
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={handleReset} disabled={isLoading}>

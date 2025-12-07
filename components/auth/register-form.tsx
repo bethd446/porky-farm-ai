@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -175,13 +176,13 @@ export function RegisterForm() {
 
       <p className="text-center text-xs text-muted-foreground">
         En créant un compte, vous acceptez nos{" "}
-        <a href="#" className="text-primary hover:underline">
+        <Link href="/terms" className="text-primary hover:underline">
           Conditions d'utilisation
-        </a>{" "}
+        </Link>{" "}
         et notre{" "}
-        <a href="#" className="text-primary hover:underline">
+        <Link href="/privacy" className="text-primary hover:underline">
           Politique de confidentialité
-        </a>
+        </Link>
       </p>
     </form>
   )

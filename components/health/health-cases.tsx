@@ -1,12 +1,11 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Camera, Clock, X, Plus } from "lucide-react"
+import { Camera, Clock, X, Plus, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -15,66 +14,43 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useHealth } from "@/contexts/health-context"
+import { useLivestock } from "@/contexts/livestock-context"
+import { FormInput, FormTextarea, FormSelect } from "@/components/common/form-field"
+import { healthCaseSchema, type HealthCaseFormData } from "@/lib/validations/schemas"
 
-const initialCases = [
-  {
-    id: 1,
-    animal: "Truie #45",
-    issue: "Fièvre et perte d'appétit",
-    status: "En traitement",
-    statusColor: "bg-amber-500",
-    priority: "Haute",
-    priorityColor: "bg-red-500",
-    date: "Il y a 2 jours",
-    image: "/sick-pig-symptoms-veterinary.jpg",
-    treatment: "Antibiotiques - Jour 3/7",
-  },
-  {
-    id: 2,
-    animal: "Porcelet #A12-3",
-    issue: "Diarrhée",
-    status: "Surveillance",
-    statusColor: "bg-blue-500",
-    priority: "Moyenne",
-    priorityColor: "bg-amber-500",
-    date: "Hier",
-    image: "/piglet-health-check.jpg",
-    treatment: "Réhydratation + régime",
-  },
-  {
-    id: 3,
-    animal: "Truie #28",
-    issue: "Boiterie patte arrière",
-    status: "En observation",
-    statusColor: "bg-purple-500",
-    priority: "Basse",
-    priorityColor: "bg-green-500",
-    date: "Il y a 3 jours",
-    image: "/placeholder.svg?height=80&width=80",
-    treatment: "Repos + anti-inflammatoire",
-  },
+const priorityOptions = [
+  { value: "Haute", label: "Haute - Urgent" },
+  { value: "Moyenne", label: "Moyenne" },
+  { value: "Basse", label: "Basse" },
 ]
 
 export function HealthCases() {
-  const [cases, setCases] = useState(initialCases)
+  const { cases, addCase, loading } = useHealth()
+  const { animals } = useLivestock()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [casePhotos, setCasePhotos] = useState<{ [key: number]: string }>({})
-  const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [casePhotos, setCasePhotos] = useState<{ [key: string]: string }>({})
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({})
 
-  const [newCase, setNewCase] = useState({
+  const [newCase, setNewCase] = useState<HealthCaseFormData & { photo: string | null }>({
     animal: "",
     issue: "",
-    priority: "",
+    priority: "Moyenne",
     treatment: "",
-    photo: null as string | null,
+    photo: null,
   })
   const newCasePhotoRef = useRef<HTMLInputElement>(null)
 
-  const handleCasePhotoUpload = (caseId: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const updateField = (field: keyof HealthCaseFormData, value: string) => {
+    setNewCase((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }))
+    }
+  }
+
+  const handleCasePhotoUpload = (caseId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       const reader = new FileReader()
@@ -96,32 +72,68 @@ export function HealthCases() {
     }
   }
 
-  const handleAddCase = () => {
-    if (newCase.animal && newCase.issue) {
-      const newId = Math.max(...cases.map((c) => c.id)) + 1
-      setCases([
-        {
-          id: newId,
-          animal: newCase.animal,
-          issue: newCase.issue,
-          status: "Nouveau",
-          statusColor: "bg-blue-500",
-          priority: newCase.priority || "Moyenne",
-          priorityColor:
-            newCase.priority === "Haute"
-              ? "bg-red-500"
-              : newCase.priority === "Basse"
-                ? "bg-green-500"
-                : "bg-amber-500",
-          date: "À l'instant",
-          image: newCase.photo || "/placeholder.svg?height=80&width=80",
-          treatment: newCase.treatment || "À définir",
-        },
-        ...cases,
-      ])
-      setNewCase({ animal: "", issue: "", priority: "", treatment: "", photo: null })
-      setDialogOpen(false)
+  const handleAddCase = async () => {
+    setErrors({})
+
+    // Validate with Zod
+    const result = healthCaseSchema.safeParse(newCase)
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {}
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as string
+        fieldErrors[field] = err.message
+      })
+      setErrors(fieldErrors)
+      return
     }
+
+    setStatus("loading")
+
+    try {
+      const severityMap: Record<string, "low" | "medium" | "high" | "critical"> = {
+        Haute: "high",
+        Moyenne: "medium",
+        Basse: "low",
+      }
+
+      await addCase({
+        animal: newCase.animal,
+        issue: newCase.issue,
+        title: newCase.issue,
+        description: newCase.issue,
+        severity: severityMap[newCase.priority] || "medium",
+        treatment: newCase.treatment || "À définir",
+        image_url: newCase.photo || undefined,
+        type: "disease",
+      })
+
+      setStatus("success")
+
+      // Reset after success
+      setTimeout(() => {
+        setNewCase({ animal: "", issue: "", priority: "Moyenne", treatment: "", photo: null })
+        setDialogOpen(false)
+        setStatus("idle")
+      }, 1500)
+    } catch (error) {
+      setStatus("error")
+    }
+  }
+
+  const animalOptions = animals.map((animal) => ({
+    value: animal.name || animal.identifier,
+    label: animal.name || animal.identifier,
+  }))
+
+  if (loading) {
+    return (
+      <Card className="shadow-soft">
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-muted-foreground">Chargement des cas...</span>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -141,46 +153,68 @@ export function HealthCases() {
                 <DialogTitle>Signaler un cas sanitaire</DialogTitle>
                 <DialogDescription>Enregistrez un nouveau problème de santé pour un animal.</DialogDescription>
               </DialogHeader>
+
+              {status === "success" && (
+                <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
+                  <CheckCircle className="h-4 w-4" />
+                  Cas enregistré avec succès !
+                </div>
+              )}
+
+              {status === "error" && (
+                <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  Une erreur est survenue
+                </div>
+              )}
+
               <div className="space-y-4 py-4">
+                <FormSelect
+                  label="Animal concerné"
+                  name="animal"
+                  options={animalOptions}
+                  value={newCase.animal}
+                  onChange={(v) => updateField("animal", v)}
+                  error={errors.animal}
+                  required
+                  placeholder="Sélectionner un animal"
+                  disabled={status === "loading" || status === "success"}
+                />
+
+                <FormTextarea
+                  label="Problème observé"
+                  name="issue"
+                  placeholder="Décrivez les symptômes en détail..."
+                  value={newCase.issue}
+                  onChange={(e) => updateField("issue", e.target.value)}
+                  error={errors.issue}
+                  required
+                  disabled={status === "loading" || status === "success"}
+                />
+
+                <FormSelect
+                  label="Priorité"
+                  name="priority"
+                  options={priorityOptions}
+                  value={newCase.priority}
+                  onChange={(v) => updateField("priority", v as HealthCaseFormData["priority"])}
+                  error={errors.priority}
+                  required
+                  disabled={status === "loading" || status === "success"}
+                />
+
+                <FormInput
+                  label="Traitement initial"
+                  name="treatment"
+                  placeholder="Ex: Antibiotiques"
+                  value={newCase.treatment || ""}
+                  onChange={(e) => updateField("treatment", e.target.value)}
+                  error={errors.treatment}
+                  disabled={status === "loading" || status === "success"}
+                />
+
                 <div className="space-y-2">
-                  <Label>Animal concerné</Label>
-                  <Input
-                    placeholder="Ex: Truie #32"
-                    value={newCase.animal}
-                    onChange={(e) => setNewCase({ ...newCase, animal: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Problème observé</Label>
-                  <Textarea
-                    placeholder="Décrivez les symptômes..."
-                    value={newCase.issue}
-                    onChange={(e) => setNewCase({ ...newCase, issue: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Priorité</Label>
-                  <Select value={newCase.priority} onValueChange={(v) => setNewCase({ ...newCase, priority: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Haute">Haute - Urgent</SelectItem>
-                      <SelectItem value="Moyenne">Moyenne</SelectItem>
-                      <SelectItem value="Basse">Basse</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Traitement initial</Label>
-                  <Input
-                    placeholder="Ex: Antibiotiques"
-                    value={newCase.treatment}
-                    onChange={(e) => setNewCase({ ...newCase, treatment: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Photo</Label>
+                  <label className="text-sm font-medium">Photo</label>
                   <div className="flex gap-2">
                     <input
                       ref={newCasePhotoRef}
@@ -195,6 +229,7 @@ export function HealthCases() {
                       variant="outline"
                       className="gap-2 bg-transparent"
                       onClick={() => newCasePhotoRef.current?.click()}
+                      disabled={status === "loading" || status === "success"}
                     >
                       <Camera className="h-4 w-4" />
                       {newCase.photo ? "Changer la photo" : "Prendre une photo"}
@@ -218,11 +253,26 @@ export function HealthCases() {
                   </div>
                 </div>
               </div>
+
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={status === "loading"}>
                   Annuler
                 </Button>
-                <Button onClick={handleAddCase}>Enregistrer</Button>
+                <Button onClick={handleAddCase} disabled={status === "loading" || status === "success"}>
+                  {status === "loading" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : status === "success" ? (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Enregistré !
+                    </>
+                  ) : (
+                    "Enregistrer"
+                  )}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -232,51 +282,62 @@ export function HealthCases() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {cases.map((caseItem) => (
-          <div
-            key={caseItem.id}
-            className="flex gap-4 rounded-xl border border-border p-4 transition hover:bg-muted/50"
-          >
-            <div className="relative">
-              <img
-                src={casePhotos[caseItem.id] || caseItem.image || "/placeholder.svg"}
-                alt={caseItem.animal}
-                className="h-20 w-20 rounded-xl object-cover"
-              />
-              <input
-                ref={(el) => (fileInputRefs.current[caseItem.id] = el)}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => handleCasePhotoUpload(caseItem.id, e)}
-              />
-              <button
-                onClick={() => fileInputRefs.current[caseItem.id]?.click()}
-                className="absolute -bottom-2 -right-2 rounded-full bg-primary p-1.5 text-white shadow-sm hover:bg-primary/90 transition"
-              >
-                <Camera className="h-3 w-3" />
-              </button>
-            </div>
-            <div className="flex-1">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h4 className="font-semibold text-foreground">{caseItem.animal}</h4>
-                  <p className="text-sm text-muted-foreground">{caseItem.issue}</p>
+        {cases.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">Aucun cas sanitaire actif.</p>
+        ) : (
+          cases.map((caseItem) => (
+            <div
+              key={caseItem.id}
+              className="flex gap-4 rounded-xl border border-border p-4 transition hover:bg-muted/50"
+            >
+              <div className="relative">
+                <img
+                  src={
+                    casePhotos[caseItem.id] ||
+                    caseItem.image_url ||
+                    "/placeholder.svg?height=80&width=80&query=pig health" ||
+                    "/placeholder.svg"
+                  }
+                  alt={caseItem.animal}
+                  className="h-20 w-20 rounded-xl object-cover"
+                />
+                <input
+                  ref={(el) => (fileInputRefs.current[caseItem.id] = el)}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleCasePhotoUpload(caseItem.id, e)}
+                />
+                <button
+                  onClick={() => fileInputRefs.current[caseItem.id]?.click()}
+                  className="absolute -bottom-2 -right-2 rounded-full bg-primary p-1.5 text-white shadow-sm hover:bg-primary/90 transition"
+                >
+                  <Camera className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="font-semibold text-foreground">{caseItem.animal}</h4>
+                    <p className="text-sm text-muted-foreground">{caseItem.issue}</p>
+                  </div>
+                  <Badge className={`${caseItem.priorityColor} text-white`}>{caseItem.priority}</Badge>
                 </div>
-                <Badge className={`${caseItem.priorityColor} text-white`}>{caseItem.priority}</Badge>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="gap-1">
+                    <Clock className="h-3 w-3" />
+                    {caseItem.date}
+                  </Badge>
+                  <Badge className={`${caseItem.statusColor} text-white`}>
+                    {caseItem.status === "ongoing" ? "En traitement" : caseItem.status}
+                  </Badge>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">{caseItem.treatment}</p>
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="gap-1">
-                  <Clock className="h-3 w-3" />
-                  {caseItem.date}
-                </Badge>
-                <Badge className={`${caseItem.statusColor} text-white`}>{caseItem.status}</Badge>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">{caseItem.treatment}</p>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </CardContent>
     </Card>
   )

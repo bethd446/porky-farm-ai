@@ -1,67 +1,73 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Check, ArrowLeft } from "lucide-react"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Tarifs - PorkyFarm",
+  description: "Decouvrez nos plans tarifaires simples et transparents pour la gestion de votre elevage porcin.",
+}
+
+const PLANS = [
+  {
+    name: "Gratuit",
+    price: "0",
+    description: "Pour debuter et tester l'application",
+    features: ["Jusqu'a 20 animaux", "Suivi sanitaire basique", "Calendrier des taches", "Support par email"],
+    cta: "Commencer gratuitement",
+    href: "/auth/register",
+  },
+  {
+    name: "Pro",
+    price: "15,000",
+    description: "Pour les eleveurs professionnels",
+    features: [
+      "Animaux illimites",
+      "Suivi sanitaire complet",
+      "Gestion financiere avancee",
+      "Assistant IA",
+      "Rapports detailles",
+      "Support prioritaire 24/7",
+    ],
+    cta: "Essai gratuit 30 jours",
+    href: "/auth/register",
+    popular: true,
+  },
+  {
+    name: "Entreprise",
+    price: "Sur devis",
+    description: "Pour les grandes exploitations",
+    features: [
+      "Tout du plan Pro",
+      "Multi-fermes",
+      "API personnalisee",
+      "Formation sur site",
+      "Gestionnaire de compte dedie",
+      "Personnalisation complete",
+    ],
+    cta: "Nous contacter",
+    href: "mailto:contact@porkyfarm.app",
+  },
+] as const
 
 export default function PricingPage() {
-  const plans = [
-    {
-      name: "Gratuit",
-      price: "0",
-      description: "Pour débuter et tester l'application",
-      features: ["Jusqu'à 20 animaux", "Suivi sanitaire basique", "Calendrier des tâches", "Support par email"],
-      cta: "Commencer gratuitement",
-      href: "/auth/register",
-    },
-    {
-      name: "Pro",
-      price: "15,000",
-      description: "Pour les éleveurs professionnels",
-      features: [
-        "Animaux illimités",
-        "Suivi sanitaire complet",
-        "Gestion financière avancée",
-        "Assistant IA",
-        "Rapports détaillés",
-        "Support prioritaire 24/7",
-      ],
-      cta: "Essai gratuit 30 jours",
-      href: "/auth/register",
-      popular: true,
-    },
-    {
-      name: "Entreprise",
-      price: "Sur devis",
-      description: "Pour les grandes exploitations",
-      features: [
-        "Tout du plan Pro",
-        "Multi-fermes",
-        "API personnalisée",
-        "Formation sur site",
-        "Gestionnaire de compte dédié",
-        "Personnalisation complète",
-      ],
-      cta: "Nous contacter",
-      href: "mailto:contact@porkyfarm.app",
-    },
-  ]
-
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:py-16">
         <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
           <ArrowLeft className="h-4 w-4" />
-          Retour à l'accueil
+          Retour a l'accueil
         </Link>
 
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Tarifs simples et transparents</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Choisissez le plan qui correspond à la taille de votre élevage
+            Choisissez le plan qui correspond a la taille de votre elevage
           </p>
         </div>
 
         <div className="grid gap-8 md:grid-cols-3">
-          {plans.map((plan, i) => (
+          {PLANS.map((plan, i) => (
             <div
               key={i}
               className={`relative rounded-2xl p-8 ${

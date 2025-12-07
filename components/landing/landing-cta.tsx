@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react"
 
 const benefits = [
-  "Essai gratuit de 30 jours",
+  "Essai gratuit de 14 jours",
   "Aucune carte bancaire requise",
   "Support en français",
-  "Formation incluse",
+  "Accès à toutes les fonctionnalités",
 ]
 
 export function LandingCTA() {
@@ -42,7 +42,7 @@ export function LandingCTA() {
           <span className="block mt-2 text-accent-light">votre élevage ?</span>
         </h2>
         <p className="mt-6 text-pretty text-lg text-white/80 md:text-xl max-w-2xl mx-auto">
-          Rejoignez plus de 500 éleveurs ivoiriens qui font confiance à PorkyFarm pour gérer leur exploitation.
+          Rejoignez les éleveurs ivoiriens qui utilisent PorkyFarm pour gérer leur exploitation plus efficacement.
         </p>
 
         {/* Benefits grid */}

@@ -1,34 +1,34 @@
-import { Stethoscope, Baby, Calculator, Brain, Camera, BarChart3, MapPin, Bell } from "lucide-react"
+import { Stethoscope, Baby, Calculator, Brain, Camera, BarChart3, CloudSun, Bell } from "lucide-react"
 
 const features = [
   {
     icon: Stethoscope,
     title: "Module Vétérinaire",
-    description: "Enregistrez les maladies, traitements et vaccinations avec photos et détails en temps réel.",
+    description: "Enregistrez les maladies, traitements et vaccinations avec photos et suivi en temps réel.",
     color: "bg-red-500",
   },
   {
     icon: Baby,
     title: "Suivi Gestation",
-    description: "Suivez chaque truie gestante, de la saillie jusqu'à la mise-bas et le sevrage des porcelets.",
+    description: "Suivez chaque truie gestante avec calcul automatique du terme et progression jour par jour.",
     color: "bg-pink-500",
   },
   {
     icon: Calculator,
     title: "Calcul des Rations",
-    description: "Optimisez l'alimentation avec des formules adaptées à chaque stade de croissance.",
+    description: "Optimisez l'alimentation avec des formules adaptées selon la catégorie et le stade physiologique.",
     color: "bg-amber-500",
   },
   {
     icon: Brain,
     title: "Assistant IA",
-    description: "Obtenez des conseils personnalisés et des prédictions basées sur vos données d'élevage.",
+    description: "Obtenez des conseils experts sur l'alimentation, la reproduction et la santé de votre élevage.",
     color: "bg-purple-500",
   },
   {
     icon: Camera,
     title: "Capture Photo",
-    description: "Documentez l'état de santé et la croissance de vos animaux avec des photos horodatées.",
+    description: "Documentez l'état de santé de vos animaux avec des photos directement depuis votre téléphone.",
     color: "bg-blue-500",
   },
   {
@@ -38,15 +38,16 @@ const features = [
     color: "bg-green-500",
   },
   {
-    icon: MapPin,
-    title: "Géolocalisation",
-    description: "Localisez vos bâtiments et parcelles pour une gestion optimale de votre exploitation.",
+    icon: CloudSun,
+    title: "Météo Locale",
+    description: "Consultez la météo géolocalisée pour adapter vos pratiques aux conditions de votre région.",
     color: "bg-cyan-500",
   },
   {
     icon: Bell,
     title: "Alertes & Rappels",
-    description: "Recevez des notifications pour les vaccinations, mise-bas prévues et traitements.",
+    description:
+      "Consultez vos alertes pour les vaccinations, mise-bas prévues et traitements dans votre tableau de bord.",
     color: "bg-orange-500",
   },
 ]

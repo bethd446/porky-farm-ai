@@ -1,12 +1,12 @@
 "use client"
 
+import { memo } from "react"
 import { useLivestock } from "@/contexts/livestock-context"
 import { PiggyBank, Baby, Stethoscope, TrendingUp } from "lucide-react"
 import { Card } from "@/components/ui/card"
 
-export function DashboardStats() {
-  const { getStats } = useLivestock()
-  const livestockStats = getStats()
+export const DashboardStats = memo(function DashboardStats() {
+  const { stats: livestockStats } = useLivestock()
 
   const stats = [
     {
@@ -71,4 +71,4 @@ export function DashboardStats() {
       ))}
     </div>
   )
-}
+})
