@@ -6,8 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts"
 
 export function DashboardLivestockOverview() {
-  const { getStats } = useLivestock()
-  const stats = getStats()
+  const { stats } = useLivestock()
 
   const pieData = [
     { name: "Truies", value: stats.truies, color: "#ec4899" },
