@@ -1,26 +1,86 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Menu, X, ArrowRight, Sparkles, Shield, TrendingUp, Heart } from "lucide-react"
+import { Menu, X, ArrowRight, Sparkles, Shield, TrendingUp, Heart, Play, ChevronDown } from "lucide-react"
 
 export function LandingHero() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [currentSlide, setCurrentSlide] = useState(0)
+
+  const slides = [
+    {
+      image: "/modern-pig-farm-aerial-view-green-fields-sunset-iv.jpg",
+      title: "La Nouvelle Ère de",
+      highlight: "l'Élevage Porcin",
+      subtitle:
+        "PorkyFarm combine technologie intelligente et tradition pour améliorer l'efficacité et le bien-être de votre élevage.",
+    },
+    {
+      image: "/modern-pig-farm-building-sunrise-ivory-coast-beaut.jpg",
+      title: "Gérez votre ferme",
+      highlight: "en toute simplicité",
+      subtitle: "Suivi sanitaire, gestion des reproductions, calcul des rations - tout en une seule application.",
+    },
+    {
+      image: "/group-of-healthy-pigs-in-clean-modern-farm-ivory-c.jpg",
+      title: "Conçu pour les",
+      highlight: "éleveurs ivoiriens",
+      subtitle: "Une solution adaptée aux réalités locales avec support en français et assistance 24/7.",
+    },
+  ]
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50)
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length)
+    }, 6000)
+    return () => clearInterval(timer)
+  }, [slides.length])
 
   return (
     <section className="relative min-h-screen overflow-hidden">
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
-        <img src="/modern-pig-farm-aerial-view-green-fields-sunset-iv.jpg" alt="Ferme porcine moderne" className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+      {/* Background Slides with Ken Burns effect */}
+      {slides.map((slide, index) => (
+        <div
+          key={index}
+          className={`absolute inset-0 z-0 transition-opacity duration-1000 ${
+            index === currentSlide ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <img
+            src={slide.image || "/placeholder.svg"}
+            alt="Ferme porcine"
+            className={`h-full w-full object-cover ${index === currentSlide ? "animate-ken-burns" : ""}`}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
+        </div>
+      ))}
+
+      {/* Animated particles overlay */}
+      <div className="absolute inset-0 z-[1] opacity-30">
+        <div className="absolute top-20 left-10 h-2 w-2 rounded-full bg-primary animate-float" />
+        <div className="absolute top-40 right-20 h-3 w-3 rounded-full bg-accent-light animate-float-delayed" />
+        <div className="absolute bottom-40 left-1/4 h-2 w-2 rounded-full bg-primary-light animate-float" />
+        <div className="absolute top-1/3 right-1/3 h-4 w-4 rounded-full bg-primary/50 animate-pulse" />
       </div>
 
-      {/* Navigation */}
-      <nav className="relative z-50 px-4 py-4 md:px-8">
+      {/* Navigation - Fixed with blur on scroll */}
+      <nav
+        className={`fixed top-0 left-0 right-0 z-50 px-4 py-4 transition-all duration-300 md:px-8 ${
+          scrolled ? "bg-black/80 backdrop-blur-xl shadow-lg" : ""
+        }`}
+      >
         <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/30 transition-transform group-hover:scale-105">
               <svg viewBox="0 0 24 24" className="h-6 w-6 text-white" fill="currentColor">
                 <path d="M12 2C8.5 2 5.5 4.5 5.5 8c0 2.5 1.5 4.5 3.5 5.5v2c0 .5.5 1 1 1h4c.5 0 1-.5 1-1v-2c2-1 3.5-3 3.5-5.5 0-3.5-3-6-6.5-6z" />
                 <circle cx="9" cy="7" r="1.5" />
@@ -33,55 +93,81 @@ export function LandingHero() {
 
           {/* Desktop Navigation */}
           <div className="hidden items-center gap-8 md:flex">
-            <Link href="#features" className="text-sm font-medium text-white/80 transition hover:text-white">
+            <Link
+              href="#features"
+              className="text-sm font-medium text-white/80 transition hover:text-white relative group"
+            >
               Fonctionnalités
+              <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
             </Link>
-            <Link href="#about" className="text-sm font-medium text-white/80 transition hover:text-white">
-              À propos
+            <Link
+              href="#testimonials"
+              className="text-sm font-medium text-white/80 transition hover:text-white relative group"
+            >
+              Témoignages
+              <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
             </Link>
-            <Link href="#contact" className="text-sm font-medium text-white/80 transition hover:text-white">
+            <Link
+              href="#contact"
+              className="text-sm font-medium text-white/80 transition hover:text-white relative group"
+            >
               Contact
+              <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
             </Link>
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
             <Link href="/auth/login">
-              <Button variant="ghost" className="text-white hover:bg-white/10">
+              <Button
+                variant="outline"
+                className="h-11 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50 backdrop-blur-sm"
+              >
                 Connexion
               </Button>
             </Link>
             <Link href="/auth/register">
-              <Button className="bg-primary hover:bg-primary-dark text-white">Commencer</Button>
+              <Button className="h-11 bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105">
+                Commencer gratuitement
+              </Button>
             </Link>
           </div>
 
           {/* Mobile Menu Button */}
-          <button className="rounded-lg p-2 text-white md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button
+            className="rounded-xl p-2.5 text-white bg-white/10 backdrop-blur-sm md:hidden hover:bg-white/20 transition-colors"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="absolute left-0 right-0 top-full glass-dark mt-2 mx-4 rounded-2xl p-4 md:hidden">
-            <div className="flex flex-col gap-3">
-              <Link href="#features" className="rounded-lg px-4 py-2 text-white hover:bg-white/10">
+          <div className="absolute left-4 right-4 top-full mt-2 rounded-2xl bg-black/90 backdrop-blur-xl p-6 md:hidden border border-white/10 shadow-2xl animate-in slide-in-from-top-2">
+            <div className="flex flex-col gap-2">
+              <Link href="#features" className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors">
                 Fonctionnalités
               </Link>
-              <Link href="#about" className="rounded-lg px-4 py-2 text-white hover:bg-white/10">
-                À propos
+              <Link
+                href="#testimonials"
+                className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors"
+              >
+                Témoignages
               </Link>
-              <Link href="#contact" className="rounded-lg px-4 py-2 text-white hover:bg-white/10">
+              <Link href="#contact" className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors">
                 Contact
               </Link>
-              <hr className="border-white/20" />
-              <Link href="/auth/login">
-                <Button variant="ghost" className="w-full text-white hover:bg-white/10">
+              <hr className="my-2 border-white/10" />
+              <Link href="/auth/login" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full h-12 border-white/30 text-white hover:bg-white/10 bg-transparent"
+                >
                   Connexion
                 </Button>
               </Link>
-              <Link href="/auth/register">
-                <Button className="w-full bg-primary text-white">Commencer gratuitement</Button>
+              <Link href="/auth/register" className="w-full">
+                <Button className="w-full h-12 bg-primary text-white shadow-lg">Commencer gratuitement</Button>
               </Link>
             </div>
           </div>
@@ -89,69 +175,116 @@ export function LandingHero() {
       </nav>
 
       {/* Hero Content */}
-      <div className="relative z-10 flex min-h-[calc(100vh-80px)] flex-col items-center justify-center px-4 text-center">
-        {/* Badge */}
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
-          <Sparkles className="h-4 w-4 text-accent-light" />
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 pt-20 text-center">
+        {/* Badge animé */}
+        <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 backdrop-blur-sm border border-white/20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <Sparkles className="h-4 w-4 text-accent-light animate-pulse" />
           <span className="text-sm font-medium text-white">Nouvelle version avec IA intégrée</span>
+          <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+          </span>
         </div>
 
-        <h1 className="max-w-4xl text-balance text-4xl font-bold tracking-tight text-white md:text-6xl lg:text-7xl">
-          La Nouvelle Ère de
-          <span className="block text-primary-light">l'Élevage Porcin</span>
+        {/* Titre principal avec animation */}
+        <h1 className="max-w-5xl text-4xl font-bold tracking-tight text-white md:text-6xl lg:text-7xl animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150">
+          {slides[currentSlide].title}
+          <span className="block mt-2 bg-gradient-to-r from-primary via-primary-light to-accent-light bg-clip-text text-transparent">
+            {slides[currentSlide].highlight}
+          </span>
         </h1>
 
-        <p className="mt-6 max-w-2xl text-pretty text-lg text-white/80 md:text-xl">
-          PorkyFarm combine technologie intelligente et tradition pour améliorer l'efficacité, la durabilité et le
-          bien-être de votre élevage. Conçu pour les éleveurs ivoiriens.
+        <p className="mt-8 max-w-2xl text-lg text-white/80 md:text-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 leading-relaxed">
+          {slides[currentSlide].subtitle}
         </p>
 
-        {/* CTA Buttons */}
-        <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+        {/* CTA Buttons avec animation */}
+        <div className="mt-12 flex flex-col gap-4 sm:flex-row animate-in fade-in slide-in-from-bottom-10 duration-700 delay-500">
           <Link href="/auth/register">
             <Button
               size="lg"
-              className="group h-14 gap-2 rounded-full bg-primary px-8 text-lg text-white hover:bg-primary-dark"
+              className="group h-14 gap-3 rounded-full bg-primary px-8 text-lg text-white hover:bg-primary-dark shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105"
             >
               Démarrer gratuitement
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
-          <Link href="#features">
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 rounded-full border-white/30 px-8 text-lg text-white hover:bg-white/10 bg-transparent"
-            >
-              Découvrir
-            </Button>
-          </Link>
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-14 gap-3 rounded-full border-white/30 bg-white/10 px-8 text-lg text-white hover:bg-white/20 backdrop-blur-sm"
+          >
+            <Play className="h-5 w-5" />
+            Voir la démo
+          </Button>
         </div>
 
-        {/* Feature Pills */}
-        <div className="mt-12 flex flex-wrap justify-center gap-3">
+        {/* Feature Pills avec animation */}
+        <div className="mt-14 flex flex-wrap justify-center gap-4 animate-in fade-in slide-in-from-bottom-12 duration-700 delay-700">
           {[
-            { icon: Shield, text: "Suivi Sanitaire" },
-            { icon: Heart, text: "Bien-être Animal" },
-            { icon: TrendingUp, text: "Gestion Financière" },
+            { icon: Shield, text: "Suivi Sanitaire", color: "from-blue-500 to-blue-600" },
+            { icon: Heart, text: "Bien-être Animal", color: "from-pink-500 to-rose-500" },
+            { icon: TrendingUp, text: "Gestion Financière", color: "from-emerald-500 to-green-600" },
           ].map((item, i) => (
-            <div key={i} className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
-              <item.icon className="h-4 w-4 text-primary-light" />
+            <div
+              key={i}
+              className="group flex items-center gap-3 rounded-full bg-white/10 px-5 py-3 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-all hover:scale-105 cursor-pointer"
+            >
+              <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${item.color}`}>
+                <item.icon className="h-4 w-4 text-white" />
+              </div>
               <span className="text-sm font-medium text-white">{item.text}</span>
             </div>
+          ))}
+        </div>
+
+        {/* Slide indicators */}
+        <div className="mt-12 flex gap-2">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={`h-2 rounded-full transition-all ${
+                index === currentSlide ? "w-8 bg-primary" : "w-2 bg-white/40 hover:bg-white/60"
+              }`}
+            />
           ))}
         </div>
       </div>
 
       {/* Scroll Indicator */}
-      <div className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2">
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-xs font-medium uppercase tracking-wider text-white/60">Défiler pour explorer</span>
-          <div className="h-12 w-6 rounded-full border-2 border-white/30 p-1">
-            <div className="h-2 w-2 animate-bounce rounded-full bg-white" />
+      <div className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 animate-bounce">
+        <Link href="#stats" className="flex flex-col items-center gap-2 group cursor-pointer">
+          <span className="text-xs font-medium uppercase tracking-wider text-white/60 group-hover:text-white/80 transition-colors">
+            Défiler pour explorer
+          </span>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 backdrop-blur-sm group-hover:bg-white/20 transition-colors">
+            <ChevronDown className="h-5 w-5 text-white" />
           </div>
-        </div>
+        </Link>
       </div>
+
+      {/* Styles for animations */}
+      <style jsx>{`
+        @keyframes ken-burns {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.1); }
+        }
+        .animate-ken-burns {
+          animation: ken-burns 6s ease-out forwards;
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        .animate-float-delayed {
+          animation: float 3s ease-in-out infinite;
+          animation-delay: 1s;
+        }
+      `}</style>
     </section>
   )
 }

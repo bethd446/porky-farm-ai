@@ -30,7 +30,6 @@ interface WeatherData {
   location: string
 }
 
-// Mapping des codes météo Open-Meteo vers les icônes et descriptions
 function getWeatherInfo(code: number) {
   if (code === 0) return { icon: Sun, description: "Ensoleillé", color: "from-amber-400 to-orange-500" }
   if (code <= 3) return { icon: Cloud, description: "Nuageux", color: "from-gray-400 to-gray-500" }
@@ -49,15 +48,13 @@ function getWeatherIcon(code: number) {
 export function DashboardWeather() {
   const [weather, setWeather] = useState<WeatherData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [locationPermission, setLocationPermission] = useState<"granted" | "denied" | "prompt">("prompt")
+  const [usingDefaultLocation, setUsingDefaultLocation] = useState(false)
 
-  const fetchWeather = async (latitude: number, longitude: number) => {
+  const fetchWeather = async (latitude: number, longitude: number, isDefault = false) => {
     try {
       setLoading(true)
-      setError(null)
+      setUsingDefaultLocation(isDefault)
 
-      // API Open-Meteo (gratuite, sans clé)
       const response = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=1`,
       )
@@ -66,26 +63,26 @@ export function DashboardWeather() {
 
       const data = await response.json()
 
-      // Obtenir le nom de la ville via reverse geocoding
-      let locationName = "Votre position"
-      try {
-        const geoResponse = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=fr`,
-        )
-        if (geoResponse.ok) {
-          const geoData = await geoResponse.json()
-          locationName =
-            geoData.address?.city ||
-            geoData.address?.town ||
-            geoData.address?.village ||
-            geoData.address?.state ||
-            "Votre position"
+      let locationName = isDefault ? "Abidjan, Côte d'Ivoire" : "Votre position"
+      if (!isDefault) {
+        try {
+          const geoResponse = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=fr`,
+          )
+          if (geoResponse.ok) {
+            const geoData = await geoResponse.json()
+            locationName =
+              geoData.address?.city ||
+              geoData.address?.town ||
+              geoData.address?.village ||
+              geoData.address?.state ||
+              "Votre position"
+          }
+        } catch {
+          // Ignorer l'erreur de géocodage
         }
-      } catch {
-        // Ignorer l'erreur de géocodage
       }
 
-      // Extraire les prévisions horaires (prochaines 5 heures)
       const currentHour = new Date().getHours()
       const hourlyData = []
       for (let i = 0; i < 5; i++) {
@@ -108,8 +105,10 @@ export function DashboardWeather() {
         location: locationName,
       })
     } catch (err) {
-      setError("Impossible de charger la météo")
-      console.error(err)
+      console.error("Erreur météo:", err)
+      if (!isDefault) {
+        fetchWeather(5.359952, -4.008256, true)
+      }
     } finally {
       setLoading(false)
     }
@@ -117,21 +116,16 @@ export function DashboardWeather() {
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
-      setError("Géolocalisation non supportée")
-      setLoading(false)
+      fetchWeather(5.359952, -4.008256, true)
       return
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocationPermission("granted")
-        fetchWeather(position.coords.latitude, position.coords.longitude)
+        fetchWeather(position.coords.latitude, position.coords.longitude, false)
       },
-      (err) => {
-        console.error("Erreur géolocalisation:", err)
-        setLocationPermission("denied")
-        // Fallback: Abidjan, Côte d'Ivoire
-        fetchWeather(5.359952, -4.008256)
+      () => {
+        fetchWeather(5.359952, -4.008256, true)
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
     )
@@ -139,7 +133,6 @@ export function DashboardWeather() {
 
   useEffect(() => {
     requestLocation()
-    // Rafraîchir toutes les 30 minutes
     const interval = setInterval(requestLocation, 30 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
@@ -147,7 +140,7 @@ export function DashboardWeather() {
   const weatherInfo = weather ? getWeatherInfo(weather.weatherCode) : null
   const WeatherIcon = weatherInfo?.icon || Sun
 
-  if (loading) {
+  if (loading && !weather) {
     return (
       <Card className="shadow-soft">
         <CardHeader className="pb-2">
@@ -157,26 +150,6 @@ export function DashboardWeather() {
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <span className="text-sm text-muted-foreground">Chargement de la météo...</span>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (error && !weather) {
-    return (
-      <Card className="shadow-soft">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium">Météo du jour</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="flex flex-col items-center gap-2">
-            <Cloud className="h-8 w-8 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">{error}</span>
-            <Button variant="outline" size="sm" onClick={requestLocation}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Réessayer
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -196,7 +169,6 @@ export function DashboardWeather() {
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" />
             <span>{weather.location}</span>
-            {locationPermission === "denied" && <span className="text-amber-600">(position par défaut)</span>}
           </div>
         )}
       </CardHeader>
@@ -237,7 +209,6 @@ export function DashboardWeather() {
               })}
             </div>
 
-            {/* Alerte météo pour les éleveurs */}
             {weather.temperature > 35 && (
               <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
                 <strong>Alerte chaleur :</strong> Pensez à augmenter la ventilation et l'eau pour vos animaux.

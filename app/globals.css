@@ -13,11 +13,14 @@
   --popover-foreground: oklch(0.2 0.02 120);
   --primary: oklch(0.55 0.18 142);
   --primary-foreground: oklch(0.99 0 0);
+  --primary-light: oklch(0.65 0.16 142);
+  --primary-dark: oklch(0.45 0.16 142);
   --secondary: oklch(0.95 0.02 120);
   --secondary-foreground: oklch(0.3 0.05 120);
   --muted: oklch(0.96 0.01 120);
   --muted-foreground: oklch(0.5 0.02 120);
   --accent: oklch(0.85 0.15 85);
+  --accent-light: oklch(0.9 0.12 85);
   --accent-foreground: oklch(0.25 0.05 85);
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
@@ -57,11 +60,14 @@
   --popover-foreground: oklch(0.95 0.01 120);
   --primary: oklch(0.65 0.18 142);
   --primary-foreground: oklch(0.15 0.02 120);
+  --primary-light: oklch(0.7 0.16 142);
+  --primary-dark: oklch(0.55 0.16 142);
   --secondary: oklch(0.25 0.03 120);
   --secondary-foreground: oklch(0.9 0.01 120);
   --muted: oklch(0.25 0.02 120);
   --muted-foreground: oklch(0.7 0.02 120);
   --accent: oklch(0.7 0.12 85);
+  --accent-light: oklch(0.8 0.1 85);
   --accent-foreground: oklch(0.15 0.02 85);
   --destructive: oklch(0.5 0.2 25);
   --destructive-foreground: oklch(0.95 0 0);
@@ -102,11 +108,14 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
@@ -172,13 +181,19 @@
 /* Custom utility classes for PorkyFarm */
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   .dark .glass {
-    background: rgba(30, 30, 30, 0.8);
+    background: rgba(30, 30, 30, 0.85);
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   .gradient-primary {
@@ -196,15 +211,38 @@
     background-clip: text;
   }
 
+  .shadow-soft {
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.1), 0 2px 8px -2px rgba(0, 0, 0, 0.06);
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 40px -10px oklch(0.55 0.18 142 / 0.4);
+  }
+
+  /* Animation utilities */
   .animate-float {
     animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float 6s ease-in-out infinite;
+    animation-delay: 2s;
   }
 
   .animate-pulse-slow {
     animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+
+  .animate-fade-up {
+    animation: fadeUp 0.6s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out forwards;
+  }
 }
 
+/* Keyframe animations */
 @keyframes float {
   0%,
   100% {
@@ -213,4 +251,41 @@
   50% {
     transform: translateY(-10px);
   }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,11 +9,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Camera, Loader2, Upload } from "lucide-react"
+import { Camera, Loader2, Upload, X, CheckCircle } from "lucide-react"
 
 export function AddAnimalForm() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [photo, setPhoto] = useState<string | null>(null)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+
   const [formData, setFormData] = useState({
     name: "",
     tagNumber: "",
@@ -28,38 +34,119 @@ export function AddAnimalForm() {
     notes: "",
   })
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setPhotoFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPhoto(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removePhoto = () => {
+    setPhoto(null)
+    setPhotoFile(null)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+    if (cameraInputRef.current) cameraInputRef.current.value = ""
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // TODO: Save to Supabase
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      // Simuler la sauvegarde (à remplacer par Supabase)
+      await new Promise((resolve) => setTimeout(resolve, 1500))
 
-    router.push("/dashboard/livestock")
+      setSuccess(true)
+      setTimeout(() => {
+        router.push("/dashboard/livestock")
+      }, 1500)
+    } catch (error) {
+      console.error("Erreur lors de l'enregistrement:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+        <h2 className="text-xl font-semibold text-foreground">Animal enregistré avec succès !</h2>
+        <p className="text-muted-foreground mt-2">Redirection vers la liste...</p>
+      </div>
+    )
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Photo Upload */}
+        {/* Photo Upload - Section entièrement fonctionnelle */}
         <Card className="shadow-soft">
           <CardHeader>
             <CardTitle className="text-base">Photo de l'animal</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center gap-4">
-              <div className="flex h-48 w-full items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/50">
-                <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <Upload className="h-10 w-10" />
-                  <span className="text-sm">Glissez ou cliquez</span>
-                </div>
+              {/* Zone d'aperçu/upload */}
+              <div
+                className="relative flex h-48 w-full items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/50 overflow-hidden cursor-pointer hover:bg-muted/70 transition"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {photo ? (
+                  <>
+                    <img src={photo || "/placeholder.svg"} alt="Aperçu" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removePhoto()
+                      }}
+                      className="absolute top-2 right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Upload className="h-10 w-10" />
+                    <span className="text-sm">Cliquez ou glissez une image</span>
+                  </div>
+                )}
               </div>
+
+              {/* Inputs cachés */}
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+
+              {/* Boutons fonctionnels */}
               <div className="flex gap-2">
-                <Button type="button" variant="outline" className="gap-2 bg-transparent">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2 bg-transparent"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <Upload className="h-4 w-4" />
                   Télécharger
                 </Button>
-                <Button type="button" variant="outline" className="gap-2 bg-transparent">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2 bg-transparent"
+                  onClick={() => cameraInputRef.current?.click()}
+                >
                   <Camera className="h-4 w-4" />
                   Prendre photo
                 </Button>
