@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -29,8 +31,8 @@ export function LandingHero() {
     {
       image: "/group-of-healthy-pigs-in-clean-modern-farm-ivory-c.jpg",
       title: "Conçu pour les",
-      highlight: "éleveurs ivoiriens",
-      subtitle: "Une solution adaptée aux réalités locales avec support en français et assistance 24/7.",
+      highlight: "éleveurs africains",
+      subtitle: "Une solution adaptée aux réalités locales avec support en français et assistance réactive.",
     },
   ]
 
@@ -46,6 +48,21 @@ export function LandingHero() {
     }, 6000)
     return () => clearInterval(timer)
   }, [slides.length])
+
+  const handleMobileNavClick = () => {
+    setMobileMenuOpen(false)
+  }
+
+  const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith("#")) {
+      e.preventDefault()
+      const element = document.querySelector(href)
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" })
+      }
+      setMobileMenuOpen(false)
+    }
+  }
 
   return (
     <section className="relative min-h-[100dvh] overflow-hidden">
@@ -68,7 +85,7 @@ export function LandingHero() {
       ))}
 
       {/* Animated particles overlay */}
-      <div className="absolute inset-0 z-[1] opacity-30">
+      <div className="absolute inset-0 z-[1] opacity-30 pointer-events-none">
         <div className="absolute top-20 left-10 h-2 w-2 rounded-full bg-primary animate-float" />
         <div className="absolute top-40 right-20 h-3 w-3 rounded-full bg-accent-light animate-float-delayed" />
         <div className="absolute bottom-40 left-1/4 h-2 w-2 rounded-full bg-primary-light animate-float" />
@@ -94,22 +111,24 @@ export function LandingHero() {
             <span className="text-xl font-bold text-white">PorkyFarm</span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Fixed anchor links */}
           <div className="hidden items-center gap-8 md:flex">
-            <Link
+            <a
               href="#features"
-              className="text-sm font-medium text-white/80 transition hover:text-white relative group"
+              onClick={(e) => handleAnchorClick(e, "#features")}
+              className="text-sm font-medium text-white/80 transition hover:text-white relative group cursor-pointer"
             >
               Fonctionnalités
               <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
-            </Link>
-            <Link
+            </a>
+            <a
               href="#testimonials"
-              className="text-sm font-medium text-white/80 transition hover:text-white relative group"
+              onClick={(e) => handleAnchorClick(e, "#testimonials")}
+              className="text-sm font-medium text-white/80 transition hover:text-white relative group cursor-pointer"
             >
               Témoignages
               <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
-            </Link>
+            </a>
             <Link
               href="/pricing"
               className="text-sm font-medium text-white/80 transition hover:text-white relative group"
@@ -130,7 +149,7 @@ export function LandingHero() {
             <Link href="/auth/login">
               <Button
                 variant="outline"
-                className="h-11 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50 backdrop-blur-sm"
+                className="h-11 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50 backdrop-blur-sm transition-all hover:scale-105"
               >
                 Connexion
               </Button>
@@ -146,32 +165,46 @@ export function LandingHero() {
           <button
             className="rounded-xl p-2.5 text-white bg-white/10 backdrop-blur-sm md:hidden hover:bg-white/20 transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - Fixed with proper click handlers */}
         {mobileMenuOpen && (
           <div className="absolute left-4 right-4 top-full mt-2 rounded-2xl bg-black/90 backdrop-blur-xl p-6 md:hidden border border-white/10 shadow-2xl animate-in slide-in-from-top-2">
             <div className="flex flex-col gap-2">
-              <Link href="#features" className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors">
+              <a
+                href="#features"
+                onClick={(e) => handleAnchorClick(e, "#features")}
+                className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
                 Fonctionnalités
-              </Link>
-              <Link
+              </a>
+              <a
                 href="#testimonials"
-                className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors"
+                onClick={(e) => handleAnchorClick(e, "#testimonials")}
+                className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 Témoignages
-              </Link>
-              <Link href="/pricing" className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors">
+              </a>
+              <Link
+                href="/pricing"
+                onClick={handleMobileNavClick}
+                className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors"
+              >
                 Tarifs
               </Link>
-              <Link href="/support" className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors">
+              <Link
+                href="/support"
+                onClick={handleMobileNavClick}
+                className="rounded-xl px-4 py-3 text-white hover:bg-white/10 transition-colors"
+              >
                 Contact
               </Link>
               <hr className="my-2 border-white/10" />
-              <Link href="/auth/login" className="w-full">
+              <Link href="/auth/login" onClick={handleMobileNavClick} className="w-full">
                 <Button
                   variant="outline"
                   className="w-full h-12 border-white/30 text-white hover:bg-white/10 bg-transparent"
@@ -179,7 +212,7 @@ export function LandingHero() {
                   Connexion
                 </Button>
               </Link>
-              <Link href="/auth/register" className="w-full">
+              <Link href="/auth/register" onClick={handleMobileNavClick} className="w-full">
                 <Button className="w-full h-12 bg-primary text-white shadow-lg">Créer mon élevage</Button>
               </Link>
             </div>
@@ -211,12 +244,12 @@ export function LandingHero() {
           {slides[currentSlide].subtitle}
         </p>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons - Fixed hover states */}
         <div className="mt-8 sm:mt-12 flex flex-col gap-3 sm:gap-4 w-full sm:w-auto sm:flex-row animate-in fade-in slide-in-from-bottom-10 duration-700 delay-500 px-4 sm:px-0">
           <Link href="/auth/register" className="w-full sm:w-auto">
             <Button
               size="lg"
-              className="group w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full bg-primary px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-primary-dark shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105"
+              className="group w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full bg-primary px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-primary-dark shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105 active:scale-95"
             >
               Créer mon élevage
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -225,7 +258,7 @@ export function LandingHero() {
           <Button
             size="lg"
             variant="outline"
-            className="w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full border-white/30 bg-white/10 px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-white/20 backdrop-blur-sm"
+            className="w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full border-white/30 bg-white/10 px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-white/20 backdrop-blur-sm transition-all hover:scale-105 active:scale-95"
             onClick={() => setShowDemoModal(true)}
           >
             <Play className="h-5 w-5" />
@@ -233,7 +266,7 @@ export function LandingHero() {
           </Button>
         </div>
 
-        {/* Feature Pills */}
+        {/* Feature Pills - Fixed hover interactions */}
         <div className="mt-10 sm:mt-14 flex flex-wrap justify-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-12 duration-700 delay-700 px-2">
           {[
             { icon: Shield, text: "Suivi Sanitaire", color: "from-blue-500 to-blue-600" },
@@ -242,10 +275,10 @@ export function LandingHero() {
           ].map((item, i) => (
             <div
               key={i}
-              className="group flex items-center gap-2 sm:gap-3 rounded-full bg-white/10 px-4 sm:px-5 py-2.5 sm:py-3 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-all hover:scale-105 cursor-pointer"
+              className="group flex items-center gap-2 sm:gap-3 rounded-full bg-white/10 px-4 sm:px-5 py-2.5 sm:py-3 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-all hover:scale-105 active:scale-95 cursor-default"
             >
               <div
-                className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br ${item.color}`}
+                className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br ${item.color} transition-transform group-hover:scale-110`}
               >
                 <item.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
               </div>
@@ -254,13 +287,14 @@ export function LandingHero() {
           ))}
         </div>
 
-        {/* Slide indicators */}
+        {/* Slide indicators - Fixed click handlers */}
         <div className="mt-10 sm:mt-12 flex gap-2">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`h-2 rounded-full transition-all ${
+              aria-label={`Aller au slide ${index + 1}`}
+              className={`h-2 rounded-full transition-all hover:opacity-80 ${
                 index === currentSlide ? "w-8 bg-primary" : "w-2 bg-white/40 hover:bg-white/60"
               }`}
             />
@@ -268,25 +302,30 @@ export function LandingHero() {
         </div>
       </div>
 
-      {/* Scroll Indicator */}
+      {/* Scroll Indicator - Fixed click handler */}
       <div className="absolute bottom-6 sm:bottom-8 left-1/2 z-10 -translate-x-1/2 animate-bounce hidden sm:block">
-        <Link href="#stats" className="flex flex-col items-center gap-2 group cursor-pointer">
+        <a
+          href="#stats"
+          onClick={(e) => handleAnchorClick(e, "#stats")}
+          className="flex flex-col items-center gap-2 group cursor-pointer"
+        >
           <span className="text-xs font-medium uppercase tracking-wider text-white/60 group-hover:text-white/80 transition-colors">
             Défiler pour explorer
           </span>
           <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 backdrop-blur-sm group-hover:bg-white/20 transition-colors">
             <ChevronDown className="h-5 w-5 text-white" />
           </div>
-        </Link>
+        </a>
       </div>
 
+      {/* Demo Modal */}
       <Dialog open={showDemoModal} onOpenChange={setShowDemoModal}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Découvrez PorkyFarm</DialogTitle>
           </DialogHeader>
           <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-4 p-6">
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
                 <Play className="h-10 w-10 text-primary" />
               </div>
@@ -302,7 +341,7 @@ export function LandingHero() {
                 <p>✓ Assistant IA intégré</p>
                 <p>✓ Rapports automatiques</p>
               </div>
-              <Link href="/auth/register">
+              <Link href="/auth/register" onClick={() => setShowDemoModal(false)}>
                 <Button className="mt-4">
                   Essayer gratuitement
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -321,17 +360,6 @@ export function LandingHero() {
         }
         .animate-ken-burns {
           animation: ken-burns 6s ease-out forwards;
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
-        }
-        .animate-float-delayed {
-          animation: float 3s ease-in-out infinite;
-          animation-delay: 1s;
         }
       `}</style>
     </section>

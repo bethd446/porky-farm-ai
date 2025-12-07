@@ -110,7 +110,7 @@ export function LoginForm() {
         }, 500)
       }
     } catch (err) {
-      setError("Une erreur est survenue. Veuillez réessayer.")
+      setError("Une erreur est survenue. Veuillez reessayer.")
       setIsLoading(false)
     }
   }
@@ -122,13 +122,16 @@ export function LoginForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       })
-      if (error) setError(error.message)
+      if (error) {
+        setError(error.message)
+        setSocialLoading(null)
+      }
+      // Note: No need to reset socialLoading on success as page will redirect
     } catch {
       setError("Erreur de connexion avec Google")
-    } finally {
       setSocialLoading(null)
     }
   }
@@ -140,13 +143,15 @@ export function LoginForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "facebook",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       })
-      if (error) setError(error.message)
+      if (error) {
+        setError(error.message)
+        setSocialLoading(null)
+      }
     } catch {
       setError("Erreur de connexion avec Facebook")
-    } finally {
       setSocialLoading(null)
     }
   }
@@ -157,7 +162,7 @@ export function LoginForm() {
         <Button
           type="button"
           variant="outline"
-          className="h-12 w-full gap-3 bg-white hover:bg-gray-50 border-gray-300"
+          className="h-12 w-full gap-3 bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
           onClick={handleGoogleLogin}
           disabled={isLoading || success || socialLoading !== null}
         >
@@ -217,7 +222,7 @@ export function LoginForm() {
           }`}
         >
           <Phone className="h-4 w-4" />
-          Téléphone
+          Telephone
         </button>
       </div>
 
@@ -232,7 +237,7 @@ export function LoginForm() {
         {success && (
           <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
             <CheckCircle className="h-4 w-4 shrink-0" />
-            Connexion réussie ! Redirection en cours...
+            Connexion reussie ! Redirection en cours...
           </div>
         )}
 
@@ -265,7 +270,7 @@ export function LoginForm() {
           </div>
         ) : (
           <div className="space-y-2">
-            <Label htmlFor="phone">Numéro de téléphone</Label>
+            <Label htmlFor="phone">Numero de telephone</Label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -286,7 +291,7 @@ export function LoginForm() {
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Mot de passe</Label>
             <Link href="/support" className="text-sm text-primary hover:underline">
-              Mot de passe oublié ?
+              Mot de passe oublie ?
             </Link>
           </div>
           <div className="relative">
@@ -330,7 +335,7 @@ export function LoginForm() {
           ) : success ? (
             <>
               <CheckCircle className="mr-2 h-5 w-5" />
-              Connecté !
+              Connecte !
             </>
           ) : (
             "Se connecter"

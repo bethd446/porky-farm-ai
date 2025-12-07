@@ -1,5 +1,8 @@
+"use client"
+
 import { Stethoscope, Baby, Calculator, Brain, Camera, BarChart3, CloudSun, Bell } from "lucide-react"
 import { iconColors, typography, spacing, cardStyles } from "@/lib/design-system"
+import { useState } from "react"
 
 const features = [
   {
@@ -7,52 +10,62 @@ const features = [
     title: "Module Vétérinaire",
     description: "Enregistrez les cas sanitaires avec photos, suivez les traitements et marquez les résolutions.",
     colorClass: iconColors.health,
+    href: "/dashboard/health",
   },
   {
     icon: Baby,
     title: "Suivi Gestation",
     description: "Suivez chaque gestation avec calcul automatique du terme (114 jours) et progression visuelle.",
     colorClass: iconColors.reproduction,
+    href: "/dashboard/reproduction",
   },
   {
     icon: Calculator,
     title: "Calcul des Rations",
     description: "Calculez les besoins alimentaires par catégorie et stade avec estimation des coûts en FCFA.",
     colorClass: iconColors.feeding,
+    href: "/dashboard/feeding",
   },
   {
     icon: Brain,
     title: "Assistant IA",
     description: "Posez vos questions sur l'alimentation, la santé et la reproduction de votre élevage.",
     colorClass: iconColors.ai,
+    href: "/dashboard/ai-assistant",
   },
   {
     icon: Camera,
     title: "Capture Photo",
     description: "Documentez vos animaux et cas sanitaires avec des photos depuis votre téléphone.",
     colorClass: iconColors.photo,
+    href: "/dashboard/livestock",
   },
   {
     icon: BarChart3,
     title: "Tableau de Bord",
     description: "Visualisez vos statistiques d'élevage avec des graphiques clairs et des alertes.",
     colorClass: iconColors.stats,
+    href: "/dashboard",
   },
   {
     icon: CloudSun,
     title: "Météo Locale",
     description: "Consultez la météo de votre région pour adapter vos pratiques d'élevage.",
     colorClass: iconColors.weather,
+    href: "/dashboard",
   },
   {
     icon: Bell,
     title: "Alertes Intégrées",
     description: "Recevez des alertes dans l'app pour les mise-bas proches et cas sanitaires urgents.",
     colorClass: iconColors.alerts,
+    href: "/dashboard",
   },
 ]
 
 export function LandingFeatures() {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+
   return (
     <section id="features" className={spacing.section}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -71,13 +84,42 @@ export function LandingFeatures() {
 
         <div className="mt-12 md:mt-16 grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {features.map((feature, i) => (
-            <div key={i} className={`group relative overflow-hidden ${cardStyles.interactive} p-5 sm:p-6`}>
-              <div className={`mb-4 inline-flex rounded-xl p-3 ${feature.colorClass}`}>
+            <div
+              key={i}
+              className={`group relative overflow-hidden ${cardStyles.interactive} p-5 sm:p-6 cursor-pointer`}
+              onMouseEnter={() => setHoveredIndex(i)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              onClick={() => {
+                window.location.href = "/auth/register"
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  window.location.href = "/auth/register"
+                }
+              }}
+            >
+              <div
+                className={`mb-4 inline-flex rounded-xl p-3 ${feature.colorClass} transition-transform duration-300 ${
+                  hoveredIndex === i ? "scale-110" : ""
+                }`}
+              >
                 <feature.icon className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
               <h3 className={`mb-2 ${typography.h5} text-card-foreground`}>{feature.title}</h3>
               <p className={typography.bodySmall + " text-muted-foreground"}>{feature.description}</p>
-              <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/5 transition-transform group-hover:scale-150" />
+              <div
+                className={`absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/5 transition-transform duration-500 ${
+                  hoveredIndex === i ? "scale-[2]" : ""
+                }`}
+              />
+              {/* Hover indicator */}
+              <div
+                className={`absolute bottom-0 left-0 h-1 bg-primary transition-all duration-300 ${
+                  hoveredIndex === i ? "w-full" : "w-0"
+                }`}
+              />
             </div>
           ))}
         </div>

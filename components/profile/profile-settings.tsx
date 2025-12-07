@@ -1,16 +1,20 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Bell, Mail, Smartphone, Shield, CheckCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Bell, Mail, Smartphone, Shield, CheckCircle, Send, Loader2 } from "lucide-react"
 
 interface ProfileSettingsState {
   pushNotifications: boolean
   dailyEmails: boolean
   smsAlerts: boolean
   twoFactor: boolean
+  alertEmails: boolean
+  emailAddress: string
 }
 
 const DEFAULT_SETTINGS: ProfileSettingsState = {
@@ -18,46 +22,102 @@ const DEFAULT_SETTINGS: ProfileSettingsState = {
   dailyEmails: true,
   smsAlerts: false,
   twoFactor: true,
+  alertEmails: true,
+  emailAddress: "",
 }
 
 export function ProfileSettings() {
   const [settings, setSettings] = useState<ProfileSettingsState>(DEFAULT_SETTINGS)
   const [showSaved, setShowSaved] = useState(false)
+  const [testingEmail, setTestingEmail] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem("porkyfarm-profile-settings")
     if (saved) {
-      setSettings(JSON.parse(saved))
+      setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(saved) })
+    }
+
+    // Get email from profile if not set
+    const profile = localStorage.getItem("porkyfarm-user-profile")
+    if (profile) {
+      const parsed = JSON.parse(profile)
+      if (parsed.email && !settings.emailAddress) {
+        setSettings((prev) => ({ ...prev, emailAddress: parsed.email }))
+      }
     }
   }, [])
 
   const handleToggle = (key: keyof ProfileSettingsState) => {
-    const newSettings = { ...settings, [key]: !settings[key] }
+    if (key === "emailAddress") return
+
+    const newSettings = { ...settings, [key]: !settings[key as keyof Omit<ProfileSettingsState, "emailAddress">] }
     setSettings(newSettings)
     localStorage.setItem("porkyfarm-profile-settings", JSON.stringify(newSettings))
 
-    // Feedback visuel
     setShowSaved(true)
     setTimeout(() => setShowSaved(false), 2000)
   }
 
+  const handleEmailChange = (email: string) => {
+    const newSettings = { ...settings, emailAddress: email }
+    setSettings(newSettings)
+    localStorage.setItem("porkyfarm-profile-settings", JSON.stringify(newSettings))
+  }
+
+  const handleTestEmail = async () => {
+    if (!settings.emailAddress) {
+      setTestResult({ success: false, message: "Veuillez entrer une adresse email" })
+      return
+    }
+
+    setTestingEmail(true)
+    setTestResult(null)
+
+    try {
+      const response = await fetch("/api/email/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: settings.emailAddress }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setTestResult({ success: true, message: "Email de test envoye avec succes !" })
+      } else {
+        setTestResult({ success: false, message: result.error || "Erreur lors de l'envoi" })
+      }
+    } catch {
+      setTestResult({ success: false, message: "Erreur de connexion au serveur" })
+    } finally {
+      setTestingEmail(false)
+    }
+  }
+
   const settingsConfig = [
     {
-      key: "pushNotifications" as const,
-      label: "Notifications push",
-      description: "Alertes en temps reel",
-      icon: Bell,
+      key: "alertEmails" as const,
+      label: "Alertes par email",
+      description: "Recevez les alertes critiques par email",
+      icon: Mail,
     },
     {
       key: "dailyEmails" as const,
-      label: "Emails quotidiens",
-      description: "Resume journalier",
+      label: "Resume quotidien",
+      description: "Rapport journalier de votre elevage",
       icon: Mail,
+    },
+    {
+      key: "pushNotifications" as const,
+      label: "Notifications push",
+      description: "Alertes en temps reel dans l'app",
+      icon: Bell,
     },
     {
       key: "smsAlerts" as const,
       label: "SMS d'urgence",
-      description: "Alertes critiques",
+      description: "Alertes critiques par SMS",
       icon: Smartphone,
     },
     {
@@ -72,7 +132,10 @@ export function ProfileSettings() {
     <Card className="shadow-soft">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-medium">Parametres rapides</CardTitle>
+          <div>
+            <CardTitle className="text-base font-medium">Parametres de notification</CardTitle>
+            <CardDescription className="text-xs">Gerez vos preferences de communication</CardDescription>
+          </div>
           {showSaved && (
             <span className="flex items-center gap-1 text-xs text-primary animate-in fade-in">
               <CheckCircle className="h-3 w-3" />
@@ -82,6 +145,39 @@ export function ProfileSettings() {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Email configuration */}
+        <div className="space-y-3 pb-4 border-b">
+          <Label className="text-sm font-medium">Adresse email pour les notifications</Label>
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder="votre@email.com"
+              value={settings.emailAddress}
+              onChange={(e) => handleEmailChange(e.target.value)}
+              className="flex-1"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTestEmail}
+              disabled={testingEmail || !settings.emailAddress}
+            >
+              {testingEmail ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-1" />
+                  Tester
+                </>
+              )}
+            </Button>
+          </div>
+          {testResult && (
+            <p className={`text-xs ${testResult.success ? "text-green-600" : "text-red-600"}`}>{testResult.message}</p>
+          )}
+        </div>
+
+        {/* Notification toggles */}
         {settingsConfig.map((setting) => (
           <div key={setting.key} className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -93,7 +189,7 @@ export function ProfileSettings() {
                 <p className="text-xs text-muted-foreground">{setting.description}</p>
               </div>
             </div>
-            <Switch checked={settings[setting.key]} onCheckedChange={() => handleToggle(setting.key)} />
+            <Switch checked={settings[setting.key] as boolean} onCheckedChange={() => handleToggle(setting.key)} />
           </div>
         ))}
       </CardContent>

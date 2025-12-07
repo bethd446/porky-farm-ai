@@ -1,14 +1,18 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useApp } from "@/contexts/app-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, Calendar, Syringe, Baby, Check, Eye } from "lucide-react"
+import { AlertTriangle, Calendar, Syringe, Baby, Check, Eye, Mail, Loader2 } from "lucide-react"
+import { sendAlertEmail, areEmailNotificationsEnabled, getUserEmail } from "@/lib/email/notifications"
 
 export function DashboardAlerts() {
   const router = useRouter()
   const { alerts } = useApp()
+  const [sendingEmail, setSendingEmail] = useState<number | null>(null)
+  const [emailSent, setEmailSent] = useState<number[]>([])
 
   const getAlertIcon = (type: string) => {
     switch (type) {
@@ -36,6 +40,26 @@ export function DashboardAlerts() {
     }
   }
 
+  const handleSendAlertEmail = async (alert: (typeof alerts)[0], index: number) => {
+    const userEmail = getUserEmail()
+    if (!userEmail || !areEmailNotificationsEnabled()) return
+
+    setSendingEmail(index)
+
+    const success = await sendAlertEmail(userEmail, {
+      type: alert.type as "health" | "gestation" | "vaccination" | "general",
+      title: alert.title,
+      message: alert.description,
+      actionUrl: `https://www.porkyfarm.app${alert.link}`,
+    })
+
+    if (success) {
+      setEmailSent((prev) => [...prev, index])
+    }
+
+    setSendingEmail(null)
+  }
+
   return (
     <Card className="shadow-soft">
       <CardHeader className="pb-2">
@@ -51,12 +75,13 @@ export function DashboardAlerts() {
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Check className="h-12 w-12 text-green-500 mb-2" />
             <p className="text-sm text-muted-foreground">Aucune alerte en cours</p>
-            <p className="text-xs text-muted-foreground mt-1">Tout va bien dans votre élevage!</p>
+            <p className="text-xs text-muted-foreground mt-1">Tout va bien dans votre elevage!</p>
           </div>
         ) : (
           alerts.slice(0, 5).map((alert, index) => {
             const Icon = getAlertIcon(alert.type)
             const style = getAlertStyle(alert.priority)
+            const isEmailSent = emailSent.includes(index)
 
             return (
               <div key={index} className={`flex items-start gap-3 rounded-xl ${style.bg} p-3 group`}>
@@ -67,14 +92,36 @@ export function DashboardAlerts() {
                   <p className="text-sm font-medium text-foreground truncate">{alert.title}</p>
                   <p className="text-xs text-muted-foreground">{alert.description}</p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => router.push(alert.link)}
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  {(alert.priority === "critical" || alert.priority === "high") &&
+                    areEmailNotificationsEnabled() &&
+                    getUserEmail() && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-7 w-7 ${isEmailSent ? "text-green-500" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+                        onClick={() => handleSendAlertEmail(alert, index)}
+                        disabled={sendingEmail === index || isEmailSent}
+                        title={isEmailSent ? "Email envoye" : "Envoyer par email"}
+                      >
+                        {sendingEmail === index ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : isEmailSent ? (
+                          <Check className="h-3.5 w-3.5" />
+                        ) : (
+                          <Mail className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => router.push(alert.link)}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             )
           })

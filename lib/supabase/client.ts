@@ -12,6 +12,7 @@ interface User {
   email?: string
   user_metadata?: {
     full_name?: string
+    avatar_url?: string
     [key: string]: any
   }
   [key: string]: any
@@ -29,6 +30,11 @@ interface AuthResponse {
   error: { message: string } | null
 }
 
+interface OAuthResponse {
+  data: { provider: string; url: string } | null
+  error: { message: string } | null
+}
+
 type AuthChangeCallback = (event: string, session: Session | null) => void
 
 class SupabaseAuth {
@@ -40,6 +46,7 @@ class SupabaseAuth {
     if (typeof window !== "undefined") {
       this.currentSession = this.getStoredSession()
       this.initialized = true
+      this.handleOAuthCallback()
     }
   }
 
@@ -77,6 +84,48 @@ class SupabaseAuth {
         console.error("Auth listener error:", e)
       }
     })
+  }
+
+  private async handleOAuthCallback() {
+    if (typeof window === "undefined") return
+
+    const hash = window.location.hash
+    if (!hash || !hash.includes("access_token")) return
+
+    try {
+      const params = new URLSearchParams(hash.substring(1))
+      const accessToken = params.get("access_token")
+      const refreshToken = params.get("refresh_token")
+      const expiresIn = params.get("expires_in")
+
+      if (accessToken) {
+        // Fetch user data with the token
+        const userResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            apikey: SUPABASE_ANON_KEY,
+          },
+        })
+
+        if (userResponse.ok) {
+          const user = await userResponse.json()
+          const session: Session = {
+            access_token: accessToken,
+            refresh_token: refreshToken || "",
+            expires_at: expiresIn ? Math.floor(Date.now() / 1000) + Number.parseInt(expiresIn) : undefined,
+            user,
+          }
+
+          this.setStoredSession(session)
+          this.notifyListeners("SIGNED_IN", session)
+
+          // Clean URL hash
+          window.history.replaceState(null, "", window.location.pathname + window.location.search)
+        }
+      }
+    } catch (error) {
+      console.error("OAuth callback error:", error)
+    }
   }
 
   async getSession(): Promise<{ data: { session: Session | null }; error: null }> {
@@ -141,6 +190,147 @@ class SupabaseAuth {
     }
   }
 
+  async signInWithOAuth({
+    provider,
+    options,
+  }: {
+    provider: "google" | "facebook" | "apple" | "github"
+    options?: { redirectTo?: string; scopes?: string }
+  }): Promise<OAuthResponse> {
+    try {
+      if (typeof window === "undefined") {
+        return {
+          data: null,
+          error: { message: "OAuth ne peut etre utilise que cote client" },
+        }
+      }
+
+      const redirectTo = options?.redirectTo || `${window.location.origin}/auth/callback`
+
+      // Build OAuth URL
+      const params = new URLSearchParams({
+        provider,
+        redirect_to: redirectTo,
+      })
+
+      if (options?.scopes) {
+        params.append("scopes", options.scopes)
+      }
+
+      const oauthUrl = `${SUPABASE_URL}/auth/v1/authorize?${params.toString()}`
+
+      // Redirect to OAuth provider
+      window.location.href = oauthUrl
+
+      return {
+        data: { provider, url: oauthUrl },
+        error: null,
+      }
+    } catch (error: any) {
+      return {
+        data: null,
+        error: { message: error.message || `Erreur de connexion avec ${provider}` },
+      }
+    }
+  }
+
+  async signInWithOtp({
+    phone,
+    options,
+  }: {
+    phone: string
+    options?: { channel?: "sms" | "whatsapp" }
+  }): Promise<{ data: { user: null; session: null }; error: { message: string } | null }> {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          phone,
+          channel: options?.channel || "sms",
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return {
+          data: { user: null, session: null },
+          error: { message: data.error_description || data.msg || "Erreur d'envoi du code" },
+        }
+      }
+
+      return {
+        data: { user: null, session: null },
+        error: null,
+      }
+    } catch (error: any) {
+      return {
+        data: { user: null, session: null },
+        error: { message: error.message || "Erreur d'envoi du code" },
+      }
+    }
+  }
+
+  async verifyOtp({
+    phone,
+    token,
+    type,
+  }: {
+    phone: string
+    token: string
+    type: "sms" | "phone_change"
+  }): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          phone,
+          token,
+          type,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return {
+          data: { user: null, session: null },
+          error: { message: data.error_description || data.msg || "Code invalide" },
+        }
+      }
+
+      if (data.access_token) {
+        const session: Session = {
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          expires_at: data.expires_at,
+          user: data.user,
+        }
+        this.setStoredSession(session)
+        this.notifyListeners("SIGNED_IN", session)
+        return { data: { user: data.user, session }, error: null }
+      }
+
+      return {
+        data: { user: data.user, session: null },
+        error: null,
+      }
+    } catch (error: any) {
+      return {
+        data: { user: null, session: null },
+        error: { message: error.message || "Erreur de verification" },
+      }
+    }
+  }
+
   async signUp({
     email,
     password,
@@ -148,7 +338,7 @@ class SupabaseAuth {
   }: {
     email: string
     password: string
-    options?: { data?: { full_name?: string }; emailRedirectTo?: string }
+    options?: { data?: { full_name?: string; phone?: string }; emailRedirectTo?: string }
   }): Promise<AuthResponse> {
     try {
       const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
@@ -546,7 +736,7 @@ class SupabaseDeleteBuilder {
 
       if (!response.ok) {
         const data = await response.json()
-        resolve({ data: null, error: { message: data.message || "Erreur" } })
+        resolve({ data: null, error: { message: data.message || data.error || "Erreur" } })
         return
       }
 

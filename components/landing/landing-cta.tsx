@@ -11,16 +11,12 @@ export function LandingCTA() {
     <section className="relative overflow-hidden py-24 px-4 md:py-32">
       {/* Background with overlay */}
       <div className="absolute inset-0">
-        <img
-          src="/happy-pigs-in-modern-clean-farm-sunrise.jpg"
-          alt="Porcs en bonne santé"
-          className="h-full w-full object-cover"
-        />
+        <img src="/happy-pigs-in-modern-clean-farm-sunrise.jpg" alt="Porcs en bonne santé" className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary-dark/90 to-emerald-900/95" />
       </div>
 
       {/* Decorative elements */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
       </div>
@@ -46,7 +42,7 @@ export function LandingCTA() {
           {benefits.map((benefit, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 text-white bg-white/10 rounded-full px-4 py-2 backdrop-blur-sm"
+              className="flex items-center gap-2 text-white bg-white/10 rounded-full px-4 py-2 backdrop-blur-sm transition-all hover:bg-white/20 hover:scale-105"
             >
               <CheckCircle2 className="h-5 w-5 text-accent-light shrink-0" />
               <span className="text-sm font-medium">{benefit}</span>
@@ -54,12 +50,12 @@ export function LandingCTA() {
           ))}
         </div>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons - Fixed hover and active states */}
         <div className="mt-12 flex flex-col gap-4 sm:flex-row sm:justify-center">
           <Link href="/auth/register">
             <Button
               size="lg"
-              className="group h-14 gap-3 rounded-full bg-white px-8 text-lg text-primary hover:bg-white/90 shadow-xl shadow-black/20 transition-all hover:scale-105"
+              className="group h-14 gap-3 rounded-full bg-white px-8 text-lg text-primary hover:bg-white/90 shadow-xl shadow-black/20 transition-all hover:scale-105 active:scale-95"
             >
               Créer mon élevage gratuitement
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -69,7 +65,7 @@ export function LandingCTA() {
             <Button
               size="lg"
               variant="outline"
-              className="h-14 rounded-full border-white/30 bg-white/10 px-8 text-lg text-white hover:bg-white/20 backdrop-blur-sm"
+              className="h-14 rounded-full border-white/30 bg-white/10 px-8 text-lg text-white hover:bg-white/20 backdrop-blur-sm transition-all hover:scale-105 active:scale-95"
             >
               J'ai déjà un compte
             </Button>

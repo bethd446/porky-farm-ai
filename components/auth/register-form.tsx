@@ -85,7 +85,8 @@ export function RegisterForm() {
         email: emailToUse,
         password: formData.password,
         options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
+          emailRedirectTo:
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
           data: {
             full_name: formData.name,
             phone: formData.phone,
@@ -100,6 +101,26 @@ export function RegisterForm() {
           setError(error.message)
         }
         return
+      }
+
+      if (authMethod === "email") {
+        try {
+          await fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "welcome",
+              to: formData.email,
+              data: {
+                firstName: formData.name.split(" ")[0],
+                name: formData.name,
+              },
+            }),
+          })
+        } catch (emailError) {
+          // Ne pas bloquer l'inscription si l'email echoue
+          console.error("Failed to send welcome email:", emailError)
+        }
       }
 
       setSuccess(true)
@@ -117,13 +138,15 @@ export function RegisterForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       })
-      if (error) setError(error.message)
+      if (error) {
+        setError(error.message)
+        setSocialLoading(null)
+      }
     } catch {
       setError("Erreur de connexion avec Google")
-    } finally {
       setSocialLoading(null)
     }
   }
@@ -135,13 +158,15 @@ export function RegisterForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "facebook",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       })
-      if (error) setError(error.message)
+      if (error) {
+        setError(error.message)
+        setSocialLoading(null)
+      }
     } catch {
       setError("Erreur de connexion avec Facebook")
-    } finally {
       setSocialLoading(null)
     }
   }
@@ -183,7 +208,7 @@ export function RegisterForm() {
         <Button
           type="button"
           variant="outline"
-          className="h-12 w-full gap-3 bg-white hover:bg-gray-50 border-gray-300"
+          className="h-12 w-full gap-3 bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
           onClick={handleGoogleSignup}
           disabled={isLoading || socialLoading !== null}
         >
