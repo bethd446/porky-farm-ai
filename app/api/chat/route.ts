@@ -1,9 +1,10 @@
-import { streamText } from "ai"
+import { generateText } from "ai"
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  try {
+    const { messages } = await req.json()
 
-  const systemPrompt = `Tu es un assistant IA expert en élevage porcin, spécialement conçu pour aider les éleveurs ivoiriens. 
+    const systemPrompt = `Tu es un assistant IA expert en élevage porcin, spécialement conçu pour aider les éleveurs ivoiriens. 
 
 Ton rôle est de fournir des conseils pratiques et professionnels sur :
 - La gestion du cheptel (truies, verrats, porcelets)
@@ -18,11 +19,18 @@ Réponds toujours en français, de manière claire et pratique. Utilise des list
 
 Si on te pose une question hors sujet, ramène poliment la conversation vers l'élevage porcin.`
 
-  const result = streamText({
-    model: "openai/gpt-4o-mini",
-    system: systemPrompt,
-    messages,
-  })
+    const { text } = await generateText({
+      model: "openai/gpt-4o-mini",
+      system: systemPrompt,
+      messages: messages.map((m: { role: string; content: string }) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
+    })
 
-  return result.toUIMessageStreamResponse()
+    return Response.json({ content: text })
+  } catch (error) {
+    console.error("Chat API error:", error)
+    return Response.json({ error: "Erreur lors de la génération de la réponse" }, { status: 500 })
+  }
 }

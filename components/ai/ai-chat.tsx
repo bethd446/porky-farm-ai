@@ -1,13 +1,17 @@
 "use client"
 
 import type React from "react"
-
-import { useChat } from "ai/react"
+import { useState, useEffect, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send, Bot, User, Sparkles, Loader2, RefreshCw } from "lucide-react"
-import { useEffect, useRef } from "react"
+
+interface Message {
+  id: string
+  role: "user" | "assistant"
+  content: string
+}
 
 const suggestedQuestions = [
   "Quel est le meilleur régime pour une truie gestante ?",
@@ -18,27 +22,79 @@ const suggestedQuestions = [
   "Comment calculer la ration alimentaire ?",
 ]
 
-export function AIChat() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, reload, error } = useChat({
-    api: "/api/chat",
-    initialMessages: [
-      {
-        id: "welcome",
-        role: "assistant",
-        content:
-          "Bonjour ! Je suis **PorkyAssistant**, votre conseiller IA spécialisé en élevage porcin. 🐷\n\nJe peux vous aider sur :\n- **Alimentation** : rations, besoins nutritionnels\n- **Reproduction** : gestation, mise-bas, sevrage\n- **Santé** : prévention, vaccinations, traitements\n- **Gestion** : suivi du cheptel, rentabilité\n\nComment puis-je vous aider aujourd'hui ?",
-      },
-    ],
-  })
+const welcomeMessage: Message = {
+  id: "welcome",
+  role: "assistant",
+  content:
+    "Bonjour ! Je suis **PorkyAssistant**, votre conseiller IA spécialisé en élevage porcin.\n\nJe peux vous aider sur :\n- **Alimentation** : rations, besoins nutritionnels\n- **Reproduction** : gestation, mise-bas, sevrage\n- **Santé** : prévention, vaccinations, traitements\n- **Gestion** : suivi du cheptel, rentabilité\n\nComment puis-je vous aider aujourd'hui ?",
+}
 
+export function AIChat() {
+  const [messages, setMessages] = useState<Message[]>([welcomeMessage])
+  const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input.trim(),
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+    setInput("")
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Erreur de communication avec l'assistant")
+      }
+
+      const data = await response.json()
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.content || data.message || "Désolé, je n'ai pas pu générer une réponse.",
+      }
+
+      setMessages((prev) => [...prev, assistantMessage])
+    } catch (err) {
+      setError("Une erreur est survenue. Veuillez réessayer.")
+      console.error("Chat error:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleQuestionClick = (question: string) => {
-    handleInputChange({ target: { value: question } } as React.ChangeEvent<HTMLInputElement>)
+    setInput(question)
+  }
+
+  const handleReset = () => {
+    setMessages([welcomeMessage])
+    setError(null)
   }
 
   return (
@@ -54,7 +110,7 @@ export function AIChat() {
             <p className="text-xs text-muted-foreground">Expert en élevage porcin</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => reload()} disabled={isLoading}>
+        <Button variant="ghost" size="sm" onClick={handleReset} disabled={isLoading}>
           <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
         </Button>
       </div>
@@ -107,7 +163,7 @@ export function AIChat() {
               <Bot className="h-5 w-5 text-destructive" />
             </div>
             <div className="rounded-2xl bg-destructive/10 px-4 py-3 border border-destructive/20">
-              <p className="text-sm text-destructive">Une erreur est survenue. Veuillez réessayer.</p>
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           </div>
         )}
@@ -141,7 +197,7 @@ export function AIChat() {
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
             value={input}
-            onChange={handleInputChange}
+            onChange={(e) => setInput(e.target.value)}
             placeholder="Posez votre question sur l'élevage porcin..."
             className="flex-1"
             disabled={isLoading}
