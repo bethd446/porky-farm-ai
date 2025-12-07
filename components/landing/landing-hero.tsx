@@ -13,8 +13,8 @@ export function LandingHero() {
   const slides = [
     {
       image: "/modern-pig-farm-aerial-view-green-fields-sunset-iv.jpg",
-      title: "La Nouvelle Ère de",
-      highlight: "l'Élevage Porcin",
+      title: "La Nouvelle Ère de l'Élevage",
+      highlight: "Porcin",
       subtitle:
         "PorkyFarm combine technologie intelligente et tradition pour améliorer l'efficacité et le bien-être de votre élevage.",
     },
@@ -46,7 +46,7 @@ export function LandingHero() {
   }, [slides.length])
 
   return (
-    <section className="relative min-h-screen overflow-hidden">
+    <section className="relative min-h-[100dvh] overflow-hidden">
       {/* Background Slides with Ken Burns effect */}
       {slides.map((slide, index) => (
         <div
@@ -59,6 +59,7 @@ export function LandingHero() {
             src={slide.image || "/placeholder.svg"}
             alt="Ferme porcine"
             className={`h-full w-full object-cover ${index === currentSlide ? "animate-ken-burns" : ""}`}
+            style={{ objectPosition: "center 30%" }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
         </div>
@@ -175,11 +176,11 @@ export function LandingHero() {
       </nav>
 
       {/* Hero Content */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 pt-20 text-center">
+      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-4 sm:px-6 pt-20 pb-12 text-center">
         {/* Badge animé */}
-        <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 backdrop-blur-sm border border-white/20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="mb-6 sm:mb-8 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 sm:px-5 py-2 sm:py-2.5 backdrop-blur-sm border border-white/20 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <Sparkles className="h-4 w-4 text-accent-light animate-pulse" />
-          <span className="text-sm font-medium text-white">Nouvelle version avec IA intégrée</span>
+          <span className="text-xs sm:text-sm font-medium text-white">Nouvelle version avec IA intégrée</span>
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
@@ -187,23 +188,23 @@ export function LandingHero() {
         </div>
 
         {/* Titre principal avec animation */}
-        <h1 className="max-w-5xl text-4xl font-bold tracking-tight text-white md:text-6xl lg:text-7xl animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150">
+        <h1 className="max-w-5xl text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-white animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150">
           {slides[currentSlide].title}
           <span className="block mt-2 bg-gradient-to-r from-primary via-primary-light to-accent-light bg-clip-text text-transparent">
             {slides[currentSlide].highlight}
           </span>
         </h1>
 
-        <p className="mt-8 max-w-2xl text-lg text-white/80 md:text-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 leading-relaxed">
+        <p className="mt-6 sm:mt-8 max-w-2xl text-base sm:text-lg md:text-xl text-white/80 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 leading-relaxed px-2">
           {slides[currentSlide].subtitle}
         </p>
 
-        {/* CTA Buttons avec animation */}
-        <div className="mt-12 flex flex-col gap-4 sm:flex-row animate-in fade-in slide-in-from-bottom-10 duration-700 delay-500">
-          <Link href="/auth/register">
+        {/* CTA Buttons */}
+        <div className="mt-8 sm:mt-12 flex flex-col gap-3 sm:gap-4 w-full sm:w-auto sm:flex-row animate-in fade-in slide-in-from-bottom-10 duration-700 delay-500 px-4 sm:px-0">
+          <Link href="/auth/register" className="w-full sm:w-auto">
             <Button
               size="lg"
-              className="group h-14 gap-3 rounded-full bg-primary px-8 text-lg text-white hover:bg-primary-dark shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105"
+              className="group w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full bg-primary px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-primary-dark shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105"
             >
               Démarrer gratuitement
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -212,15 +213,15 @@ export function LandingHero() {
           <Button
             size="lg"
             variant="outline"
-            className="h-14 gap-3 rounded-full border-white/30 bg-white/10 px-8 text-lg text-white hover:bg-white/20 backdrop-blur-sm"
+            className="w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full border-white/30 bg-white/10 px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-white/20 backdrop-blur-sm"
           >
             <Play className="h-5 w-5" />
             Voir la démo
           </Button>
         </div>
 
-        {/* Feature Pills avec animation */}
-        <div className="mt-14 flex flex-wrap justify-center gap-4 animate-in fade-in slide-in-from-bottom-12 duration-700 delay-700">
+        {/* Feature Pills */}
+        <div className="mt-10 sm:mt-14 flex flex-wrap justify-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-12 duration-700 delay-700 px-2">
           {[
             { icon: Shield, text: "Suivi Sanitaire", color: "from-blue-500 to-blue-600" },
             { icon: Heart, text: "Bien-être Animal", color: "from-pink-500 to-rose-500" },
@@ -228,18 +229,20 @@ export function LandingHero() {
           ].map((item, i) => (
             <div
               key={i}
-              className="group flex items-center gap-3 rounded-full bg-white/10 px-5 py-3 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-all hover:scale-105 cursor-pointer"
+              className="group flex items-center gap-2 sm:gap-3 rounded-full bg-white/10 px-4 sm:px-5 py-2.5 sm:py-3 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-all hover:scale-105 cursor-pointer"
             >
-              <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${item.color}`}>
-                <item.icon className="h-4 w-4 text-white" />
+              <div
+                className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br ${item.color}`}
+              >
+                <item.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-white">{item.text}</span>
+              <span className="text-xs sm:text-sm font-medium text-white">{item.text}</span>
             </div>
           ))}
         </div>
 
         {/* Slide indicators */}
-        <div className="mt-12 flex gap-2">
+        <div className="mt-10 sm:mt-12 flex gap-2">
           {slides.map((_, index) => (
             <button
               key={index}
@@ -253,7 +256,7 @@ export function LandingHero() {
       </div>
 
       {/* Scroll Indicator */}
-      <div className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 animate-bounce">
+      <div className="absolute bottom-6 sm:bottom-8 left-1/2 z-10 -translate-x-1/2 animate-bounce hidden sm:block">
         <Link href="#stats" className="flex flex-col items-center gap-2 group cursor-pointer">
           <span className="text-xs font-medium uppercase tracking-wider text-white/60 group-hover:text-white/80 transition-colors">
             Défiler pour explorer

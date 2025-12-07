@@ -562,6 +562,42 @@ class SupabaseClient {
   from(tableName: string) {
     return new SupabaseTable(tableName)
   }
+
+  async rpc(functionName: string, params?: Record<string, any>): Promise<{ data: any; error: any }> {
+    try {
+      const session = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null
+      let accessToken: string | null = null
+      if (session) {
+        try {
+          accessToken = JSON.parse(session).access_token
+        } catch {}
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+      }
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${functionName}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(params || {}),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return { data: null, error: { message: data.message || data.error || "Erreur RPC" } }
+      }
+
+      return { data, error: null }
+    } catch (error: any) {
+      return { data: null, error: { message: error.message } }
+    }
+  }
 }
 
 // Singleton instance
