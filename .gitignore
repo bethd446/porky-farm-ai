@@ -1,0 +1,35 @@
+# Dépendances
+node_modules/
+.next/
+out/
+dist/
+.turbo/
+
+# Build
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Environnement
+.env.local
+.env*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Autres
+package-lock.json
+node_modules/
+.next/
+.env.local
+.env*.local

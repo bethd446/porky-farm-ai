@@ -15,6 +15,11 @@ export interface Animal {
   motherId?: string
   fatherId?: string
   notes?: string
+  location?: string
+  lastWeightDate?: string
+  lastVaccinationDate?: string
+  healthScore?: number
+  age?: string
   createdAt: string
   updatedAt: string
 }
@@ -66,7 +71,14 @@ export interface Vaccination {
 
 export interface Activity {
   id: string
-  type: "animal_added" | "animal_sold" | "health_case" | "gestation" | "vaccination" | "feeding" | "death"
+  type:
+    | "animal_added"
+    | "animal_sold"
+    | "health_case"
+    | "gestation"
+    | "vaccination"
+    | "feeding"
+    | "death"
   title: string
   description: string
   entityId?: string
@@ -86,6 +98,20 @@ export interface FeedingRecord {
   createdAt: string
 }
 
+export interface FinancialRecord {
+  id: string
+  type: "income" | "expense"
+  category: string
+  description: string
+  amount: number
+  date: string
+  animalId?: string
+  relatedEntityId?: string
+  relatedEntityType?: string
+  notes?: string
+  createdAt: string
+}
+
 interface Database {
   animals: Animal[]
   healthCases: HealthCase[]
@@ -93,6 +119,7 @@ interface Database {
   vaccinations: Vaccination[]
   activities: Activity[]
   feedingRecords: FeedingRecord[]
+  financialRecords: FinancialRecord[]
 }
 
 const DB_KEY = "porkyfarm_db"
@@ -106,14 +133,13 @@ const defaultData: Database = {
       name: "Bella",
       category: "truie",
       breed: "Large White",
-      birthDate: "2022-03-15",
+      birthDate: "2020-03-15",
       weight: 180,
       status: "actif",
       healthStatus: "bon",
       photo: "/white-sow-pig.jpg",
-      notes: "Excellente reproductrice",
-      createdAt: "2024-01-01T00:00:00Z",
-      updatedAt: "2024-01-01T00:00:00Z",
+      createdAt: "2020-03-15T00:00:00Z",
+      updatedAt: "2020-03-15T00:00:00Z",
     },
     {
       id: "2",
@@ -121,13 +147,13 @@ const defaultData: Database = {
       name: "Rosa",
       category: "truie",
       breed: "Landrace",
-      birthDate: "2022-06-20",
-      weight: 165,
+      birthDate: "2021-05-20",
+      weight: 175,
       status: "actif",
       healthStatus: "bon",
       photo: "/landrace-sow-pig.jpg",
-      createdAt: "2024-01-01T00:00:00Z",
-      updatedAt: "2024-01-01T00:00:00Z",
+      createdAt: "2021-05-20T00:00:00Z",
+      updatedAt: "2021-05-20T00:00:00Z",
     },
     {
       id: "3",
@@ -135,41 +161,41 @@ const defaultData: Database = {
       name: "Luna",
       category: "truie",
       breed: "Duroc",
-      birthDate: "2023-01-10",
-      weight: 150,
-      status: "malade",
+      birthDate: "2022-01-10",
+      weight: 190,
+      status: "actif",
       healthStatus: "moyen",
       photo: "/duroc-sow-pig.jpg",
-      createdAt: "2024-02-01T00:00:00Z",
-      updatedAt: "2024-02-01T00:00:00Z",
+      createdAt: "2022-01-10T00:00:00Z",
+      updatedAt: "2022-01-10T00:00:00Z",
     },
     {
       id: "4",
       identifier: "VR-001",
       name: "Thor",
       category: "verrat",
-      breed: "Piétrain",
-      birthDate: "2021-08-05",
+      breed: "Large White",
+      birthDate: "2019-08-12",
       weight: 250,
       status: "actif",
       healthStatus: "bon",
-      photo: "/pietrain-boar-pig.jpg",
-      createdAt: "2024-01-01T00:00:00Z",
-      updatedAt: "2024-01-01T00:00:00Z",
+      photo: "/large-white-boar-pig.jpg",
+      createdAt: "2019-08-12T00:00:00Z",
+      updatedAt: "2019-08-12T00:00:00Z",
     },
     {
       id: "5",
       identifier: "VR-002",
       name: "Max",
       category: "verrat",
-      breed: "Large White",
-      birthDate: "2022-02-14",
-      weight: 230,
+      breed: "Pietrain",
+      birthDate: "2020-11-05",
+      weight: 220,
       status: "actif",
       healthStatus: "bon",
-      photo: "/large-white-boar-pig.jpg",
-      createdAt: "2024-01-01T00:00:00Z",
-      updatedAt: "2024-01-01T00:00:00Z",
+      photo: "/pietrain-boar-pig.jpg",
+      createdAt: "2020-11-05T00:00:00Z",
+      updatedAt: "2020-11-05T00:00:00Z",
     },
     {
       id: "6",
@@ -285,66 +311,30 @@ const defaultData: Database = {
     },
     {
       id: "2",
-      animalId: "4",
-      animalName: "Thor",
+      animalId: "2",
+      animalName: "Rosa",
       vaccineName: "Rouget",
-      date: "2024-08-01",
-      nextDueDate: "2025-02-01",
+      date: "2024-07-20",
+      nextDueDate: "2025-07-20",
       veterinarian: "Dr. Kouassi",
-      createdAt: "2024-08-01T00:00:00Z",
+      createdAt: "2024-07-20T00:00:00Z",
     },
   ],
-  activities: [
-    {
-      id: "1",
-      type: "health_case",
-      title: "Nouveau cas de santé",
-      description: "Luna présente une boiterie",
-      entityId: "1",
-      entityType: "health_case",
-      createdAt: "2024-12-01T10:00:00Z",
-    },
-    {
-      id: "2",
-      type: "gestation",
-      title: "Nouvelle gestation",
-      description: "Rosa confirmée gestante",
-      entityId: "2",
-      entityType: "gestation",
-      createdAt: "2024-10-01T08:00:00Z",
-    },
-    {
-      id: "3",
-      type: "vaccination",
-      title: "Vaccination effectuée",
-      description: "Thor vacciné contre le Rouget",
-      entityId: "2",
-      entityType: "vaccination",
-      createdAt: "2024-08-01T14:00:00Z",
-    },
-  ],
+  activities: [],
   feedingRecords: [
     {
       id: "1",
-      date: "2024-12-06",
+      date: "2024-12-01",
       category: "truie",
       animalCount: 3,
-      totalKg: 9,
-      costPerKg: 350,
-      totalCost: 3150,
-      createdAt: "2024-12-06T07:00:00Z",
-    },
-    {
-      id: "2",
-      date: "2024-12-06",
-      category: "verrat",
-      animalCount: 2,
-      totalKg: 7,
-      costPerKg: 350,
-      totalCost: 2450,
-      createdAt: "2024-12-06T07:00:00Z",
+      totalKg: 15,
+      costPerKg: 250,
+      totalCost: 3750,
+      notes: "Ration matin",
+      createdAt: "2024-12-01T08:00:00Z",
     },
   ],
+  financialRecords: [],
 }
 
 class LocalDatabase {
@@ -356,33 +346,31 @@ class LocalDatabase {
 
   private load(): Database {
     if (typeof window === "undefined") return defaultData
-
     try {
       const stored = localStorage.getItem(DB_KEY)
-      if (stored) {
-        return JSON.parse(stored)
+      if (!stored) return defaultData
+      const parsed = JSON.parse(stored)
+      // S'assurer que financialRecords existe
+      if (!parsed.financialRecords) {
+        parsed.financialRecords = []
       }
-    } catch (e) {
-      console.error("Error loading database:", e)
+      return parsed
+    } catch {
+      return defaultData
     }
-
-    // Initialiser avec les données par défaut
-    this.save(defaultData)
-    return defaultData
   }
 
   private save(data: Database) {
     if (typeof window === "undefined") return
-
     try {
       localStorage.setItem(DB_KEY, JSON.stringify(data))
-    } catch (e) {
-      console.error("Error saving database:", e)
+    } catch (error) {
+      console.error("Erreur sauvegarde:", error)
     }
   }
 
   private generateId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2)
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   }
 
   private addActivity(activity: Omit<Activity, "id" | "createdAt">) {
@@ -404,11 +392,60 @@ class LocalDatabase {
   }
 
   getAnimalById(id: string): Animal | undefined {
-    return this.data.animals.find((a) => a.id === id)
+    return this.data.animals.find(a => a.id === id)
   }
 
   getAnimalsByCategory(category: Animal["category"]): Animal[] {
-    return this.data.animals.filter((a) => a.category === category)
+    return this.data.animals.filter(a => a.category === category)
+  }
+
+  // NOUVELLE FONCTION: Obtenir les porcelets d'une truie
+  getPigletsByMother(motherId: string): Animal[] {
+    return this.data.animals.filter(a => a.motherId === motherId && a.category === "porcelet")
+  }
+
+  // NOUVELLE FONCTION: Obtenir tous les descendants d'un animal
+  getOffspring(animalId: string): Animal[] {
+    return this.data.animals.filter(a => a.motherId === animalId || a.fatherId === animalId)
+  }
+
+  // NOUVELLE FONCTION: Obtenir la mère d'un animal
+  getMother(animalId: string): Animal | undefined {
+    const animal = this.getAnimalById(animalId)
+    if (!animal?.motherId) return undefined
+    return this.getAnimalById(animal.motherId)
+  }
+
+  // NOUVELLE FONCTION: Obtenir le père d'un animal
+  getFather(animalId: string): Animal | undefined {
+    const animal = this.getAnimalById(animalId)
+    if (!animal?.fatherId) return undefined
+    return this.getAnimalById(animal.fatherId)
+  }
+
+  // NOUVELLE FONCTION: Obtenir l'arbre généalogique complet
+  getFamilyTree(
+    animalId: string,
+    depth = 3
+  ): {
+    animal: Animal
+    mother?: Animal
+    father?: Animal
+    children: Animal[]
+  } | null {
+    const animal = this.getAnimalById(animalId)
+    if (!animal) return null
+
+    const mother = animal.motherId ? this.getMother(animalId) : undefined
+    const father = animal.fatherId ? this.getFather(animalId) : undefined
+    const children = this.getOffspring(animalId)
+
+    return {
+      animal,
+      mother,
+      father,
+      children,
+    }
   }
 
   addAnimal(animal: Omit<Animal, "id" | "createdAt" | "updatedAt">): Animal {
@@ -433,7 +470,7 @@ class LocalDatabase {
   }
 
   updateAnimal(id: string, updates: Partial<Animal>): Animal | null {
-    const index = this.data.animals.findIndex((a) => a.id === id)
+    const index = this.data.animals.findIndex(a => a.id === id)
     if (index === -1) return null
 
     this.data.animals[index] = {
@@ -446,10 +483,10 @@ class LocalDatabase {
   }
 
   deleteAnimal(id: string): boolean {
-    const animal = this.data.animals.find((a) => a.id === id)
+    const animal = this.data.animals.find(a => a.id === id)
     if (!animal) return false
 
-    this.data.animals = this.data.animals.filter((a) => a.id !== id)
+    this.data.animals = this.data.animals.filter(a => a.id !== id)
     this.save(this.data)
     return true
   }
@@ -483,26 +520,28 @@ class LocalDatabase {
   }
 
   getAnimalStats() {
-    const animals = this.data.animals.filter((a) => a.status === "actif")
+    const animals = this.data.animals.filter(a => a.status === "actif")
     return {
       total: animals.length,
-      truies: animals.filter((a) => a.category === "truie").length,
-      verrats: animals.filter((a) => a.category === "verrat").length,
-      porcelets: animals.filter((a) => a.category === "porcelet").length,
-      porcs: animals.filter((a) => a.category === "porc").length,
-      malades: animals.filter((a) => a.status === "malade" || a.healthStatus !== "bon").length,
-      enGestation: this.data.gestations.filter((g) => g.status === "active").length,
+      truies: animals.filter(a => a.category === "truie").length,
+      verrats: animals.filter(a => a.category === "verrat").length,
+      porcelets: animals.filter(a => a.category === "porcelet").length,
+      porcs: animals.filter(a => a.category === "porc").length,
+      malades: animals.filter(a => a.status === "malade" || a.healthStatus !== "bon").length,
+      enGestation: this.data.gestations.filter(g => g.status === "active").length,
     }
   }
 
   // ============ HEALTH CASES ============
 
   getHealthCases(): HealthCase[] {
-    return [...this.data.healthCases].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return [...this.data.healthCases].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
   }
 
   getActiveHealthCases(): HealthCase[] {
-    return this.data.healthCases.filter((h) => h.status !== "resolved")
+    return this.data.healthCases.filter(h => h.status !== "resolved")
   }
 
   addHealthCase(healthCase: Omit<HealthCase, "id" | "createdAt">): HealthCase {
@@ -535,7 +574,7 @@ class LocalDatabase {
   }
 
   updateHealthCase(id: string, updates: Partial<HealthCase>): HealthCase | null {
-    const index = this.data.healthCases.findIndex((h) => h.id === id)
+    const index = this.data.healthCases.findIndex(h => h.id === id)
     if (index === -1) return null
 
     this.data.healthCases[index] = {
@@ -557,7 +596,7 @@ class LocalDatabase {
   }
 
   deleteHealthCase(id: string): boolean {
-    this.data.healthCases = this.data.healthCases.filter((h) => h.id !== id)
+    this.data.healthCases = this.data.healthCases.filter(h => h.id !== id)
     this.save(this.data)
     return true
   }
@@ -565,11 +604,13 @@ class LocalDatabase {
   // ============ GESTATIONS ============
 
   getGestations(): Gestation[] {
-    return [...this.data.gestations].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return [...this.data.gestations].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
   }
 
   getActiveGestations(): Gestation[] {
-    return this.data.gestations.filter((g) => g.status === "active")
+    return this.data.gestations.filter(g => g.status === "active")
   }
 
   addGestation(gestation: Omit<Gestation, "id" | "createdAt" | "expectedDueDate">): Gestation {
@@ -599,7 +640,7 @@ class LocalDatabase {
   }
 
   updateGestation(id: string, updates: Partial<Gestation>): Gestation | null {
-    const index = this.data.gestations.findIndex((g) => g.id === id)
+    const index = this.data.gestations.findIndex(g => g.id === id)
     if (index === -1) return null
 
     this.data.gestations[index] = {
@@ -620,7 +661,7 @@ class LocalDatabase {
   }
 
   deleteGestation(id: string): boolean {
-    this.data.gestations = this.data.gestations.filter((g) => g.id !== id)
+    this.data.gestations = this.data.gestations.filter(g => g.id !== id)
     this.save(this.data)
     return true
   }
@@ -628,7 +669,9 @@ class LocalDatabase {
   // ============ VACCINATIONS ============
 
   getVaccinations(): Vaccination[] {
-    return [...this.data.vaccinations].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return [...this.data.vaccinations].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
   }
 
   getUpcomingVaccinations(): Vaccination[] {
@@ -636,7 +679,7 @@ class LocalDatabase {
     const in30Days = new Date()
     in30Days.setDate(in30Days.getDate() + 30)
 
-    return this.data.vaccinations.filter((v) => {
+    return this.data.vaccinations.filter(v => {
       if (!v.nextDueDate) return false
       const nextDue = new Date(v.nextDueDate)
       return nextDue >= today && nextDue <= in30Days
@@ -672,7 +715,9 @@ class LocalDatabase {
   // ============ FEEDING ============
 
   getFeedingRecords(): FeedingRecord[] {
-    return [...this.data.feedingRecords].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return [...this.data.feedingRecords].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
   }
 
   addFeedingRecord(record: Omit<FeedingRecord, "id" | "createdAt">): FeedingRecord {
@@ -695,16 +740,88 @@ class LocalDatabase {
     return newRecord
   }
 
+  // ============ FINANCIAL RECORDS ============
+
+  getFinancialRecords(): FinancialRecord[] {
+    return [...this.data.financialRecords].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
+  }
+
+  addFinancialRecord(record: Omit<FinancialRecord, "id" | "createdAt">): FinancialRecord {
+    const newRecord: FinancialRecord = {
+      ...record,
+      id: this.generateId(),
+      createdAt: new Date().toISOString(),
+    }
+    this.data.financialRecords.push(newRecord)
+    this.save(this.data)
+    return newRecord
+  }
+
+  updateFinancialRecord(id: string, updates: Partial<FinancialRecord>): FinancialRecord | null {
+    const index = this.data.financialRecords.findIndex(r => r.id === id)
+    if (index === -1) return null
+
+    this.data.financialRecords[index] = {
+      ...this.data.financialRecords[index],
+      ...updates,
+    }
+    this.save(this.data)
+    return this.data.financialRecords[index]
+  }
+
+  deleteFinancialRecord(id: string): boolean {
+    this.data.financialRecords = this.data.financialRecords.filter(r => r.id !== id)
+    this.save(this.data)
+    return true
+  }
+
+  getFinancialStats(period: "month" | "year" = "month") {
+    const now = new Date()
+    const startDate = new Date()
+    if (period === "month") {
+      startDate.setMonth(now.getMonth() - 1)
+    } else {
+      startDate.setFullYear(now.getFullYear() - 1)
+    }
+
+    const records = this.data.financialRecords.filter(r => new Date(r.date) >= startDate)
+
+    const income = records.filter(r => r.type === "income").reduce((sum, r) => sum + r.amount, 0)
+    const expenses = records.filter(r => r.type === "expense").reduce((sum, r) => sum + r.amount, 0)
+    const profit = income - expenses
+
+    return {
+      income,
+      expenses,
+      profit,
+      recordCount: records.length,
+    }
+  }
+
   // ============ ALERTS ============
 
-  getAlerts(): { type: string; title: string; description: string; priority: string; link: string }[] {
-    const alerts: { type: string; title: string; description: string; priority: string; link: string }[] = []
+  getAlerts(): {
+    type: string
+    title: string
+    description: string
+    priority: string
+    link: string
+  }[] {
+    const alerts: {
+      type: string
+      title: string
+      description: string
+      priority: string
+      link: string
+    }[] = []
 
     // Alertes santé
     const criticalCases = this.data.healthCases.filter(
-      (h) => h.status !== "resolved" && (h.priority === "critical" || h.priority === "high"),
+      h => h.status !== "resolved" && (h.priority === "critical" || h.priority === "high")
     )
-    criticalCases.forEach((c) => {
+    criticalCases.forEach(c => {
       alerts.push({
         type: "health",
         title: `Cas urgent: ${c.animalName}`,
@@ -717,8 +834,8 @@ class LocalDatabase {
     // Alertes gestation (mise-bas proche)
     const today = new Date()
     this.data.gestations
-      .filter((g) => g.status === "active")
-      .forEach((g) => {
+      .filter(g => g.status === "active")
+      .forEach(g => {
         const dueDate = new Date(g.expectedDueDate)
         const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
@@ -735,7 +852,7 @@ class LocalDatabase {
 
     // Alertes vaccination
     const upcomingVaccinations = this.getUpcomingVaccinations()
-    upcomingVaccinations.forEach((v) => {
+    upcomingVaccinations.forEach(v => {
       const nextDue = new Date(v.nextDueDate!)
       const daysUntil = Math.ceil((nextDue.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
@@ -753,33 +870,40 @@ class LocalDatabase {
     return alerts.sort(
       (a, b) =>
         (priorityOrder[a.priority as keyof typeof priorityOrder] || 3) -
-        (priorityOrder[b.priority as keyof typeof priorityOrder] || 3),
+        (priorityOrder[b.priority as keyof typeof priorityOrder] || 3)
     )
   }
 
   // ============ STATS DASHBOARD ============
 
   getDashboardStats() {
-    const animals = this.data.animals.filter((a) => a.status === "actif")
-    const activeGestations = this.data.gestations.filter((g) => g.status === "active")
-    const activeHealthCases = this.data.healthCases.filter((h) => h.status !== "resolved")
+    const animals = this.data.animals.filter(a => a.status === "actif")
+    const activeGestations = this.data.gestations.filter(g => g.status === "active")
+    const activeHealthCases = this.data.healthCases.filter(h => h.status !== "resolved")
 
     // Calculer le coût alimentation du mois
     const thisMonth = new Date().toISOString().slice(0, 7)
     const monthlyFeedingCost = this.data.feedingRecords
-      .filter((r) => r.date.startsWith(thisMonth))
+      .filter(r => r.date.startsWith(thisMonth))
       .reduce((sum, r) => sum + r.totalCost, 0)
+
+    // Calculer les stats financières
+    const financialStats = this.getFinancialStats("month")
 
     return {
       totalAnimals: animals.length,
-      truies: animals.filter((a) => a.category === "truie").length,
-      verrats: animals.filter((a) => a.category === "verrat").length,
-      porcelets: animals.filter((a) => a.category === "porcelet").length,
-      porcs: animals.filter((a) => a.category === "porc").length,
+      truies: animals.filter(a => a.category === "truie").length,
+      verrats: animals.filter(a => a.category === "verrat").length,
+      porcelets: animals.filter(a => a.category === "porcelet").length,
+      porcs: animals.filter(a => a.category === "porc").length,
       gestationsActives: activeGestations.length,
       cassSanteActifs: activeHealthCases.length,
       coutAlimentationMois: monthlyFeedingCost,
       alertesCount: this.getAlerts().length,
+      // Stats financières
+      revenusMois: financialStats.income,
+      depensesMois: financialStats.expenses,
+      profitMois: financialStats.profit,
     }
   }
 
