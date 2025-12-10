@@ -2,7 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react"
 import { useAuth } from "@/hooks/use-auth"
-import type { User, Session } from "@/lib/supabase/client"
+import type { User, Session } from "@supabase/supabase-js"
 import type { Profile } from "@/lib/supabase/types"
 
 interface AuthContextType {
@@ -27,7 +27,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuthContext() {
   const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error("useAuthContext must be used within an AuthProvider")
+    // Return a default context for components that might render before provider
+    return {
+      user: null,
+      session: null,
+      profile: null,
+      loading: true,
+      signIn: async () => ({ data: null, error: new Error("Auth not initialized") }),
+      signUp: async () => ({ data: null, error: new Error("Auth not initialized") }),
+      signOut: async () => ({ error: new Error("Auth not initialized") }),
+      updateProfile: async () => ({ data: null, error: new Error("Auth not initialized") }),
+    }
   }
   return context
 }

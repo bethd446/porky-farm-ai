@@ -85,8 +85,7 @@ export function RegisterForm() {
         email: emailToUse,
         password: formData.password,
         options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: formData.name,
             phone: formData.phone,
@@ -103,6 +102,7 @@ export function RegisterForm() {
         return
       }
 
+      // Send welcome email
       if (authMethod === "email") {
         try {
           await fetch("/api/email/send", {
@@ -118,7 +118,6 @@ export function RegisterForm() {
             }),
           })
         } catch (emailError) {
-          // Ne pas bloquer l'inscription si l'email echoue
           console.error("Failed to send welcome email:", emailError)
         }
       }

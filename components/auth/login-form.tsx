@@ -129,7 +129,6 @@ export function LoginForm() {
         setError(error.message)
         setSocialLoading(null)
       }
-      // Note: No need to reset socialLoading on success as page will redirect
     } catch {
       setError("Erreur de connexion avec Google")
       setSocialLoading(null)
@@ -290,7 +289,7 @@ export function LoginForm() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Mot de passe</Label>
-            <Link href="/support" className="text-sm text-primary hover:underline">
+            <Link href="/auth/reset-password" className="text-sm text-primary hover:underline">
               Mot de passe oublie ?
             </Link>
           </div>

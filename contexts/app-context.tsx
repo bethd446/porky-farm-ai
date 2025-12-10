@@ -10,7 +10,6 @@ import {
   type Vaccination,
   type Activity,
   type FeedingRecord,
-  type FinancialRecord,
 } from "@/lib/storage/local-database"
 
 interface AppContextType {
@@ -23,16 +22,6 @@ interface AppContextType {
   markAnimalDead: (id: string) => Animal | null
   getAnimalById: (id: string) => Animal | undefined
   getAnimalsByCategory: (category: Animal["category"]) => Animal[]
-  getPigletsByMother: (motherId: string) => Animal[]
-  getOffspring: (animalId: string) => Animal[]
-  getMother: (animalId: string) => Animal | undefined
-  getFather: (animalId: string) => Animal | undefined
-  getFamilyTree: (animalId: string) => {
-    animal: Animal
-    mother?: Animal
-    father?: Animal
-    children: Animal[]
-  } | null
 
   // Health
   healthCases: HealthCase[]
@@ -54,18 +43,6 @@ interface AppContextType {
   // Feeding
   feedingRecords: FeedingRecord[]
   addFeedingRecord: (record: Omit<FeedingRecord, "id" | "createdAt">) => FeedingRecord
-
-  // Financial
-  financialRecords: FinancialRecord[]
-  addFinancialRecord: (record: Omit<FinancialRecord, "id" | "createdAt">) => FinancialRecord
-  updateFinancialRecord: (id: string, updates: Partial<FinancialRecord>) => FinancialRecord | null
-  deleteFinancialRecord: (id: string) => boolean
-  getFinancialStats: (period?: "month" | "year") => {
-    income: number
-    expenses: number
-    profit: number
-    recordCount: number
-  }
 
   // Activities & Alerts
   activities: Activity[]
@@ -97,7 +74,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [gestations, setGestations] = useState<Gestation[]>([])
   const [vaccinations, setVaccinations] = useState<Vaccination[]>([])
   const [feedingRecords, setFeedingRecords] = useState<FeedingRecord[]>([])
-  const [financialRecords, setFinancialRecords] = useState<FinancialRecord[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
   const [alerts, setAlerts] = useState<
     { type: string; title: string; description: string; priority: string; link: string }[]
@@ -122,7 +98,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setGestations(db.getGestations())
     setVaccinations(db.getVaccinations())
     setFeedingRecords(db.getFeedingRecords())
-    setFinancialRecords(db.getFinancialRecords())
     setActivities(db.getActivities(20))
     setAlerts(db.getAlerts())
     setStats(db.getDashboardStats())
@@ -192,31 +167,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const getAnimalsByCategory = useCallback((category: Animal["category"]) => {
     const db = getDatabase()
     return db.getAnimalsByCategory(category)
-  }, [])
-
-  const getPigletsByMother = useCallback((motherId: string) => {
-    const db = getDatabase()
-    return db.getPigletsByMother(motherId)
-  }, [])
-
-  const getOffspring = useCallback((animalId: string) => {
-    const db = getDatabase()
-    return db.getOffspring(animalId)
-  }, [])
-
-  const getMother = useCallback((animalId: string) => {
-    const db = getDatabase()
-    return db.getMother(animalId)
-  }, [])
-
-  const getFather = useCallback((animalId: string) => {
-    const db = getDatabase()
-    return db.getFather(animalId)
-  }, [])
-
-  const getFamilyTree = useCallback((animalId: string) => {
-    const db = getDatabase()
-    return db.getFamilyTree(animalId)
   }, [])
 
   // Health methods
@@ -313,45 +263,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [refreshData],
   )
 
-  // Financial methods
-  const addFinancialRecord = useCallback(
-    (record: Omit<FinancialRecord, "id" | "createdAt">) => {
-      const db = getDatabase()
-      const newRecord = db.addFinancialRecord(record)
-      refreshData()
-      return newRecord
-    },
-    [refreshData],
-  )
-
-  const updateFinancialRecord = useCallback(
-    (id: string, updates: Partial<FinancialRecord>) => {
-      const db = getDatabase()
-      const updated = db.updateFinancialRecord(id, updates)
-      refreshData()
-      return updated
-    },
-    [refreshData],
-  )
-
-  const deleteFinancialRecord = useCallback(
-    (id: string) => {
-      const db = getDatabase()
-      const result = db.deleteFinancialRecord(id)
-      refreshData()
-      return result
-    },
-    [refreshData],
-  )
-
-  const getFinancialStats = useCallback(
-    (period: "month" | "year" = "month") => {
-      const db = getDatabase()
-      return db.getFinancialStats(period)
-    },
-    [],
-  )
-
   return (
     <AppContext.Provider
       value={{
@@ -363,11 +274,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         markAnimalDead,
         getAnimalById,
         getAnimalsByCategory,
-        getPigletsByMother,
-        getOffspring,
-        getMother,
-        getFather,
-        getFamilyTree,
         healthCases,
         addHealthCase,
         updateHealthCase,
@@ -381,11 +287,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addVaccination,
         feedingRecords,
         addFeedingRecord,
-        financialRecords,
-        addFinancialRecord,
-        updateFinancialRecord,
-        deleteFinancialRecord,
-        getFinancialStats,
         activities,
         alerts,
         stats,

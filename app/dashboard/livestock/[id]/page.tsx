@@ -47,18 +47,7 @@ import { useApp } from "@/contexts/app-context"
 export default function AnimalDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const {
-    getAnimalById,
-    updateAnimal,
-    deleteAnimal,
-    healthCases,
-    gestations,
-    addVaccination,
-    getPigletsByMother,
-    getMother,
-    getFather,
-    getFamilyTree,
-  } = useApp()
+  const { getAnimalById, updateAnimal, deleteAnimal, healthCases, gestations, addVaccination } = useApp()
 
   const animal = getAnimalById(params.id as string)
 
@@ -72,7 +61,7 @@ export default function AnimalDetailPage() {
   const [editForm, setEditForm] = useState({
     name: animal?.name || "",
     breed: animal?.breed || "",
-    location: (animal as any)?.location || "",
+    location: animal?.location || "",
     notes: animal?.notes || "",
   })
 
@@ -115,7 +104,7 @@ export default function AnimalDetailPage() {
       breed: editForm.breed,
       location: editForm.location,
       notes: editForm.notes,
-    } as any)
+    })
     setIsLoading(false)
     setShowEditDialog(false)
   }
@@ -131,7 +120,7 @@ export default function AnimalDetailPage() {
     updateAnimal(animal.id, {
       weight: Number.parseFloat(newWeight),
       lastWeightDate: new Date().toISOString(),
-    } as any)
+    })
     setNewWeight("")
     setIsLoading(false)
     setShowWeightDialog(false)
@@ -162,13 +151,12 @@ export default function AnimalDetailPage() {
     setIsLoading(true)
     addVaccination({
       animalId: animal.id,
-      animalName: animal.name,
-      vaccineName: vaccinationName,
+      name: vaccinationName,
       date: new Date().toISOString().split("T")[0],
       nextDueDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       notes: "",
     })
-    updateAnimal(animal.id, { lastVaccinationDate: new Date().toISOString().split("T")[0] } as any)
+    updateAnimal(animal.id, { lastVaccinationDate: new Date().toISOString().split("T")[0] })
     setVaccinationName("")
     setIsLoading(false)
     setShowVaccinationDialog(false)
@@ -218,7 +206,7 @@ export default function AnimalDetailPage() {
               setEditForm({
                 name: animal.name,
                 breed: animal.breed,
-                location: (animal as any).location || "",
+                location: animal.location || "",
                 notes: animal.notes || "",
               })
               setShowEditDialog(true)
@@ -246,7 +234,7 @@ export default function AnimalDetailPage() {
                 <Badge className={`${getStatusColor(animal.status)} text-white`}>{animal.status}</Badge>
                 <div className="flex items-center gap-1 rounded-full bg-green-50 px-3 py-1">
                   <Heart className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-semibold text-green-600">{(animal as any).healthScore || 85}%</span>
+                  <span className="text-sm font-semibold text-green-600">{animal.healthScore || 85}%</span>
                 </div>
               </div>
             </CardContent>
@@ -267,7 +255,7 @@ export default function AnimalDetailPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Age</span>
-                <span className="font-medium">{(animal as any).age || "N/A"}</span>
+                <span className="font-medium">{animal.age}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Poids</span>
@@ -275,7 +263,7 @@ export default function AnimalDetailPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Emplacement</span>
-                <span className="font-medium">{(animal as any).location || "Non defini"}</span>
+                <span className="font-medium">{animal.location || "Non defini"}</span>
               </div>
             </CardContent>
           </Card>
@@ -318,91 +306,6 @@ export default function AnimalDetailPage() {
                 </Card>
               )}
 
-              {/* Traçabilité - Parents */}
-              {(animal.motherId || animal.fatherId) && (
-                <Card className="shadow-soft border-l-4 border-l-blue-500">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Baby className="h-5 w-5 text-blue-500" />
-                      Origine génétique
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {animal.motherId && (
-                      <div className="flex items-center justify-between rounded-lg bg-blue-50 p-3">
-                        <div>
-                          <p className="text-sm font-medium text-blue-900">Mère</p>
-                          <p className="text-xs text-blue-700">
-                            {getMother(animal.id)?.name || "Non identifiée"} ({getMother(animal.id)?.identifier || "N/A"})
-                          </p>
-                        </div>
-                        {getMother(animal.id) && (
-                          <Link href={`/dashboard/livestock/${animal.motherId}`}>
-                            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
-                              Voir →
-                            </Button>
-                          </Link>
-                        )}
-                      </div>
-                    )}
-                    {animal.fatherId && (
-                      <div className="flex items-center justify-between rounded-lg bg-purple-50 p-3">
-                        <div>
-                          <p className="text-sm font-medium text-purple-900">Père</p>
-                          <p className="text-xs text-purple-700">
-                            {getFather(animal.id)?.name || "Non identifié"} ({getFather(animal.id)?.identifier || "N/A"})
-                          </p>
-                        </div>
-                        {getFather(animal.id) && (
-                          <Link href={`/dashboard/livestock/${animal.fatherId}`}>
-                            <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700">
-                              Voir →
-                            </Button>
-                          </Link>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Traçabilité - Porcelets (pour les truies) */}
-              {animal.category === "truie" && (
-                <Card className="shadow-soft border-l-4 border-l-pink-500">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Baby className="h-5 w-5 text-pink-500" />
-                      Porcelets ({getPigletsByMother(animal.id).length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {getPigletsByMother(animal.id).length > 0 ? (
-                      <div className="space-y-2">
-                        {getPigletsByMother(animal.id).map((piglet) => (
-                          <Link
-                            key={piglet.id}
-                            href={`/dashboard/livestock/${piglet.id}`}
-                            className="flex items-center justify-between rounded-lg border border-pink-200 bg-pink-50 p-3 transition hover:bg-pink-100"
-                          >
-                            <div>
-                              <p className="font-medium text-pink-900">{piglet.name}</p>
-                              <p className="text-xs text-pink-700">
-                                {piglet.identifier} • {piglet.weight} kg • {piglet.healthStatus === "bon" ? "✅ Bonne santé" : "⚠️ À surveiller"}
-                              </p>
-                            </div>
-                            <Button variant="ghost" size="sm" className="text-pink-600 hover:text-pink-700">
-                              Voir →
-                            </Button>
-                          </Link>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Aucun porcelet enregistré pour cette truie.</p>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
               <Card className="shadow-soft">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -415,7 +318,7 @@ export default function AnimalDetailPage() {
                 </CardContent>
               </Card>
 
-              {animalHealthCases.filter((hc) => hc.status === "open").length > 0 && (
+              {animalHealthCases.filter((hc) => hc.status === "active").length > 0 && (
                 <Card className="shadow-soft">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
@@ -426,7 +329,7 @@ export default function AnimalDetailPage() {
                   <CardContent>
                     <div className="flex items-center justify-between rounded-lg bg-amber-50 p-4">
                       <span className="text-amber-700">
-                        {animalHealthCases.filter((hc) => hc.status === "open").length} cas sanitaire(s) en cours
+                        {animalHealthCases.filter((hc) => hc.status === "active").length} cas sanitaire(s) en cours
                       </span>
                       <Link href="/dashboard/health">
                         <Button size="sm" className="bg-primary text-white">
@@ -451,8 +354,8 @@ export default function AnimalDetailPage() {
                   <div className="flex justify-between rounded-lg border border-border p-3">
                     <span>Derniere vaccination</span>
                     <span className="font-medium">
-                      {(animal as any).lastVaccinationDate
-                        ? new Date((animal as any).lastVaccinationDate).toLocaleDateString("fr-FR")
+                      {animal.lastVaccinationDate
+                        ? new Date(animal.lastVaccinationDate).toLocaleDateString("fr-FR")
                         : "Non renseignee"}
                     </span>
                   </div>
@@ -481,8 +384,8 @@ export default function AnimalDetailPage() {
                   <div className="flex justify-between rounded-lg border border-border p-3">
                     <span>Derniere pesee</span>
                     <span className="font-medium">
-                      {(animal as any).lastWeightDate
-                        ? new Date((animal as any).lastWeightDate).toLocaleDateString("fr-FR")
+                      {animal.lastWeightDate
+                        ? new Date(animal.lastWeightDate).toLocaleDateString("fr-FR")
                         : "Non renseignee"}
                     </span>
                   </div>
@@ -511,8 +414,8 @@ export default function AnimalDetailPage() {
                               {new Date(hc.createdAt).toLocaleDateString("fr-FR")}
                             </p>
                           </div>
-                          <Badge variant={hc.status === "open" ? "destructive" : "secondary"}>
-                            {hc.status === "open" ? "En cours" : "Resolu"}
+                          <Badge variant={hc.status === "active" ? "destructive" : "secondary"}>
+                            {hc.status === "active" ? "En cours" : "Resolu"}
                           </Badge>
                         </div>
                       ))}

@@ -125,11 +125,11 @@ export default function SettingsPage() {
       activities: activities.slice(0, 100),
       statistics: {
         totalAnimals: animals.length,
-        truies: animals.filter((a) => a.category === "truie").length,
-        verrats: animals.filter((a) => a.category === "verrat").length,
-        porcelets: animals.filter((a) => a.category === "porcelet").length,
+        truies: animals.filter((a) => a.category === "Truie").length,
+        verrats: animals.filter((a) => a.category === "Verrat").length,
+        porcelets: animals.filter((a) => a.category === "Porcelet").length,
         activeGestations: gestations.filter((g) => g.status === "active").length,
-        activeHealthCases: healthCases.filter((hc) => hc.status === "open").length,
+        activeHealthCases: healthCases.filter((hc) => hc.status === "active").length,
       },
     }
 
