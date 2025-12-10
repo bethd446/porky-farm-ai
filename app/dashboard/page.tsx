@@ -31,8 +31,8 @@ export default function DashboardPage() {
             {getGreeting()}, {firstName} !
           </h1>
           <p className="text-muted-foreground">
-            {stats.total > 0
-              ? `Vous avez ${stats.total} animaux dans votre élevage`
+            {stats.totalAnimals > 0
+              ? `Vous avez ${stats.totalAnimals} animaux dans votre élevage`
               : "Bienvenue sur votre tableau de bord"}
           </p>
         </div>

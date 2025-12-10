@@ -52,7 +52,7 @@ export function AIChat() {
     role: "assistant",
     content: `Bonjour ! Je suis **PorkyAssistant**, votre conseiller IA specialise en elevage porcin.
 
-${stats.total > 0 ? `Je vois que vous avez **${stats.total} animaux** dans votre cheptel (${stats.truies} truies, ${stats.verrats} verrats, ${stats.porcelets} porcelets).` : "Commencez par ajouter vos premiers animaux pour que je puisse vous donner des conseils personnalises."}
+${stats.totalAnimals > 0 ? `Je vois que vous avez **${stats.totalAnimals} animaux** dans votre cheptel (${stats.truies} truies, ${stats.verrats} verrats, ${stats.porcelets} porcelets).` : "Commencez par ajouter vos premiers animaux pour que je puisse vous donner des conseils personnalises."}
 
 **Demandez-moi conseil sur :**
 - L'alimentation et les rations
@@ -71,7 +71,7 @@ Selectionnez une question ci-dessous ou posez la votre !`,
 
   useEffect(() => {
     setMessages([getWelcomeMessage()])
-  }, [stats.total])
+  }, [stats.totalAnimals])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -88,7 +88,7 @@ Selectionnez une question ci-dessous ou posez la votre !`,
     context += `- Porcs d'engraissement: ${stats.porcs}\n`
 
     const healthyCount = animals.filter((a) => a.healthStatus === "bon").length
-    const sickCount = animals.filter((a) => a.healthStatus === "malade" || a.healthStatus === "critique").length
+    const sickCount = animals.filter((a) => a.healthStatus === "mauvais").length
     if (healthyCount > 0 || sickCount > 0) {
       context += `- En bonne sante: ${healthyCount}, Necessitant attention: ${sickCount}\n`
     }
@@ -169,7 +169,7 @@ Selectionnez une question ci-dessous ou posez la votre !`,
           <div>
             <h3 className="font-semibold text-foreground">PorkyAssistant</h3>
             <p className="text-xs text-muted-foreground">
-              {stats.total > 0 ? `${stats.total} animaux dans votre cheptel` : "Expert en elevage porcin"}
+              {stats.totalAnimals > 0 ? `${stats.totalAnimals} animaux dans votre cheptel` : "Expert en elevage porcin"}
             </p>
           </div>
         </div>

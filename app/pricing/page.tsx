@@ -8,7 +8,17 @@ export const metadata: Metadata = {
   description: "Decouvrez nos plans tarifaires simples et transparents pour la gestion de votre elevage porcin.",
 }
 
-const PLANS = [
+type Plan = {
+  name: string
+  price: string
+  description: string
+  features: readonly string[]
+  cta: string
+  href: string
+  popular?: boolean
+}
+
+const PLANS: Plan[] = [
   {
     name: "Gratuit",
     price: "0",
@@ -16,6 +26,7 @@ const PLANS = [
     features: ["Jusqu'a 20 animaux", "Suivi sanitaire basique", "Calendrier des taches", "Support par email"],
     cta: "Commencer gratuitement",
     href: "/auth/register",
+    popular: false,
   },
   {
     name: "Pro",
@@ -47,8 +58,9 @@ const PLANS = [
     ],
     cta: "Nous contacter",
     href: "mailto:contact@porkyfarm.app",
+    popular: false,
   },
-] as const
+]
 
 export default function PricingPage() {
   return (
