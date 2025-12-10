@@ -38,7 +38,8 @@ interface AppContextType {
 
   // Vaccinations
   vaccinations: Vaccination[]
-  addVaccination: (vaccination: Omit<Vaccination, "id" | "createdAt">) => Vaccination
+  addVaccination: (vaccination: Omit<Vaccination, "id" | "createdAt" | "status">) => Vaccination
+  completeVaccination: (id: string, completedCount: number) => Vaccination | null
 
   // Feeding
   feedingRecords: FeedingRecord[]
@@ -243,11 +244,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Vaccination methods
   const addVaccination = useCallback(
-    (vaccination: Omit<Vaccination, "id" | "createdAt">) => {
+    (vaccination: Omit<Vaccination, "id" | "createdAt" | "status">) => {
       const db = getDatabase()
       const newVaccination = db.addVaccination(vaccination)
       refreshData()
       return newVaccination
+    },
+    [refreshData],
+  )
+
+  const completeVaccination = useCallback(
+    (id: string, completedCount: number) => {
+      const db = getDatabase()
+      const result = db.completeVaccination(id, completedCount)
+      refreshData()
+      return result
     },
     [refreshData],
   )
@@ -285,6 +296,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deleteGestation,
         vaccinations,
         addVaccination,
+        completeVaccination,
         feedingRecords,
         addFeedingRecord,
         activities,

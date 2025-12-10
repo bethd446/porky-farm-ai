@@ -6,48 +6,82 @@ export async function POST(req: Request) {
       return Response.json(
         {
           content:
-            "L'assistant IA n'est pas configuré. Veuillez ajouter la clé OPENAI_API_KEY dans les variables d'environnement.",
+            "L'assistant IA n'est pas configure. Veuillez ajouter la cle OPENAI_API_KEY dans les variables d'environnement.",
         },
         { status: 200 },
       )
     }
 
-    const { messages, livestockContext } = await req.json()
+    const { messages, livestockContext, hasImage } = await req.json()
 
-    const systemPrompt = `Tu es PorkyAssistant, un assistant IA expert en élevage porcin, spécialement conçu pour aider les éleveurs ivoiriens. 
+    const systemPrompt = `Tu es PorkyAssistant, un assistant IA expert en elevage porcin, specialement concu pour aider les eleveurs ivoiriens. 
 
-Ton rôle est de fournir des conseils pratiques et professionnels sur :
+Ton role est de fournir des conseils pratiques et professionnels sur :
 - La gestion du cheptel (truies, verrats, porcelets)
 - L'alimentation et les rations selon le stade physiologique
 - La reproduction : saillie, gestation, mise-bas, lactation
-- La santé : prévention des maladies, vaccinations, traitements
-- L'hygiène et la biosécurité
-- La gestion financière de l'élevage
-- Les meilleures pratiques adaptées au contexte africain
+- La sante : prevention des maladies, vaccinations, traitements
+- L'hygiene et la biosecurite
+- La gestion financiere de l'elevage
+- Les meilleures pratiques adaptees au contexte africain
 
 ${
-  livestockContext
-    ? `CONTEXTE DE L'ÉLEVAGE DE L'UTILISATEUR:
-${livestockContext}
+  hasImage
+    ? `ANALYSE D'IMAGE:
+L'utilisateur t'envoie une image. Tu dois analyser cette image et fournir:
+1. Une identification de ce que tu vois (medicament, aliment, porc, symptome, etc.)
+2. Des informations pertinentes sur ce que tu identifies
+3. Des conseils pratiques lies a l'image
 
-Utilise ces informations pour personnaliser tes conseils. Par exemple, si l'utilisateur a beaucoup de truies, donne des conseils adaptés à la gestion des reproductions. Si le cheptel est petit, adapte les recommandations en conséquence.`
+Types d'images que tu peux analyser:
+- Photos de porcs (race, etat de sante, estimation d'age/poids)
+- Photos de medicaments veterinaires (utilisation, dosage, precautions)
+- Photos d'aliments pour porcs (composition, qualite, stockage)
+- Photos de symptomes ou lesions (diagnostic possible, traitement suggere)
+- Photos d'equipements ou installations d'elevage
+
+Si tu ne peux pas identifier clairement quelque chose, dis-le honnetement et demande plus de details.
+`
     : ""
 }
 
-RÈGLES DE RÉPONSE:
-- Réponds toujours en français, de manière claire et pratique
-- Utilise des listes à puces et des sections pour organiser tes réponses
-- Sois empathique et encourage les bonnes pratiques d'élevage
-- Donne des conseils concrets et applicables en Côte d'Ivoire
-- Si on te pose une question hors sujet, ramène poliment la conversation vers l'élevage porcin`
+${
+  livestockContext
+    ? `CONTEXTE DE L'ELEVAGE DE L'UTILISATEUR:
+${livestockContext}
 
-    const { text } = await generateText({
-      model: "openai/gpt-4o-mini",
-      system: systemPrompt,
-      messages: messages.map((m: { role: string; content: string }) => ({
+Utilise ces informations pour personnaliser tes conseils. Par exemple, si l'utilisateur a beaucoup de truies, donne des conseils adaptes a la gestion des reproductions. Si le cheptel est petit, adapte les recommandations en consequence.`
+    : ""
+}
+
+REGLES DE REPONSE:
+- Reponds toujours en francais, de maniere claire et pratique
+- Utilise des listes a puces et des sections pour organiser tes reponses
+- Sois empathique et encourage les bonnes pratiques d'elevage
+- Donne des conseils concrets et applicables en Cote d'Ivoire
+- Si on te pose une question hors sujet, ramene poliment la conversation vers l'elevage porcin
+- Pour les medicaments, rappelle toujours de consulter un veterinaire pour le dosage exact`
+
+    const formattedMessages = messages.map((m: { role: string; content: string; image?: string }) => {
+      if (m.image) {
+        return {
+          role: m.role as "user" | "assistant",
+          content: [
+            { type: "text", text: m.content || "Que voyez-vous sur cette image ? Identifiez et donnez des conseils." },
+            { type: "image", image: m.image },
+          ],
+        }
+      }
+      return {
         role: m.role as "user" | "assistant",
         content: m.content,
-      })),
+      }
+    })
+
+    const { text } = await generateText({
+      model: hasImage ? "openai/gpt-4o" : "openai/gpt-4o-mini",
+      system: systemPrompt,
+      messages: formattedMessages,
     })
 
     return Response.json({ content: text })
@@ -55,7 +89,7 @@ RÈGLES DE RÉPONSE:
     console.error("Chat API error:", error)
     return Response.json(
       {
-        content: "Désolé, je rencontre des difficultés techniques. Veuillez réessayer dans quelques instants.",
+        content: "Desole, je rencontre des difficultes techniques. Veuillez reessayer dans quelques instants.",
       },
       { status: 200 },
     )

@@ -54,12 +54,12 @@ export interface Gestation {
 
 export interface Vaccination {
   id: string
-  animalId: string
-  animalName: string
-  vaccineName: string
-  date: string
-  nextDueDate?: string
-  veterinarian?: string
+  name: string
+  targetAnimals: string
+  scheduledDate: string
+  completedDate?: string
+  status: "pending" | "completed" | "overdue"
+  completedCount?: number
   notes?: string
   createdAt: string
 }
@@ -86,6 +86,39 @@ export interface FeedingRecord {
   createdAt: string
 }
 
+export interface FeedStock {
+  id: string
+  name: string
+  currentQty: number
+  maxQty: number
+  unit: string
+  costPerUnit: number
+  lastRestocked?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FeedProduction {
+  id: string
+  date: string
+  ingredients: { name: string; qty: number }[]
+  totalProduced: number
+  costTotal: number
+  notes?: string
+  createdAt: string
+}
+
+export interface DailyConsumption {
+  id: string
+  date: string
+  stockId: string
+  stockName: string
+  quantity: number
+  animalCategory: string
+  animalCount: number
+  createdAt: string
+}
+
 interface Database {
   animals: Animal[]
   healthCases: HealthCase[]
@@ -93,6 +126,9 @@ interface Database {
   vaccinations: Vaccination[]
   activities: Activity[]
   feedingRecords: FeedingRecord[]
+  feedStock: FeedStock[]
+  feedProductions: FeedProduction[]
+  dailyConsumptions: DailyConsumption[]
 }
 
 const DB_KEY = "porkyfarm_db"
@@ -275,21 +311,23 @@ const defaultData: Database = {
   vaccinations: [
     {
       id: "1",
-      animalId: "1",
-      animalName: "Bella",
-      vaccineName: "Parvovirose",
-      date: "2024-06-15",
-      nextDueDate: "2025-06-15",
+      name: "Parvovirose",
+      targetAnimals: "1",
+      scheduledDate: "2024-06-15",
+      completedDate: "2024-06-15",
+      status: "completed",
+      completedCount: 1,
       veterinarian: "Dr. Kouassi",
       createdAt: "2024-06-15T00:00:00Z",
     },
     {
       id: "2",
-      animalId: "4",
-      animalName: "Thor",
-      vaccineName: "Rouget",
-      date: "2024-08-01",
-      nextDueDate: "2025-02-01",
+      name: "Rouget",
+      targetAnimals: "4",
+      scheduledDate: "2024-08-01",
+      completedDate: "2024-08-01",
+      status: "completed",
+      completedCount: 1,
       veterinarian: "Dr. Kouassi",
       createdAt: "2024-08-01T00:00:00Z",
     },
@@ -343,6 +381,55 @@ const defaultData: Database = {
       costPerKg: 350,
       totalCost: 2450,
       createdAt: "2024-12-06T07:00:00Z",
+    },
+  ],
+  feedStock: [
+    {
+      id: "1",
+      name: "Maïs",
+      currentQty: 500,
+      maxQty: 1000,
+      unit: "kg",
+      costPerUnit: 150,
+      lastRestocked: "2024-01-01",
+      createdAt: "2024-01-01T00:00:00Z",
+      updatedAt: "2024-01-01T00:00:00Z",
+    },
+    {
+      id: "2",
+      name: "Soja",
+      currentQty: 300,
+      maxQty: 600,
+      unit: "kg",
+      costPerUnit: 200,
+      lastRestocked: "2024-02-01",
+      createdAt: "2024-02-01T00:00:00Z",
+      updatedAt: "2024-02-01T00:00:00Z",
+    },
+  ],
+  feedProductions: [
+    {
+      id: "1",
+      date: "2024-03-01",
+      ingredients: [
+        { name: "Maïs", qty: 400 },
+        { name: "Soja", qty: 200 },
+      ],
+      totalProduced: 600,
+      costTotal: 80000,
+      createdAt: "2024-03-01T00:00:00Z",
+    },
+  ],
+  dailyConsumptions: [
+    {
+      id: "1",
+      date: "2024-03-02",
+      stockId: "1",
+      stockName: "Maïs",
+      quantity: 100,
+      animalCategory: "truie",
+      animalCount: 3,
+      createdAt: "2024-03-02T00:00:00Z",
     },
   ],
 }
@@ -628,7 +715,9 @@ class LocalDatabase {
   // ============ VACCINATIONS ============
 
   getVaccinations(): Vaccination[] {
-    return [...this.data.vaccinations].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return [...this.data.vaccinations].sort(
+      (a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime(),
+    )
   }
 
   getUpcomingVaccinations(): Vaccination[] {
@@ -637,9 +726,8 @@ class LocalDatabase {
     in30Days.setDate(in30Days.getDate() + 30)
 
     return this.data.vaccinations.filter((v) => {
-      if (!v.nextDueDate) return false
-      const nextDue = new Date(v.nextDueDate)
-      return nextDue >= today && nextDue <= in30Days
+      const scheduled = new Date(v.scheduledDate)
+      return scheduled >= today && scheduled <= in30Days
     })
   }
 
@@ -655,12 +743,38 @@ class LocalDatabase {
     this.addActivity({
       type: "vaccination",
       title: "Vaccination effectuée",
-      description: `${vaccination.animalName}: ${vaccination.vaccineName}`,
+      description: `${vaccination.targetAnimals}: ${vaccination.name}`,
       entityId: newVaccination.id,
       entityType: "vaccination",
     })
 
     return newVaccination
+  }
+
+  updateVaccination(id: string, updates: Partial<Vaccination>): Vaccination | null {
+    const index = this.data.vaccinations.findIndex((v) => v.id === id)
+    if (index === -1) return null
+
+    this.data.vaccinations[index] = {
+      ...this.data.vaccinations[index],
+      ...updates,
+    }
+    this.save(this.data)
+    return this.data.vaccinations[index]
+  }
+
+  completeVaccination(id: string, completedCount: number): Vaccination | null {
+    return this.updateVaccination(id, {
+      status: "completed",
+      completedDate: new Date().toISOString().split("T")[0],
+      completedCount,
+    })
+  }
+
+  deleteVaccination(id: string): boolean {
+    this.data.vaccinations = this.data.vaccinations.filter((v) => v.id !== id)
+    this.save(this.data)
+    return true
   }
 
   // ============ ACTIVITIES ============
@@ -693,6 +807,104 @@ class LocalDatabase {
     })
 
     return newRecord
+  }
+
+  // ============ FEED MANAGEMENT ============
+
+  getFeedStock(): FeedStock[] {
+    return [...this.data.feedStock].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  }
+
+  getFeedStockByName(name: string): FeedStock | undefined {
+    return this.data.feedStock.find((fs) => fs.name === name)
+  }
+
+  addFeedStock(stock: Omit<FeedStock, "id" | "createdAt" | "updatedAt">): FeedStock {
+    const newStock: FeedStock = {
+      ...stock,
+      id: this.generateId(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    this.data.feedStock.push(newStock)
+    this.save(this.data)
+
+    this.addActivity({
+      type: "feeding",
+      title: "Nouveau stock d'aliment ajouté",
+      description: `${newStock.name} (${newStock.currentQty} ${newStock.unit})`,
+      entityId: newStock.id,
+      entityType: "feed_stock",
+    })
+
+    return newStock
+  }
+
+  updateFeedStock(id: string, updates: Partial<FeedStock>): FeedStock | null {
+    const index = this.data.feedStock.findIndex((fs) => fs.id === id)
+    if (index === -1) return null
+
+    this.data.feedStock[index] = {
+      ...this.data.feedStock[index],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    }
+    this.save(this.data)
+    return this.data.feedStock[index]
+  }
+
+  deleteFeedStock(id: string): boolean {
+    this.data.feedStock = this.data.feedStock.filter((fs) => fs.id !== id)
+    this.save(this.data)
+    return true
+  }
+
+  getFeedProductions(): FeedProduction[] {
+    return [...this.data.feedProductions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }
+
+  addFeedProduction(production: Omit<FeedProduction, "id" | "createdAt">): FeedProduction {
+    const newProduction: FeedProduction = {
+      ...production,
+      id: this.generateId(),
+      createdAt: new Date().toISOString(),
+    }
+    this.data.feedProductions.push(newProduction)
+    this.save(this.data)
+
+    this.addActivity({
+      type: "feeding",
+      title: "Nouvelle production d'aliment",
+      description: `${newProduction.totalProduced}kg produit`,
+      entityId: newProduction.id,
+      entityType: "feed_production",
+    })
+
+    return newProduction
+  }
+
+  getDailyConsumptions(): DailyConsumption[] {
+    return [...this.data.dailyConsumptions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }
+
+  addDailyConsumption(consumption: Omit<DailyConsumption, "id" | "createdAt">): DailyConsumption {
+    const newConsumption: DailyConsumption = {
+      ...consumption,
+      id: this.generateId(),
+      createdAt: new Date().toISOString(),
+    }
+    this.data.dailyConsumptions.push(newConsumption)
+    this.save(this.data)
+
+    this.addActivity({
+      type: "feeding",
+      title: "Nouvelle consommation quotidienne",
+      description: `${consumption.quantity} ${consumption.stockName} consommés par ${consumption.animalCategory}s`,
+      entityId: newConsumption.id,
+      entityType: "daily_consumption",
+    })
+
+    return newConsumption
   }
 
   // ============ ALERTS ============
@@ -736,15 +948,27 @@ class LocalDatabase {
     // Alertes vaccination
     const upcomingVaccinations = this.getUpcomingVaccinations()
     upcomingVaccinations.forEach((v) => {
-      const nextDue = new Date(v.nextDueDate!)
-      const daysUntil = Math.ceil((nextDue.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      const scheduled = new Date(v.scheduledDate)
+      const daysUntil = Math.ceil((scheduled.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
       alerts.push({
         type: "vaccination",
-        title: `Rappel vaccin: ${v.animalName}`,
-        description: `${v.vaccineName} dans ${daysUntil} jour(s)`,
+        title: `Rappel vaccin: ${v.targetAnimals}`,
+        description: `${v.name} dans ${daysUntil} jour(s)`,
         priority: daysUntil <= 7 ? "medium" : "low",
         link: "/dashboard/health",
+      })
+    })
+
+    // Alertes stock alimentaire faibles
+    const lowStocks = this.data.feedStock.filter((fs) => fs.currentQty <= fs.maxQty * 0.2)
+    lowStocks.forEach((ls) => {
+      alerts.push({
+        type: "feed_stock",
+        title: `Stock d'aliment faible: ${ls.name}`,
+        description: `Seulement ${ls.currentQty} ${ls.unit} restants`,
+        priority: "medium",
+        link: "/dashboard/feeding",
       })
     })
 
@@ -770,6 +994,9 @@ class LocalDatabase {
       .filter((r) => r.date.startsWith(thisMonth))
       .reduce((sum, r) => sum + r.totalCost, 0)
 
+    // Calculer le nombre d'alertes
+    const alertCount = this.getAlerts().length
+
     return {
       totalAnimals: animals.length,
       truies: animals.filter((a) => a.category === "truie").length,
@@ -779,7 +1006,7 @@ class LocalDatabase {
       gestationsActives: activeGestations.length,
       cassSanteActifs: activeHealthCases.length,
       coutAlimentationMois: monthlyFeedingCost,
-      alertesCount: this.getAlerts().length,
+      alertesCount: alertCount,
     }
   }
 

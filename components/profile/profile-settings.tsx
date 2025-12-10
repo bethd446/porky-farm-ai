@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Bell, Mail, Smartphone, Shield, CheckCircle, Send, Loader2 } from "lucide-react"
+import { Bell, Mail, Smartphone, Shield, CheckCircle, Send, Loader2, AlertCircle, RefreshCw } from "lucide-react"
 
 interface ProfileSettingsState {
   pushNotifications: boolean
@@ -31,6 +31,7 @@ export function ProfileSettings() {
   const [showSaved, setShowSaved] = useState(false)
   const [testingEmail, setTestingEmail] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [emailServiceStatus, setEmailServiceStatus] = useState<"checking" | "ok" | "error" | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem("porkyfarm-profile-settings")
@@ -38,15 +39,28 @@ export function ProfileSettings() {
       setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(saved) })
     }
 
-    // Get email from profile if not set
     const profile = localStorage.getItem("porkyfarm-user-profile")
     if (profile) {
       const parsed = JSON.parse(profile)
-      if (parsed.email && !settings.emailAddress) {
-        setSettings((prev) => ({ ...prev, emailAddress: parsed.email }))
+      if (parsed.email) {
+        setSettings((prev) => ({ ...prev, emailAddress: prev.emailAddress || parsed.email }))
       }
     }
+
+    // Check email service status on mount
+    checkEmailService()
   }, [])
+
+  const checkEmailService = async () => {
+    setEmailServiceStatus("checking")
+    try {
+      const response = await fetch("/api/email/test")
+      const result = await response.json()
+      setEmailServiceStatus(result.success ? "ok" : "error")
+    } catch {
+      setEmailServiceStatus("error")
+    }
+  }
 
   const handleToggle = (key: keyof ProfileSettingsState) => {
     if (key === "emailAddress") return
@@ -63,11 +77,19 @@ export function ProfileSettings() {
     const newSettings = { ...settings, emailAddress: email }
     setSettings(newSettings)
     localStorage.setItem("porkyfarm-profile-settings", JSON.stringify(newSettings))
+    setTestResult(null)
   }
 
   const handleTestEmail = async () => {
     if (!settings.emailAddress) {
       setTestResult({ success: false, message: "Veuillez entrer une adresse email" })
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(settings.emailAddress)) {
+      setTestResult({ success: false, message: "Format d'adresse email invalide" })
       return
     }
 
@@ -84,12 +106,15 @@ export function ProfileSettings() {
       const result = await response.json()
 
       if (result.success) {
-        setTestResult({ success: true, message: "Email de test envoye avec succes !" })
+        setTestResult({ success: true, message: "Email de test envoye ! Verifiez votre boite de reception." })
       } else {
-        setTestResult({ success: false, message: result.error || "Erreur lors de l'envoi" })
+        setTestResult({
+          success: false,
+          message: result.error || "Erreur lors de l'envoi. Verifiez votre adresse email.",
+        })
       }
     } catch {
-      setTestResult({ success: false, message: "Erreur de connexion au serveur" })
+      setTestResult({ success: false, message: "Erreur de connexion. Verifiez votre connexion internet." })
     } finally {
       setTestingEmail(false)
     }
@@ -145,6 +170,19 @@ export function ProfileSettings() {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {emailServiceStatus === "error" && (
+          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+            <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-amber-800 font-medium">Service email en configuration</p>
+              <p className="text-amber-600 text-xs">Les notifications par email seront disponibles prochainement.</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={checkEmailService}>
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+
         {/* Email configuration */}
         <div className="space-y-3 pb-4 border-b">
           <Label className="text-sm font-medium">Adresse email pour les notifications</Label>
@@ -160,7 +198,7 @@ export function ProfileSettings() {
               variant="outline"
               size="sm"
               onClick={handleTestEmail}
-              disabled={testingEmail || !settings.emailAddress}
+              disabled={testingEmail || !settings.emailAddress || emailServiceStatus === "error"}
             >
               {testingEmail ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -173,7 +211,12 @@ export function ProfileSettings() {
             </Button>
           </div>
           {testResult && (
-            <p className={`text-xs ${testResult.success ? "text-green-600" : "text-red-600"}`}>{testResult.message}</p>
+            <div
+              className={`flex items-center gap-2 text-xs ${testResult.success ? "text-green-600" : "text-red-600"}`}
+            >
+              {testResult.success ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+              {testResult.message}
+            </div>
           )}
         </div>
 

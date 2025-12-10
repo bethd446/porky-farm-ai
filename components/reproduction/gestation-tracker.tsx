@@ -14,10 +14,11 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Baby, Calendar, Eye, Plus, Trash2, CheckCircle, Loader2, AlertCircle } from "lucide-react"
+import { Baby, Calendar, Eye, Plus, Trash2, CheckCircle, Loader2, AlertCircle, Info } from "lucide-react"
 import { useApp } from "@/contexts/app-context"
 import { FormSelect, FormInput, FormTextarea } from "@/components/common/form-field"
 import { gestationSchema } from "@/lib/validations/schemas"
+import Link from "next/link"
 
 export function GestationTracker() {
   const router = useRouter()
@@ -43,6 +44,8 @@ export function GestationTracker() {
 
   const sowOptions = sows.map((s) => ({ value: s.id, label: s.name }))
   const boarOptions = [{ value: "unknown", label: "Inconnu" }, ...boars.map((b) => ({ value: b.id, label: b.name }))]
+
+  const canAddGestation = sows.length > 0
 
   const updateField = (field: string, value: string) => {
     setNewGestation((prev) => ({ ...prev, [field]: value }))
@@ -90,7 +93,7 @@ export function GestationTracker() {
       const boar = animals.find((a) => a.id === newGestation.boar)
 
       if (!sow) {
-        setErrors({ sow: "Truie non trouvée" })
+        setErrors({ sow: "Truie non trouvee" })
         setStatus("error")
         return
       }
@@ -137,7 +140,7 @@ export function GestationTracker() {
     }
 
     if (pigletsSurvived > pigletCount) {
-      setCompleteErrors({ pigletsSurvived: "Ne peut pas dépasser le nombre total" })
+      setCompleteErrors({ pigletsSurvived: "Ne peut pas depasser le nombre total" })
       return
     }
 
@@ -162,9 +165,9 @@ export function GestationTracker() {
   const getStatusStyle = (gest: (typeof gestations)[0]) => {
     const { day } = getGestationProgress(gest)
     if (day >= 107) return { status: "Proche terme", color: "bg-red-500" }
-    if (day >= 84) return { status: "3ème tiers", color: "bg-amber-500" }
+    if (day >= 84) return { status: "3eme tiers", color: "bg-amber-500" }
     if (day >= 28) return { status: "En cours", color: "bg-green-500" }
-    return { status: "Début gestation", color: "bg-blue-500" }
+    return { status: "Debut gestation", color: "bg-blue-500" }
   }
 
   const activeGestations = gestations.filter((g) => g.status === "active")
@@ -182,10 +185,14 @@ export function GestationTracker() {
               variant="outline"
               size="sm"
               onClick={() => {
-                setIsAddOpen(true)
-                setErrors({})
-                setStatus("idle")
+                if (canAddGestation) {
+                  setIsAddOpen(true)
+                  setErrors({})
+                  setStatus("idle")
+                }
               }}
+              disabled={!canAddGestation}
+              title={!canAddGestation ? "Ajoutez d'abord une truie" : ""}
             >
               <Plus className="h-4 w-4 mr-1" />
               Enregistrer une saillie
@@ -196,14 +203,34 @@ export function GestationTracker() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!canAddGestation && (
+            <div className="flex items-start gap-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 p-4 mb-4">
+              <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Aucune truie disponible</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                  Pour enregistrer une saillie, vous devez d'abord ajouter au moins une truie a votre cheptel.
+                </p>
+                <Link href="/dashboard/livestock/add">
+                  <Button variant="outline" size="sm" className="mt-2 bg-transparent border-amber-300">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Ajouter une truie
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
           {activeGestations.length === 0 ? (
             <div className="text-center py-8">
               <Baby className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
               <p className="text-muted-foreground">Aucune gestation en cours.</p>
-              <Button variant="outline" className="mt-4 bg-transparent" onClick={() => setIsAddOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                Enregistrer une saillie
-              </Button>
+              {canAddGestation && (
+                <Button variant="outline" className="mt-4 bg-transparent" onClick={() => setIsAddOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Enregistrer une saillie
+                </Button>
+              )}
             </div>
           ) : (
             activeGestations.map((gest) => {
@@ -220,7 +247,7 @@ export function GestationTracker() {
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="font-semibold text-foreground">{gest.sowName}</h4>
-                          <p className="text-sm text-muted-foreground">Père: {gest.boarName || "Inconnu"}</p>
+                          <p className="text-sm text-muted-foreground">Pere: {gest.boarName || "Inconnu"}</p>
                         </div>
                         <Badge className={`${statusStyle.color} text-white`}>{statusStyle.status}</Badge>
                       </div>
@@ -265,7 +292,7 @@ export function GestationTracker() {
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Détails de la gestation</DialogTitle>
+            <DialogTitle>Details de la gestation</DialogTitle>
           </DialogHeader>
           {selectedGestation && (
             <div className="space-y-4 py-4">
@@ -275,7 +302,7 @@ export function GestationTracker() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">{selectedGestation.sowName}</h3>
-                  <p className="text-muted-foreground">Père: {selectedGestation.boarName || "Inconnu"}</p>
+                  <p className="text-muted-foreground">Pere: {selectedGestation.boarName || "Inconnu"}</p>
                 </div>
               </div>
 
@@ -300,7 +327,7 @@ export function GestationTracker() {
                   <p className="font-medium">{new Date(selectedGestation.breedingDate).toLocaleDateString("fr-FR")}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Terme prévu</span>
+                  <span className="text-muted-foreground">Terme prevu</span>
                   <p className="font-medium">
                     {new Date(selectedGestation.expectedDueDate).toLocaleDateString("fr-FR")}
                   </p>
@@ -325,7 +352,7 @@ export function GestationTracker() {
               }}
             >
               <CheckCircle className="h-4 w-4" />
-              Mise-bas effectuée
+              Mise-bas effectuee
             </Button>
             <Button
               variant="destructive"
@@ -344,11 +371,11 @@ export function GestationTracker() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Enregistrer la mise-bas</DialogTitle>
-            <DialogDescription>Félicitations ! Enregistrez les informations de la portée.</DialogDescription>
+            <DialogDescription>Felicitations ! Enregistrez les informations de la portee.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <FormInput
-              label="Nombre de porcelets nés"
+              label="Nombre de porcelets nes"
               name="pigletCount"
               type="number"
               value={completeData.pigletCount}
@@ -399,13 +426,13 @@ export function GestationTracker() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Enregistrer une saillie</DialogTitle>
-            <DialogDescription>Enregistrez une nouvelle gestation pour suivre le terme prévu.</DialogDescription>
+            <DialogDescription>Enregistrez une nouvelle gestation pour suivre le terme prevu.</DialogDescription>
           </DialogHeader>
 
           {status === "success" && (
             <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
               <CheckCircle className="h-4 w-4" />
-              Gestation enregistrée ! Terme prévu dans 114 jours.
+              Gestation enregistree ! Terme prevu dans 114 jours.
             </div>
           )}
 
@@ -424,7 +451,7 @@ export function GestationTracker() {
               value={newGestation.sow}
               onChange={(v) => updateField("sow", v)}
               required
-              placeholder="Sélectionner une truie"
+              placeholder="Selectionner une truie"
               error={errors.sow}
               disabled={status === "loading" || status === "success"}
             />
@@ -434,7 +461,7 @@ export function GestationTracker() {
               options={boarOptions}
               value={newGestation.boar}
               onChange={(v) => updateField("boar", v)}
-              placeholder="Sélectionner un verrat"
+              placeholder="Selectionner un verrat"
               error={errors.boar}
               disabled={status === "loading" || status === "success"}
             />
@@ -471,7 +498,7 @@ export function GestationTracker() {
               ) : status === "success" ? (
                 <>
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  Enregistré !
+                  Enregistre !
                 </>
               ) : (
                 "Enregistrer la saillie"

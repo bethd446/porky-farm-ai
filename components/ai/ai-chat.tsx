@@ -5,13 +5,28 @@ import { useState, useEffect, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Send, Bot, User, Sparkles, Loader2, RefreshCw, MessageCircle, Heart, Utensils, Baby } from "lucide-react"
+import {
+  Send,
+  Bot,
+  User,
+  Sparkles,
+  Loader2,
+  RefreshCw,
+  MessageCircle,
+  Heart,
+  Utensils,
+  Baby,
+  ImageIcon,
+  X,
+  Camera,
+} from "lucide-react"
 import { useApp } from "@/contexts/app-context"
 
 interface Message {
   id: string
   role: "user" | "assistant"
   content: string
+  image?: string
 }
 
 const questionCategories = [
@@ -59,6 +74,8 @@ ${stats.total > 0 ? `Je vois que vous avez **${stats.total} animaux** dans votre
 - La sante et les vaccinations
 - La reproduction et le sevrage
 
+**Nouveau !** Vous pouvez m'envoyer des photos de vos porcs, medicaments ou aliments pour que je vous aide a les identifier.
+
 Selectionnez une question ci-dessous ou posez la votre !`,
   })
 
@@ -67,7 +84,11 @@ Selectionnez une question ci-dessous ou posez la votre !`,
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setMessages([getWelcomeMessage()])
@@ -96,18 +117,46 @@ Selectionnez une question ci-dessous ou posez la votre !`,
     return context
   }
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("L'image ne doit pas depasser 5 Mo")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64 = reader.result as string
+      setSelectedImage(base64)
+      setImagePreview(base64)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removeImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+    if (cameraInputRef.current) cameraInputRef.current.value = ""
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || isLoading) return
+    if ((!input.trim() && !selectedImage) || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: input.trim() || (selectedImage ? "Que voyez-vous sur cette image ?" : ""),
+      image: selectedImage || undefined,
     }
 
     setMessages((prev) => [...prev, userMessage])
     setInput("")
+    setSelectedImage(null)
+    setImagePreview(null)
     setIsLoading(true)
     setError(null)
     setSelectedCategory(null)
@@ -122,8 +171,10 @@ Selectionnez une question ci-dessous ou posez la votre !`,
           messages: [...messages, userMessage].map((m) => ({
             role: m.role,
             content: m.content,
+            image: m.image,
           })),
           livestockContext,
+          hasImage: !!userMessage.image,
         }),
       })
 
@@ -156,10 +207,23 @@ Selectionnez une question ci-dessous ou posez la votre !`,
     setMessages([getWelcomeMessage()])
     setError(null)
     setSelectedCategory(null)
+    setSelectedImage(null)
+    setImagePreview(null)
   }
 
   return (
     <Card className="flex h-[calc(100vh-200px)] flex-col shadow-soft overflow-hidden">
+      {/* Hidden file inputs */}
+      <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
+      <input
+        type="file"
+        ref={cameraInputRef}
+        onChange={handleImageSelect}
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border bg-gradient-to-r from-primary/10 to-transparent px-4 py-3">
         <div className="flex items-center gap-3">
@@ -198,6 +262,16 @@ Selectionnez une question ci-dessous ou posez la votre !`,
                 message.role === "user" ? "bg-primary text-white" : "bg-muted text-foreground border border-border"
               }`}
             >
+              {/* Show image if present */}
+              {message.image && (
+                <div className="mb-2">
+                  <img
+                    src={message.image || "/placeholder.svg"}
+                    alt="Image envoyee"
+                    className="max-w-full rounded-lg max-h-48 object-cover"
+                  />
+                </div>
+              )}
               <div
                 className="whitespace-pre-wrap text-sm prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{
@@ -215,7 +289,9 @@ Selectionnez une question ci-dessous ou posez la votre !`,
             </div>
             <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-3 border border-border">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">Reflexion en cours...</span>
+              <span className="text-sm text-muted-foreground">
+                {selectedImage ? "Analyse de l'image..." : "Reflexion en cours..."}
+              </span>
             </div>
           </div>
         )}
@@ -277,24 +353,66 @@ Selectionnez une question ci-dessous ou posez la votre !`,
         </div>
       )}
 
+      {/* Image preview */}
+      {imagePreview && (
+        <div className="border-t border-border px-4 py-2 bg-muted/50">
+          <div className="relative inline-block">
+            <img src={imagePreview || "/placeholder.svg"} alt="Preview" className="h-20 rounded-lg object-cover" />
+            <button
+              onClick={removeImage}
+              className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-white shadow-md hover:bg-destructive/90"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input */}
       <div className="border-t border-border p-4 bg-background">
         <form onSubmit={handleSubmit} className="flex gap-2">
+          <div className="flex gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+              className="shrink-0"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={isLoading}
+              className="shrink-0 sm:hidden"
+            >
+              <Camera className="h-4 w-4" />
+            </Button>
+          </div>
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Posez votre question sur l'elevage porcin..."
+            placeholder={
+              selectedImage ? "Decrivez ce que vous voulez savoir..." : "Posez votre question sur l'elevage porcin..."
+            }
             className="flex-1"
             disabled={isLoading}
           />
           <Button
             type="submit"
             className="bg-primary text-white hover:bg-primary-dark"
-            disabled={!input.trim() || isLoading}
+            disabled={(!input.trim() && !selectedImage) || isLoading}
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          Envoyez une photo de medicament, d'aliment ou de porc pour une analyse
+        </p>
       </div>
     </Card>
   )

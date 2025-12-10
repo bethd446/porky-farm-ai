@@ -5,7 +5,7 @@ import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Camera, Clock, X, Plus, Loader2, CheckCircle, AlertCircle } from "lucide-react"
+import { Camera, Clock, X, Plus, Loader2, CheckCircle, AlertCircle, Stethoscope } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -19,14 +19,15 @@ import { FormInput, FormTextarea, FormSelect } from "@/components/common/form-fi
 import { healthCaseSchema } from "@/lib/validations/schemas"
 
 const priorityOptions = [
-  { value: "Basse", label: "Basse" },
-  { value: "Moyenne", label: "Moyenne" },
+  { value: "Basse", label: "Basse - Surveillance" },
+  { value: "Moyenne", label: "Moyenne - A traiter" },
   { value: "Haute", label: "Haute - Urgent" },
 ]
 
 export function HealthCases() {
   const { healthCases, addHealthCase, updateHealthCase, animals, isLoading } = useApp()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [symptomDialogOpen, setSymptomDialogOpen] = useState(false)
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [errorMessage, setErrorMessage] = useState("")
@@ -38,7 +39,17 @@ export function HealthCases() {
     treatment: "",
     photo: null as string | null,
   })
+
+  const [symptomData, setSymptomData] = useState({
+    animal: "",
+    symptom: "",
+    photo: null as string | null,
+  })
+  const [symptomStatus, setSymptomStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [symptomErrors, setSymptomErrors] = useState<Record<string, string>>({})
+
   const newCasePhotoRef = useRef<HTMLInputElement>(null)
+  const symptomPhotoRef = useRef<HTMLInputElement>(null)
 
   const updateField = (field: string, value: string) => {
     setNewCase((prev) => ({ ...prev, [field]: value }))
@@ -50,9 +61,28 @@ export function HealthCases() {
   const handleNewCasePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors((prev) => ({ ...prev, photo: "Image trop volumineuse (max 5Mo)" }))
+        return
+      }
       const reader = new FileReader()
       reader.onloadend = () => {
         setNewCase((prev) => ({ ...prev, photo: reader.result as string }))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleSymptomPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setSymptomErrors((prev) => ({ ...prev, photo: "Image trop volumineuse (max 5Mo)" }))
+        return
+      }
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setSymptomData((prev) => ({ ...prev, photo: reader.result as string }))
       }
       reader.readAsDataURL(file)
     }
@@ -79,7 +109,7 @@ export function HealthCases() {
       const selectedAnimal = animals.find((a) => a.id === newCase.animal)
 
       if (!selectedAnimal) {
-        setErrors({ animal: "Animal non trouvé" })
+        setErrors({ animal: "Animal non trouve" })
         setStatus("error")
         return
       }
@@ -106,6 +136,55 @@ export function HealthCases() {
     } catch (error) {
       setStatus("error")
       setErrorMessage(error instanceof Error ? error.message : "Une erreur est survenue")
+    }
+  }
+
+  const handleCaptureSymptom = () => {
+    setSymptomErrors({})
+
+    if (!symptomData.animal) {
+      setSymptomErrors({ animal: "Selectionnez un animal" })
+      return
+    }
+
+    if (!symptomData.symptom || symptomData.symptom.length < 5) {
+      setSymptomErrors({ symptom: "Decrivez le symptome (minimum 5 caracteres)" })
+      return
+    }
+
+    setSymptomStatus("loading")
+
+    try {
+      const selectedAnimal = animals.find((a) => a.id === symptomData.animal)
+
+      if (!selectedAnimal) {
+        setSymptomErrors({ animal: "Animal non trouve" })
+        setSymptomStatus("error")
+        return
+      }
+
+      // Create a health case from the symptom
+      addHealthCase({
+        animalId: symptomData.animal,
+        animalName: selectedAnimal.name || "Animal inconnu",
+        issue: symptomData.symptom,
+        description: `Symptome capture: ${symptomData.symptom}`,
+        priority: "medium",
+        status: "open",
+        photo: symptomData.photo || undefined,
+        startDate: new Date().toISOString().split("T")[0],
+      })
+
+      setSymptomStatus("success")
+
+      setTimeout(() => {
+        setSymptomData({ animal: "", symptom: "", photo: null })
+        setSymptomDialogOpen(false)
+        setSymptomStatus("idle")
+      }, 1500)
+    } catch (error) {
+      setSymptomStatus("error")
+      setSymptomErrors({ general: error instanceof Error ? error.message : "Une erreur est survenue" })
     }
   }
 
@@ -162,7 +241,7 @@ export function HealthCases() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "resolved":
-        return "Résolu"
+        return "Resolu"
       case "in_progress":
         return "En traitement"
       default:
@@ -187,163 +266,317 @@ export function HealthCases() {
     <Card className="shadow-soft">
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle className="text-base font-medium">Cas sanitaires actifs ({activeCases.length})</CardTitle>
-        <Dialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open)
-            if (!open) {
-              setErrors({})
-              setErrorMessage("")
-              setStatus("idle")
-            }
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button variant="default" size="sm" className="gap-1">
-              <Plus className="h-4 w-4" />
-              Signaler un problème
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Signaler un problème de santé</DialogTitle>
-              <DialogDescription>
-                Enregistrez un nouveau cas sanitaire pour un animal de votre cheptel.
-              </DialogDescription>
-            </DialogHeader>
+        <div className="flex gap-2">
+          <Dialog
+            open={symptomDialogOpen}
+            onOpenChange={(open) => {
+              setSymptomDialogOpen(open)
+              if (!open) {
+                setSymptomErrors({})
+                setSymptomStatus("idle")
+              }
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1 bg-transparent">
+                <Camera className="h-4 w-4" />
+                Capturer un symptome
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Capturer un symptome</DialogTitle>
+                <DialogDescription>Prenez une photo et decrivez rapidement le symptome observe.</DialogDescription>
+              </DialogHeader>
 
-            {status === "success" && (
-              <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
-                <CheckCircle className="h-4 w-4" />
-                Cas enregistré ! Pensez à suivre l'évolution.
-              </div>
-            )}
+              {symptomStatus === "success" && (
+                <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
+                  <CheckCircle className="h-4 w-4" />
+                  Symptome enregistre ! Un cas sanitaire a ete cree.
+                </div>
+              )}
 
-            {status === "error" && (
-              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4" />
-                {errorMessage || "Une erreur est survenue. Réessayez."}
-              </div>
-            )}
+              {symptomStatus === "error" && symptomErrors.general && (
+                <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  {symptomErrors.general}
+                </div>
+              )}
 
-            <div className="space-y-4 py-4">
-              <FormSelect
-                label="Animal concerné"
-                name="animal"
-                options={animalOptions}
-                value={newCase.animal}
-                onChange={(v) => updateField("animal", v)}
-                error={errors.animal}
-                required
-                placeholder="Sélectionner un animal"
-                disabled={status === "loading" || status === "success"}
-              />
+              <div className="space-y-4 py-4">
+                <FormSelect
+                  label="Animal concerne"
+                  name="animal"
+                  options={animalOptions}
+                  value={symptomData.animal}
+                  onChange={(v) => {
+                    setSymptomData((prev) => ({ ...prev, animal: v }))
+                    if (symptomErrors.animal) setSymptomErrors((prev) => ({ ...prev, animal: "" }))
+                  }}
+                  error={symptomErrors.animal}
+                  required
+                  placeholder="Selectionner un animal"
+                  disabled={symptomStatus === "loading" || symptomStatus === "success"}
+                />
 
-              <FormTextarea
-                label="Description du symptôme"
-                name="issue"
-                placeholder="Ex: Boiterie patte arrière droite, refus de s'alimenter depuis 2 jours..."
-                value={newCase.issue}
-                onChange={(e) => updateField("issue", e.target.value)}
-                error={errors.issue}
-                required
-                disabled={status === "loading" || status === "success"}
-              />
-              <p className="text-xs text-muted-foreground -mt-2">
-                Minimum 10 caractères. Soyez précis pour faciliter le suivi.
-              </p>
-
-              <FormSelect
-                label="Priorité"
-                name="priority"
-                options={priorityOptions}
-                value={newCase.priority}
-                onChange={(v) => updateField("priority", v)}
-                error={errors.priority}
-                required
-                disabled={status === "loading" || status === "success"}
-              />
-
-              <FormInput
-                label="Traitement initial (optionnel)"
-                name="treatment"
-                placeholder="Ex: Antibiotiques administrés"
-                value={newCase.treatment}
-                onChange={(e) => updateField("treatment", e.target.value)}
-                error={errors.treatment}
-                disabled={status === "loading" || status === "success"}
-              />
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Photo (optionnel)</label>
-                <div className="flex gap-2">
-                  <input
-                    ref={newCasePhotoRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handleNewCasePhoto}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="gap-2 bg-transparent"
-                    onClick={() => newCasePhotoRef.current?.click()}
-                    disabled={status === "loading" || status === "success"}
-                  >
-                    <Camera className="h-4 w-4" />
-                    {newCase.photo ? "Changer la photo" : "Prendre une photo"}
-                  </Button>
-                  {newCase.photo && (
-                    <div className="relative h-16 w-16">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Photo du symptome</label>
+                  <div className="flex gap-2">
+                    <input
+                      ref={symptomPhotoRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={handleSymptomPhoto}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="gap-2 bg-transparent flex-1"
+                      onClick={() => symptomPhotoRef.current?.click()}
+                      disabled={symptomStatus === "loading" || symptomStatus === "success"}
+                    >
+                      <Camera className="h-4 w-4" />
+                      {symptomData.photo ? "Changer la photo" : "Prendre une photo"}
+                    </Button>
+                  </div>
+                  {symptomData.photo && (
+                    <div className="relative mt-2">
                       <img
-                        src={newCase.photo || "/placeholder.svg"}
-                        alt="Aperçu"
-                        className="h-full w-full rounded-lg object-cover"
+                        src={symptomData.photo || "/placeholder.svg"}
+                        alt="Apercu du symptome"
+                        className="h-32 w-full rounded-lg object-cover"
                       />
                       <button
                         type="button"
-                        onClick={() => setNewCase({ ...newCase, photo: null })}
-                        className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white"
+                        onClick={() => setSymptomData({ ...symptomData, photo: null })}
+                        className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
                   )}
+                  {symptomErrors.photo && <p className="text-xs text-destructive">{symptomErrors.photo}</p>}
+                </div>
+
+                <FormTextarea
+                  label="Description du symptome"
+                  name="symptom"
+                  placeholder="Ex: Boiterie, refus de manger, toux..."
+                  value={symptomData.symptom}
+                  onChange={(e) => {
+                    setSymptomData((prev) => ({ ...prev, symptom: e.target.value }))
+                    if (symptomErrors.symptom) setSymptomErrors((prev) => ({ ...prev, symptom: "" }))
+                  }}
+                  error={symptomErrors.symptom}
+                  required
+                  disabled={symptomStatus === "loading" || symptomStatus === "success"}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setSymptomDialogOpen(false)}
+                  disabled={symptomStatus === "loading"}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={handleCaptureSymptom}
+                  disabled={symptomStatus === "loading" || symptomStatus === "success"}
+                >
+                  {symptomStatus === "loading" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : symptomStatus === "success" ? (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Enregistre !
+                    </>
+                  ) : (
+                    <>
+                      <Stethoscope className="mr-2 h-4 w-4" />
+                      Enregistrer le symptome
+                    </>
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              setDialogOpen(open)
+              if (!open) {
+                setErrors({})
+                setErrorMessage("")
+                setStatus("idle")
+              }
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button variant="default" size="sm" className="gap-1">
+                <Plus className="h-4 w-4" />
+                Signaler un cas
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Signaler un probleme de sante</DialogTitle>
+                <DialogDescription>
+                  Enregistrez un nouveau cas sanitaire pour un animal de votre cheptel.
+                </DialogDescription>
+              </DialogHeader>
+
+              {status === "success" && (
+                <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
+                  <CheckCircle className="h-4 w-4" />
+                  Cas enregistre ! Pensez a suivre l'evolution.
+                </div>
+              )}
+
+              {status === "error" && (
+                <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  {errorMessage || "Une erreur est survenue. Reessayez."}
+                </div>
+              )}
+
+              {animalOptions.length === 0 && (
+                <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                  <AlertCircle className="h-4 w-4" />
+                  Aucun animal dans votre cheptel. Ajoutez d'abord des animaux.
+                </div>
+              )}
+
+              <div className="space-y-4 py-4">
+                <FormSelect
+                  label="Animal concerne"
+                  name="animal"
+                  options={animalOptions}
+                  value={newCase.animal}
+                  onChange={(v) => updateField("animal", v)}
+                  error={errors.animal}
+                  required
+                  placeholder={animalOptions.length === 0 ? "Aucun animal disponible" : "Selectionner un animal"}
+                  disabled={status === "loading" || status === "success" || animalOptions.length === 0}
+                />
+
+                <FormTextarea
+                  label="Description du symptome"
+                  name="issue"
+                  placeholder="Ex: Boiterie patte arriere droite, refus de s'alimenter depuis 2 jours..."
+                  value={newCase.issue}
+                  onChange={(e) => updateField("issue", e.target.value)}
+                  error={errors.issue}
+                  required
+                  disabled={status === "loading" || status === "success"}
+                />
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Minimum 10 caracteres. Soyez precis pour faciliter le suivi.
+                </p>
+
+                <FormSelect
+                  label="Priorite"
+                  name="priority"
+                  options={priorityOptions}
+                  value={newCase.priority}
+                  onChange={(v) => updateField("priority", v)}
+                  error={errors.priority}
+                  required
+                  disabled={status === "loading" || status === "success"}
+                />
+
+                <FormInput
+                  label="Traitement initial (optionnel)"
+                  name="treatment"
+                  placeholder="Ex: Antibiotiques administres"
+                  value={newCase.treatment}
+                  onChange={(e) => updateField("treatment", e.target.value)}
+                  error={errors.treatment}
+                  disabled={status === "loading" || status === "success"}
+                />
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Photo (optionnel)</label>
+                  <div className="flex gap-2">
+                    <input
+                      ref={newCasePhotoRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={handleNewCasePhoto}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="gap-2 bg-transparent"
+                      onClick={() => newCasePhotoRef.current?.click()}
+                      disabled={status === "loading" || status === "success"}
+                    >
+                      <Camera className="h-4 w-4" />
+                      {newCase.photo ? "Changer la photo" : "Prendre une photo"}
+                    </Button>
+                    {newCase.photo && (
+                      <div className="relative h-16 w-16">
+                        <img
+                          src={newCase.photo || "/placeholder.svg"}
+                          alt="Apercu"
+                          className="h-full w-full rounded-lg object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setNewCase({ ...newCase, photo: null })}
+                          className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {errors.photo && <p className="text-xs text-destructive">{errors.photo}</p>}
                 </div>
               </div>
-            </div>
 
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={status === "loading"}>
-                Annuler
-              </Button>
-              <Button onClick={handleAddCase} disabled={status === "loading" || status === "success"}>
-                {status === "loading" ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : status === "success" ? (
-                  <>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Enregistré !
-                  </>
-                ) : (
-                  "Enregistrer le cas"
-                )}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={status === "loading"}>
+                  Annuler
+                </Button>
+                <Button
+                  onClick={handleAddCase}
+                  disabled={status === "loading" || status === "success" || animalOptions.length === 0}
+                >
+                  {status === "loading" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : status === "success" ? (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Enregistre !
+                    </>
+                  ) : (
+                    "Enregistrer le cas"
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {activeCases.length === 0 ? (
           <div className="text-center py-8">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
             <p className="text-muted-foreground">Aucun cas sanitaire actif.</p>
-            <p className="text-sm text-muted-foreground">Tous vos animaux sont en bonne santé !</p>
+            <p className="text-sm text-muted-foreground">Tous vos animaux sont en bonne sante !</p>
           </div>
         ) : (
           activeCases.map((caseItem) => (
@@ -383,7 +616,7 @@ export function HealthCases() {
                 <div className="mt-2 flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleResolveCase(caseItem.id)}>
                     <CheckCircle className="h-3 w-3 mr-1" />
-                    Marquer résolu
+                    Marquer resolu
                   </Button>
                 </div>
               </div>
