@@ -1,8 +1,14 @@
 import type React from "react"
 import { Resend } from "resend"
 
-// Initialize Resend client
-const resend = new Resend(process.env.resend_domainkey || process.env.RESEND_API_KEY)
+const apiKey = process.env.RESEND_API_KEY || process.env.resend_domainkey
+
+if (!apiKey) {
+  console.warn("[Resend] No API key found. Email functionality will be disabled.")
+}
+
+// Initialize Resend client (will be null if no API key)
+const resend = apiKey ? new Resend(apiKey) : null
 
 // Configuration email
 export const EMAIL_CONFIG = {
@@ -27,8 +33,20 @@ export interface EmailResult {
   error?: string
 }
 
+export function isResendConfigured(): boolean {
+  return resend !== null
+}
+
 // Send email function
 export async function sendEmail(options: SendEmailOptions): Promise<EmailResult> {
+  if (!resend) {
+    console.error("[Resend] API key not configured")
+    return {
+      success: false,
+      error: "Service email non configure. Veuillez ajouter RESEND_API_KEY.",
+    }
+  }
+
   try {
     const { data, error } = await resend.emails.send({
       from: EMAIL_CONFIG.from,
@@ -50,7 +68,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<EmailResult>
     console.error("[Resend] Exception:", err)
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Unknown error",
+      error: err instanceof Error ? err.message : "Erreur inconnue",
     }
   }
 }

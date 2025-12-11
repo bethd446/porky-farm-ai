@@ -1,32 +1,16 @@
 import { NextResponse } from "next/server"
-import { sendEmail, EMAIL_CONFIG } from "@/lib/email/resend"
+import { sendEmail, EMAIL_CONFIG, isResendConfigured } from "@/lib/email/resend"
 
 export async function GET() {
-  const apiKey = process.env.resend_domainkey || process.env.RESEND_API_KEY
-
-  if (!apiKey) {
+  if (!isResendConfigured()) {
     return NextResponse.json(
       {
         success: false,
-        error:
-          "Cle API Resend non configuree. Ajoutez RESEND_API_KEY ou resend_domainkey dans les variables d'environnement.",
+        error: "Cle API Resend non configuree. Ajoutez RESEND_API_KEY dans les variables d'environnement.",
         configured: false,
         help: "Obtenez votre cle sur https://resend.com/api-keys",
       },
-      { status: 500 },
-    )
-  }
-
-  // Check if API key format is valid (starts with re_)
-  if (!apiKey.startsWith("re_")) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Format de cle API invalide. La cle doit commencer par 're_'.",
-        configured: false,
-        help: "Verifiez votre cle API sur https://resend.com/api-keys",
-      },
-      { status: 500 },
+      { status: 503 },
     )
   }
 
@@ -41,25 +25,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.resend_domainkey || process.env.RESEND_API_KEY
-
-    if (!apiKey) {
+    if (!isResendConfigured()) {
       return NextResponse.json(
         {
           success: false,
-          error: "Service de notification indisponible. Contactez le support.",
-          details: "API key not configured",
-        },
-        { status: 503 },
-      )
-    }
-
-    if (!apiKey.startsWith("re_")) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Configuration email invalide. Contactez le support.",
-          details: "Invalid API key format",
+          error: "Service email non configure. Ajoutez RESEND_API_KEY.",
         },
         { status: 503 },
       )
@@ -112,7 +82,7 @@ export async function POST(request: Request) {
       let userMessage = "Erreur lors de l'envoi de l'email"
 
       if (result.error?.includes("API key")) {
-        userMessage = "Cle API invalide. Verifiez votre configuration Resend."
+        userMessage = "Cle API invalide. Verifiez votre RESEND_API_KEY."
       } else if (result.error?.includes("domain")) {
         userMessage = "Domaine non verifie. Configurez vos enregistrements DNS."
       } else if (result.error?.includes("rate")) {
@@ -123,7 +93,6 @@ export async function POST(request: Request) {
         {
           success: false,
           error: userMessage,
-          details: process.env.NODE_ENV === "development" ? result.error : undefined,
         },
         { status: 500 },
       )
@@ -139,13 +108,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: "Service de notification momentanement indisponible",
-        details:
-          process.env.NODE_ENV === "development"
-            ? error instanceof Error
-              ? error.message
-              : "Unknown error"
-            : undefined,
+        error: "Service email momentanement indisponible",
       },
       { status: 500 },
     )

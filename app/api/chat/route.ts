@@ -1,4 +1,10 @@
 import { generateText } from "ai"
+import { createOpenAI } from "@ai-sdk/openai"
+
+// Create OpenAI provider with API key
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
 
 export async function POST(req: Request) {
   try {
@@ -6,7 +12,7 @@ export async function POST(req: Request) {
       return Response.json(
         {
           content:
-            "L'assistant IA n'est pas configure. Veuillez ajouter la cle OPENAI_API_KEY dans les variables d'environnement.",
+            "L'assistant IA n'est pas configure. Veuillez ajouter votre cle OPENAI_API_KEY dans les variables d'environnement.",
         },
         { status: 200 },
       )
@@ -79,19 +85,29 @@ REGLES DE REPONSE:
     })
 
     const { text } = await generateText({
-      model: hasImage ? "openai/gpt-4o" : "openai/gpt-4o-mini",
+      model: hasImage ? openai("gpt-4o") : openai("gpt-4o-mini"),
       system: systemPrompt,
       messages: formattedMessages,
     })
 
     return Response.json({ content: text })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Chat API error:", error)
-    return Response.json(
-      {
-        content: "Desole, je rencontre des difficultes techniques. Veuillez reessayer dans quelques instants.",
-      },
-      { status: 200 },
-    )
+
+    let errorMessage = "Desole, je rencontre des difficultes techniques. Veuillez reessayer dans quelques instants."
+
+    if (
+      error?.message?.includes("API key") ||
+      error?.message?.includes("401") ||
+      error?.message?.includes("Incorrect API key")
+    ) {
+      errorMessage = "Cle API OpenAI invalide. Verifiez votre OPENAI_API_KEY dans les variables d'environnement."
+    } else if (error?.message?.includes("quota") || error?.message?.includes("429")) {
+      errorMessage = "Quota OpenAI depasse. Verifiez votre compte OpenAI ou attendez quelques minutes."
+    } else if (error?.message?.includes("model")) {
+      errorMessage = "Modele OpenAI non disponible. Verifiez que votre compte a acces a GPT-4."
+    }
+
+    return Response.json({ content: errorMessage }, { status: 200 })
   }
 }

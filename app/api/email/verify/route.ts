@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server"
-import { resend, EMAIL_CONFIG } from "@/lib/email/resend"
+import { resend, EMAIL_CONFIG, isResendConfigured } from "@/lib/email/resend"
 
 // Verify domain configuration with Resend
 export async function GET() {
   try {
-    const apiKey = process.env.resend_domainkey || process.env.RESEND_API_KEY
-
-    if (!apiKey) {
+    if (!isResendConfigured() || !resend) {
       return NextResponse.json({
         success: false,
         error: "API key not configured",
         status: "not_configured",
+        help: "Ajoutez RESEND_API_KEY dans les variables d'environnement",
       })
     }
 
