@@ -235,7 +235,12 @@ export const db = {
 
   async updatePig(pigId: string, updates: Record<string, unknown>) {
     try {
-      return await supabase.from("pigs").update(updates).eq("id", pigId).select().single()
+      return await supabase
+        .from("pigs")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", pigId)
+        .select()
+        .single()
     } catch (err) {
       console.error("[DB] updatePig exception:", err)
       return { data: null, error: { message: "Erreur mise a jour animal" } as any }
@@ -273,6 +278,29 @@ export const db = {
     }
   },
 
+  async updateGestation(gestationId: string, updates: Record<string, unknown>) {
+    try {
+      return await supabase
+        .from("gestations")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", gestationId)
+        .select()
+        .single()
+    } catch (err) {
+      console.error("[DB] updateGestation exception:", err)
+      return { data: null, error: { message: "Erreur mise a jour gestation" } as any }
+    }
+  },
+
+  async deleteGestation(gestationId: string) {
+    try {
+      return await supabase.from("gestations").delete().eq("id", gestationId)
+    } catch (err) {
+      console.error("[DB] deleteGestation exception:", err)
+      return { error: { message: "Erreur suppression gestation" } as any }
+    }
+  },
+
   async getVeterinaryCases(userId: string) {
     try {
       return await supabase
@@ -292,6 +320,29 @@ export const db = {
     } catch (err) {
       console.error("[DB] addVeterinaryCase exception:", err)
       return { data: null, error: { message: "Erreur ajout cas veterinaire" } as any }
+    }
+  },
+
+  async updateVeterinaryCase(caseId: string, updates: Record<string, unknown>) {
+    try {
+      return await supabase
+        .from("veterinary_cases")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", caseId)
+        .select()
+        .single()
+    } catch (err) {
+      console.error("[DB] updateVeterinaryCase exception:", err)
+      return { data: null, error: { message: "Erreur mise a jour cas veterinaire" } as any }
+    }
+  },
+
+  async deleteVeterinaryCase(caseId: string) {
+    try {
+      return await supabase.from("veterinary_cases").delete().eq("id", caseId)
+    } catch (err) {
+      console.error("[DB] deleteVeterinaryCase exception:", err)
+      return { error: { message: "Erreur suppression cas veterinaire" } as any }
     }
   },
 }

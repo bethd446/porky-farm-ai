@@ -95,7 +95,7 @@ export function AddAnimalForm() {
     setStatus("loading")
 
     try {
-      const newAnimal = addAnimal({
+      const newAnimal = await addAnimal({
         name: formData.name,
         identifier: formData.tagNumber || formData.name,
         category: formData.category as "truie" | "verrat" | "porcelet" | "porc",
