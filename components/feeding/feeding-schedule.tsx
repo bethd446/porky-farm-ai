@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Clock, CheckCircle2, AlertCircle, Plus } from "lucide-react"
+import { Clock, CheckCircle2, AlertCircle, Plus, PiggyBank } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useApp } from "@/contexts/app-context"
+import Link from "next/link"
 
 interface ScheduleItem {
   id: string
@@ -28,44 +29,8 @@ interface ScheduleItem {
   status: "done" | "pending"
 }
 
-const defaultSchedule: ScheduleItem[] = [
-  {
-    id: "1",
-    time: "06:00",
-    task: "Distribution truies gestantes",
-    location: "Batiment A",
-    quantity: "45 kg",
-    status: "pending",
-  },
-  {
-    id: "2",
-    time: "07:00",
-    task: "Alimentation porcelets",
-    location: "Maternite",
-    quantity: "8 kg",
-    status: "pending",
-  },
-  { id: "3", time: "12:00", task: "Ration verrats", location: "Batiment B", quantity: "16 kg", status: "pending" },
-  {
-    id: "4",
-    time: "17:00",
-    task: "Distribution truies allaitantes",
-    location: "Maternite",
-    quantity: "60 kg",
-    status: "pending",
-  },
-  {
-    id: "5",
-    time: "18:00",
-    task: "Ration engraissement",
-    location: "Batiment C",
-    quantity: "175 kg",
-    status: "pending",
-  },
-]
-
 export function FeedingSchedule() {
-  const { stats } = useApp()
+  const { animals, stats } = useApp()
   const [schedule, setSchedule] = useState<ScheduleItem[]>([])
   const [showAdd, setShowAdd] = useState(false)
   const [newTask, setNewTask] = useState({
@@ -76,20 +41,30 @@ export function FeedingSchedule() {
   })
 
   useEffect(() => {
+    if (animals.length === 0) {
+      // Si pas d'animaux, pas de planning
+      setSchedule([])
+      return
+    }
+
     const saved = localStorage.getItem("porkyfarm_feedschedule")
     const savedDate = localStorage.getItem("porkyfarm_feedschedule_date")
     const today = new Date().toDateString()
 
     if (saved && savedDate === today) {
       setSchedule(JSON.parse(saved))
-    } else {
-      // Reset schedule for new day
-      const resetSchedule = defaultSchedule.map((s) => ({ ...s, status: "pending" as const }))
+    } else if (saved) {
+      // Reset status pour nouveau jour mais garde les taches de l'utilisateur
+      const parsed = JSON.parse(saved) as ScheduleItem[]
+      const resetSchedule = parsed.map((s) => ({ ...s, status: "pending" as const }))
       setSchedule(resetSchedule)
       localStorage.setItem("porkyfarm_feedschedule", JSON.stringify(resetSchedule))
       localStorage.setItem("porkyfarm_feedschedule_date", today)
+    } else {
+      // Premiere utilisation: vide
+      setSchedule([])
     }
-  }, [])
+  }, [animals.length])
 
   const saveSchedule = (newSchedule: ScheduleItem[]) => {
     setSchedule(newSchedule)
@@ -122,8 +97,41 @@ export function FeedingSchedule() {
     setShowAdd(false)
   }
 
+  const deleteTask = (id: string) => {
+    const updated = schedule.filter((s) => s.id !== id)
+    saveSchedule(updated)
+  }
+
   const completedCount = schedule.filter((s) => s.status === "done").length
   const progress = schedule.length > 0 ? Math.round((completedCount / schedule.length) * 100) : 0
+
+  if (animals.length === 0) {
+    return (
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base font-medium">
+            <Clock className="h-5 w-5 text-primary" />
+            Planning du jour
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <PiggyBank className="h-12 w-12 text-muted-foreground/50 mb-3" />
+            <p className="text-sm font-medium text-foreground">Aucun animal enregistre</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+              Ajoutez des animaux pour creer un planning d'alimentation
+            </p>
+            <Link href="/dashboard/livestock/add">
+              <Button size="sm" className="mt-4">
+                <Plus className="h-4 w-4 mr-1" />
+                Ajouter un animal
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className="shadow-soft">
@@ -134,9 +142,11 @@ export function FeedingSchedule() {
               <Clock className="h-5 w-5 text-primary" />
               Planning du jour
             </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              {completedCount}/{schedule.length} taches completees ({progress}%)
-            </p>
+            {schedule.length > 0 && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {completedCount}/{schedule.length} taches completees ({progress}%)
+              </p>
+            )}
           </div>
           <Dialog open={showAdd} onOpenChange={setShowAdd}>
             <DialogTrigger asChild>
@@ -203,10 +213,11 @@ export function FeedingSchedule() {
         </div>
       </CardHeader>
       <CardContent>
-        {/* Progress bar */}
-        <div className="mb-4 h-2 rounded-full bg-muted overflow-hidden">
-          <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
-        </div>
+        {schedule.length > 0 && (
+          <div className="mb-4 h-2 rounded-full bg-muted overflow-hidden">
+            <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
+          </div>
+        )}
 
         <div className="space-y-3">
           {schedule.map((item) => (
@@ -246,8 +257,10 @@ export function FeedingSchedule() {
           {schedule.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Aucune tache planifiee</p>
+              <p className="font-medium">Aucune tache planifiee</p>
+              <p className="text-xs mt-1">Creez votre planning d'alimentation quotidien</p>
               <Button variant="link" onClick={() => setShowAdd(true)}>
+                <Plus className="h-4 w-4 mr-1" />
                 Ajouter une tache
               </Button>
             </div>

@@ -1,42 +1,74 @@
+"use client"
+
+import { useMemo } from "react"
 import { Card } from "@/components/ui/card"
 import { Stethoscope, Syringe, AlertTriangle, CheckCircle } from "lucide-react"
-
-const stats = [
-  {
-    label: "Cas actifs",
-    value: 5,
-    icon: AlertTriangle,
-    color: "bg-amber-500",
-    trend: "-2 cette semaine",
-    trendType: "positive",
-  },
-  {
-    label: "Vaccinations à jour",
-    value: "94%",
-    icon: Syringe,
-    color: "bg-blue-500",
-    trend: "+6% ce mois",
-    trendType: "positive",
-  },
-  {
-    label: "Visites véto",
-    value: 3,
-    icon: Stethoscope,
-    color: "bg-purple-500",
-    trend: "Ce mois",
-    trendType: "neutral",
-  },
-  {
-    label: "Guérisons",
-    value: 12,
-    icon: CheckCircle,
-    color: "bg-green-500",
-    trend: "Ce mois",
-    trendType: "positive",
-  },
-]
+import { useApp } from "@/contexts/app-context"
 
 export function HealthOverview() {
+  const { healthCases, vaccinations, animals } = useApp()
+
+  const stats = useMemo(() => {
+    // Cas actifs
+    const activeCases = healthCases.filter((c) => c.status !== "resolved").length
+
+    // Vaccinations à jour
+    const totalVaccinations = vaccinations.length
+    const completedVaccinations = vaccinations.filter((v) => v.status === "completed").length
+    const vaccinationRate = totalVaccinations > 0 ? Math.round((completedVaccinations / totalVaccinations) * 100) : 0
+
+    // Visites véto ce mois
+    const thisMonth = new Date().getMonth()
+    const thisYear = new Date().getFullYear()
+    const vetoVisits = healthCases.filter((c) => {
+      const caseDate = new Date(c.createdAt)
+      return caseDate.getMonth() === thisMonth && caseDate.getFullYear() === thisYear
+    }).length
+
+    // Guérisons ce mois
+    const recoveries = healthCases.filter((c) => {
+      if (c.status !== "resolved" || !c.resolvedAt) return false
+      const resolvedDate = new Date(c.resolvedAt)
+      return resolvedDate.getMonth() === thisMonth && resolvedDate.getFullYear() === thisYear
+    }).length
+
+    return [
+      {
+        label: "Cas actifs",
+        value: activeCases,
+        icon: AlertTriangle,
+        color: activeCases === 0 ? "bg-green-500" : "bg-amber-500",
+        trend: activeCases === 0 ? "Aucun cas" : `${activeCases} en cours`,
+        trendType: activeCases === 0 ? "positive" : "warning",
+      },
+      {
+        label: "Vaccinations à jour",
+        value: totalVaccinations > 0 ? `${vaccinationRate}%` : "N/A",
+        icon: Syringe,
+        color: "bg-blue-500",
+        trend:
+          totalVaccinations > 0 ? `${completedVaccinations}/${totalVaccinations} complétées` : "Aucune vaccination",
+        trendType: vaccinationRate >= 80 ? "positive" : "warning",
+      },
+      {
+        label: "Visites véto",
+        value: vetoVisits,
+        icon: Stethoscope,
+        color: "bg-purple-500",
+        trend: "Ce mois",
+        trendType: "neutral",
+      },
+      {
+        label: "Guérisons",
+        value: recoveries,
+        icon: CheckCircle,
+        color: "bg-green-500",
+        trend: "Ce mois",
+        trendType: "positive",
+      },
+    ]
+  }, [healthCases, vaccinations, animals])
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat, i) => (

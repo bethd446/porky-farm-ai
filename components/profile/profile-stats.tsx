@@ -5,9 +5,8 @@ import { PiggyBank, Baby, TrendingUp, Award } from "lucide-react"
 import { useApp } from "@/contexts/app-context"
 
 export function ProfileStats() {
-  const { animals, gestations } = useApp()
+  const { animals, gestations, healthCases } = useApp()
 
-  // Calculer les vraies statistiques
   const totalAnimals = animals.length
   const thisYear = new Date().getFullYear()
   const gestationsThisYear = gestations.filter((g) => {
@@ -18,11 +17,13 @@ export function ProfileStats() {
   const completedGestations = gestations.filter((g) => g.status === "completed")
   const successRate = gestations.length > 0 ? Math.round((completedGestations.length / gestations.length) * 100) : 0
 
+  const resolvedCases = healthCases.filter((c) => c.status === "resolved").length
+
   const stats = [
     { label: "Total animaux", value: totalAnimals.toString(), icon: PiggyBank, color: "text-primary" },
     { label: "Gestations cette annee", value: gestationsThisYear.toString(), icon: Baby, color: "text-pink-500" },
     { label: "Taux de reussite", value: `${successRate}%`, icon: TrendingUp, color: "text-green-500" },
-    { label: "Cas sanitaires traites", value: "0", icon: Award, color: "text-amber-500" },
+    { label: "Cas sanitaires resolus", value: resolvedCases.toString(), icon: Award, color: "text-amber-500" },
   ]
 
   return (

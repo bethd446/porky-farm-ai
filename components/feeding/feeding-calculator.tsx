@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, Sparkles, Download, Share2, HelpCircle, AlertCircle, CheckCircle } from "lucide-react"
+import { Calculator, Sparkles, Download, Share2, HelpCircle, AlertCircle, CheckCircle, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { z } from "zod"
+import { useApp } from "@/contexts/app-context"
 
 const feedingSchema = z.object({
   category: z.string().min(1, "Selectionnez un type d'animal"),
@@ -93,10 +94,12 @@ const stageDescriptions: Record<string, Record<string, string>> = {
 }
 
 export function FeedingCalculator() {
-  const [category, setCategory] = useState("sow-gestating")
-  const [weight, setWeight] = useState("180")
-  const [stage, setStage] = useState("mid")
-  const [count, setCount] = useState("1")
+  const { animals, stats } = useApp()
+
+  const [category, setCategory] = useState("")
+  const [weight, setWeight] = useState("")
+  const [stage, setStage] = useState("")
+  const [count, setCount] = useState("")
   const [errors, setErrors] = useState<FeedingErrors>({})
   const [showExportSuccess, setShowExportSuccess] = useState(false)
   const [result, setResult] = useState<{
@@ -238,12 +241,19 @@ Genere par PorkyFarm - www.porkyfarm.app
           <p className="text-sm text-muted-foreground">Calculez la quantite d'aliment adaptee a vos animaux</p>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex items-start gap-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 text-sm">
+            <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+            <p className="text-blue-700 dark:text-blue-300">
+              Cet outil vous aide a estimer les besoins alimentaires. Les resultats sont des recommandations generales.
+            </p>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Type d'animal</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger className={errors.category ? "border-destructive" : ""}>
-                  <SelectValue />
+                  <SelectValue placeholder="Selectionnez un type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="sow-gestating">Truie gestante</SelectItem>
@@ -269,6 +279,7 @@ Genere par PorkyFarm - www.porkyfarm.app
                 onChange={(e) => handleWeightChange(e.target.value)}
                 min="1"
                 max="500"
+                placeholder="Ex: 80"
                 aria-invalid={!!errors.weight}
                 className={errors.weight ? "border-destructive" : ""}
               />
@@ -283,18 +294,20 @@ Genere par PorkyFarm - www.porkyfarm.app
             <div className="space-y-2">
               <div className="flex items-center gap-1">
                 <Label>Stade</Label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">{stageDescriptions[category]?.[stage] || "Selectionnez un stade"}</p>
-                  </TooltipContent>
-                </Tooltip>
+                {category && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">{stageDescriptions[category]?.[stage] || "Selectionnez un stade"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
               <Select value={stage} onValueChange={setStage}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selectionnez un stade" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="early">Debut</SelectItem>
@@ -302,7 +315,9 @@ Genere par PorkyFarm - www.porkyfarm.app
                   <SelectItem value="late">Fin</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">{stageDescriptions[category]?.[stage]}</p>
+              {category && stage && (
+                <p className="text-xs text-muted-foreground">{stageDescriptions[category]?.[stage]}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -313,6 +328,7 @@ Genere par PorkyFarm - www.porkyfarm.app
                 onChange={(e) => handleCountChange(e.target.value)}
                 min="1"
                 max="1000"
+                placeholder="Ex: 10"
                 aria-invalid={!!errors.count}
                 className={errors.count ? "border-destructive" : ""}
               />
@@ -325,7 +341,11 @@ Genere par PorkyFarm - www.porkyfarm.app
             </div>
           </div>
 
-          <Button onClick={calculate} className="w-full gap-2 bg-primary text-white hover:bg-primary/90">
+          <Button
+            onClick={calculate}
+            className="w-full gap-2 bg-primary text-white hover:bg-primary/90"
+            disabled={!category || !weight || !stage || !count}
+          >
             <Sparkles className="h-4 w-4" />
             Calculer ma ration
           </Button>

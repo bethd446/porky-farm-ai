@@ -3,7 +3,8 @@
 import { useApp } from "@/contexts/app-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts"
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
+import { TrendingUp } from "lucide-react"
 
 export function DashboardLivestockOverview() {
   const { stats } = useApp()
@@ -14,16 +15,6 @@ export function DashboardLivestockOverview() {
     { name: "Porcelets", value: stats.porcelets, color: "#22c55e" },
     { name: "Porcs", value: stats.porcs, color: "#f59e0b" },
   ].filter((item) => item.value > 0)
-
-  // Données simulées pour l'évolution (seront remplacées par des données réelles)
-  const barData = [
-    { month: "Jan", naissances: 45, ventes: 32 },
-    { month: "Fév", naissances: 52, ventes: 28 },
-    { month: "Mar", naissances: 38, ventes: 45 },
-    { month: "Avr", naissances: 65, ventes: 38 },
-    { month: "Mai", naissances: 48, ventes: 52 },
-    { month: "Jun", naissances: 55, ventes: 42 },
-  ]
 
   const totalAnimals = pieData.reduce((sum, item) => sum + item.value, 0)
 
@@ -68,7 +59,6 @@ export function DashboardLivestockOverview() {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => [`${value} animaux`, ""]} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -88,17 +78,12 @@ export function DashboardLivestockOverview() {
           </TabsContent>
 
           <TabsContent value="evolution">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData}>
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="naissances" fill="#22c55e" radius={[4, 4, 0, 0]} name="Naissances" />
-                  <Bar dataKey="ventes" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Ventes" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <TrendingUp className="h-12 w-12 text-muted-foreground/50 mb-2" />
+              <p className="text-muted-foreground">Statistiques d'évolution</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Les graphiques d'évolution seront disponibles après quelques mois d'utilisation
+              </p>
             </div>
           </TabsContent>
         </Tabs>
