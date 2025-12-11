@@ -1,12 +1,61 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, memo } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Menu, X, ArrowRight, Sparkles, Shield, TrendingUp, Heart, Play, ChevronDown } from "lucide-react"
+
+const NavLink = memo(function NavLink({
+  href,
+  children,
+  onClick,
+}: {
+  href: string
+  children: React.ReactNode
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
+}) {
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      className="text-sm font-medium text-white/80 transition hover:text-white relative group cursor-pointer"
+    >
+      {children}
+      <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
+    </a>
+  )
+})
+
+const SLIDES = [
+  {
+    image: "/modern-pig-farm-aerial-view-green-fields-sunset-iv.jpg",
+    title: "La Nouvelle Ère de l'Élevage",
+    highlight: "Porcin",
+    subtitle:
+      "PorkyFarm combine technologie intelligente et tradition pour améliorer l'efficacité et le bien-être de votre élevage.",
+  },
+  {
+    image: "/modern-pig-farm-building-sunrise-ivory-coast-beaut.jpg",
+    title: "Gérez votre ferme",
+    highlight: "en toute simplicité",
+    subtitle: "Suivi sanitaire, gestion des reproductions, calcul des rations - tout en une seule application.",
+  },
+  {
+    image: "/group-of-healthy-pigs-in-clean-modern-farm-ivory-c.jpg",
+    title: "Conçu pour les",
+    highlight: "éleveurs africains",
+    subtitle: "Une solution adaptée aux réalités locales avec support en français et assistance réactive.",
+  },
+] as const
+
+const FEATURE_PILLS = [
+  { icon: Shield, text: "Suivi Sanitaire", color: "from-blue-500 to-blue-600" },
+  { icon: Heart, text: "Bien-être Animal", color: "from-pink-500 to-rose-500" },
+  { icon: TrendingUp, text: "Gestion Financière", color: "from-emerald-500 to-green-600" },
+] as const
 
 export function LandingHero() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -14,46 +63,24 @@ export function LandingHero() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [showDemoModal, setShowDemoModal] = useState(false)
 
-  const slides = [
-    {
-      image: "/modern-pig-farm-aerial-view-green-fields-sunset-iv.jpg",
-      title: "La Nouvelle Ère de l'Élevage",
-      highlight: "Porcin",
-      subtitle:
-        "PorkyFarm combine technologie intelligente et tradition pour améliorer l'efficacité et le bien-être de votre élevage.",
-    },
-    {
-      image: "/modern-pig-farm-building-sunrise-ivory-coast-beaut.jpg",
-      title: "Gérez votre ferme",
-      highlight: "en toute simplicité",
-      subtitle: "Suivi sanitaire, gestion des reproductions, calcul des rations - tout en une seule application.",
-    },
-    {
-      image: "/group-of-healthy-pigs-in-clean-modern-farm-ivory-c.jpg",
-      title: "Conçu pour les",
-      highlight: "éleveurs africains",
-      subtitle: "Une solution adaptée aux réalités locales avec support en français et assistance réactive.",
-    },
-  ]
-
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
-    window.addEventListener("scroll", handleScroll)
+    window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length)
+      setCurrentSlide((prev) => (prev + 1) % SLIDES.length)
     }, 6000)
     return () => clearInterval(timer)
-  }, [slides.length])
+  }, [])
 
-  const handleMobileNavClick = () => {
+  const handleMobileNavClick = useCallback(() => {
     setMobileMenuOpen(false)
-  }
+  }, [])
 
-  const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+  const handleAnchorClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith("#")) {
       e.preventDefault()
       const element = document.querySelector(href)
@@ -62,37 +89,35 @@ export function LandingHero() {
       }
       setMobileMenuOpen(false)
     }
-  }
+  }, [])
 
   return (
     <section className="relative min-h-[100dvh] overflow-hidden">
-      {/* Background Slides with Ken Burns effect */}
-      {slides.map((slide, index) => (
+      {SLIDES.map((slide, index) => (
         <div
           key={index}
           className={`absolute inset-0 z-0 transition-opacity duration-1000 ${
             index === currentSlide ? "opacity-100" : "opacity-0"
           }`}
+          aria-hidden={index !== currentSlide}
         >
-          <img
+          <Image
             src={slide.image || "/placeholder.svg"}
-            alt="Ferme porcine"
-            className={`h-full w-full object-cover ${index === currentSlide ? "animate-ken-burns" : ""}`}
-            style={{ objectPosition: "center 30%" }}
+            alt="Ferme porcine moderne"
+            fill
+            priority={index === 0}
+            loading={index === 0 ? "eager" : "lazy"}
+            quality={index === 0 ? 85 : 75}
+            sizes="100vw"
+            className="object-cover object-[center_30%]"
+            placeholder="blur"
+            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy02LjY2OjY2Nj5AOkJCQDpOT05OWlpaWlpaWlpaWlr/2wBDAR"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
         </div>
       ))}
 
-      {/* Animated particles overlay */}
-      <div className="absolute inset-0 z-[1] opacity-30 pointer-events-none">
-        <div className="absolute top-20 left-10 h-2 w-2 rounded-full bg-primary animate-float" />
-        <div className="absolute top-40 right-20 h-3 w-3 rounded-full bg-accent-light animate-float-delayed" />
-        <div className="absolute bottom-40 left-1/4 h-2 w-2 rounded-full bg-primary-light animate-float" />
-        <div className="absolute top-1/3 right-1/3 h-4 w-4 rounded-full bg-primary/50 animate-pulse" />
-      </div>
-
-      {/* Navigation - Fixed with blur on scroll */}
+      {/* Navigation */}
       <nav
         className={`fixed top-0 left-0 right-0 z-50 px-4 py-4 transition-all duration-300 md:px-8 ${
           scrolled ? "bg-black/80 backdrop-blur-xl shadow-lg" : ""
@@ -101,7 +126,7 @@ export function LandingHero() {
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/30 transition-transform group-hover:scale-105">
-              <svg viewBox="0 0 24 24" className="h-6 w-6 text-white" fill="currentColor">
+              <svg viewBox="0 0 24 24" className="h-6 w-6 text-white" fill="currentColor" aria-hidden="true">
                 <path d="M12 2C8.5 2 5.5 4.5 5.5 8c0 2.5 1.5 4.5 3.5 5.5v2c0 .5.5 1 1 1h4c.5 0 1-.5 1-1v-2c2-1 3.5-3 3.5-5.5 0-3.5-3-6-6.5-6z" />
                 <circle cx="9" cy="7" r="1.5" />
                 <circle cx="15" cy="7" r="1.5" />
@@ -111,24 +136,14 @@ export function LandingHero() {
             <span className="text-xl font-bold text-white">PorkyFarm</span>
           </Link>
 
-          {/* Desktop Navigation - Fixed anchor links */}
+          {/* Desktop Navigation */}
           <div className="hidden items-center gap-8 md:flex">
-            <a
-              href="#features"
-              onClick={(e) => handleAnchorClick(e, "#features")}
-              className="text-sm font-medium text-white/80 transition hover:text-white relative group cursor-pointer"
-            >
+            <NavLink href="#features" onClick={(e) => handleAnchorClick(e, "#features")}>
               Fonctionnalités
-              <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
-            </a>
-            <a
-              href="#testimonials"
-              onClick={(e) => handleAnchorClick(e, "#testimonials")}
-              className="text-sm font-medium text-white/80 transition hover:text-white relative group cursor-pointer"
-            >
+            </NavLink>
+            <NavLink href="#testimonials" onClick={(e) => handleAnchorClick(e, "#testimonials")}>
               Témoignages
-              <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-primary transition-all group-hover:w-full" />
-            </a>
+            </NavLink>
             <Link
               href="/pricing"
               className="text-sm font-medium text-white/80 transition hover:text-white relative group"
@@ -149,13 +164,13 @@ export function LandingHero() {
             <Link href="/auth/login">
               <Button
                 variant="outline"
-                className="h-11 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50 backdrop-blur-sm transition-all hover:scale-105"
+                className="h-11 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50 backdrop-blur-sm"
               >
                 Connexion
               </Button>
             </Link>
             <Link href="/auth/register">
-              <Button className="h-11 bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105">
+              <Button className="h-11 bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/30">
                 Créer mon élevage
               </Button>
             </Link>
@@ -166,12 +181,13 @@ export function LandingHero() {
             className="rounded-xl p-2.5 text-white bg-white/10 backdrop-blur-sm md:hidden hover:bg-white/20 transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
-        {/* Mobile Menu - Fixed with proper click handlers */}
+        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="absolute left-4 right-4 top-full mt-2 rounded-2xl bg-black/90 backdrop-blur-xl p-6 md:hidden border border-white/10 shadow-2xl animate-in slide-in-from-top-2">
             <div className="flex flex-col gap-2">
@@ -222,9 +238,9 @@ export function LandingHero() {
 
       {/* Hero Content */}
       <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-4 sm:px-6 pt-20 pb-12 text-center">
-        {/* Badge animé */}
-        <div className="mb-6 sm:mb-8 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 sm:px-5 py-2 sm:py-2.5 backdrop-blur-sm border border-white/20 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Sparkles className="h-4 w-4 text-accent-light animate-pulse" />
+        {/* Badge */}
+        <div className="mb-6 sm:mb-8 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 sm:px-5 py-2 sm:py-2.5 backdrop-blur-sm border border-white/20">
+          <Sparkles className="h-4 w-4 text-accent-light" aria-hidden="true" />
           <span className="text-xs sm:text-sm font-medium text-white">Nouvelle version avec IA intégrée</span>
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -232,69 +248,68 @@ export function LandingHero() {
           </span>
         </div>
 
-        {/* Titre principal avec animation */}
-        <h1 className="max-w-5xl text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-white animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150">
-          {slides[currentSlide].title}
-          <span className="block mt-2 bg-gradient-to-r from-primary via-primary-light to-accent-light bg-clip-text text-transparent">
-            {slides[currentSlide].highlight}
-          </span>
-        </h1>
+        <div className="min-h-[140px] sm:min-h-[180px] md:min-h-[220px] flex items-center">
+          <h1 className="max-w-5xl text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-white">
+            {SLIDES[currentSlide].title}
+            <span className="block mt-2 bg-gradient-to-r from-primary via-primary-light to-accent-light bg-clip-text text-transparent">
+              {SLIDES[currentSlide].highlight}
+            </span>
+          </h1>
+        </div>
 
-        <p className="mt-6 sm:mt-8 max-w-2xl text-base sm:text-lg md:text-xl text-white/80 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 leading-relaxed px-2">
-          {slides[currentSlide].subtitle}
+        <p className="mt-6 sm:mt-8 max-w-2xl text-base sm:text-lg md:text-xl text-white/80 leading-relaxed px-2 min-h-[60px] sm:min-h-[80px]">
+          {SLIDES[currentSlide].subtitle}
         </p>
 
-        {/* CTA Buttons - Fixed hover states */}
-        <div className="mt-8 sm:mt-12 flex flex-col gap-3 sm:gap-4 w-full sm:w-auto sm:flex-row animate-in fade-in slide-in-from-bottom-10 duration-700 delay-500 px-4 sm:px-0">
+        {/* CTA Buttons */}
+        <div className="mt-8 sm:mt-12 flex flex-col gap-3 sm:gap-4 w-full sm:w-auto sm:flex-row px-4 sm:px-0">
           <Link href="/auth/register" className="w-full sm:w-auto">
             <Button
               size="lg"
-              className="group w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full bg-primary px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-primary-dark shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-105 active:scale-95"
+              className="group w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full bg-primary px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-primary-dark shadow-xl shadow-primary/30"
             >
               Créer mon élevage
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Button>
           </Link>
           <Button
             size="lg"
             variant="outline"
-            className="w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full border-white/30 bg-white/10 px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-white/20 backdrop-blur-sm transition-all hover:scale-105 active:scale-95"
+            className="w-full sm:w-auto h-12 sm:h-14 gap-3 rounded-full border-white/30 bg-white/10 px-6 sm:px-8 text-base sm:text-lg text-white hover:bg-white/20 backdrop-blur-sm"
             onClick={() => setShowDemoModal(true)}
           >
-            <Play className="h-5 w-5" />
+            <Play className="h-5 w-5" aria-hidden="true" />
             Voir la démo
           </Button>
         </div>
 
-        {/* Feature Pills - Fixed hover interactions */}
-        <div className="mt-10 sm:mt-14 flex flex-wrap justify-center gap-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-12 duration-700 delay-700 px-2">
-          {[
-            { icon: Shield, text: "Suivi Sanitaire", color: "from-blue-500 to-blue-600" },
-            { icon: Heart, text: "Bien-être Animal", color: "from-pink-500 to-rose-500" },
-            { icon: TrendingUp, text: "Gestion Financière", color: "from-emerald-500 to-green-600" },
-          ].map((item, i) => (
+        {/* Feature Pills */}
+        <div className="mt-10 sm:mt-14 flex flex-wrap justify-center gap-3 sm:gap-4 px-2">
+          {FEATURE_PILLS.map((item, i) => (
             <div
               key={i}
-              className="group flex items-center gap-2 sm:gap-3 rounded-full bg-white/10 px-4 sm:px-5 py-2.5 sm:py-3 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-all hover:scale-105 active:scale-95 cursor-default"
+              className="group flex items-center gap-2 sm:gap-3 rounded-full bg-white/10 px-4 sm:px-5 py-2.5 sm:py-3 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-colors cursor-default"
             >
               <div
-                className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br ${item.color} transition-transform group-hover:scale-110`}
+                className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-br ${item.color}`}
               >
-                <item.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                <item.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" aria-hidden="true" />
               </div>
               <span className="text-xs sm:text-sm font-medium text-white">{item.text}</span>
             </div>
           ))}
         </div>
 
-        {/* Slide indicators - Fixed click handlers */}
-        <div className="mt-10 sm:mt-12 flex gap-2">
-          {slides.map((_, index) => (
+        {/* Slide indicators */}
+        <div className="mt-10 sm:mt-12 flex gap-2" role="tablist" aria-label="Slides">
+          {SLIDES.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              aria-label={`Aller au slide ${index + 1}`}
-              className={`h-2 rounded-full transition-all hover:opacity-80 ${
+              aria-label={`Slide ${index + 1}`}
+              aria-selected={index === currentSlide}
+              role="tab"
+              className={`h-2 rounded-full transition-all ${
                 index === currentSlide ? "w-8 bg-primary" : "w-2 bg-white/40 hover:bg-white/60"
               }`}
             />
@@ -302,7 +317,7 @@ export function LandingHero() {
         </div>
       </div>
 
-      {/* Scroll Indicator - Fixed click handler */}
+      {/* Scroll Indicator */}
       <div className="absolute bottom-6 sm:bottom-8 left-1/2 z-10 -translate-x-1/2 animate-bounce hidden sm:block">
         <a
           href="#stats"
@@ -313,7 +328,7 @@ export function LandingHero() {
             Défiler pour explorer
           </span>
           <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 backdrop-blur-sm group-hover:bg-white/20 transition-colors">
-            <ChevronDown className="h-5 w-5 text-white" />
+            <ChevronDown className="h-5 w-5 text-white" aria-hidden="true" />
           </div>
         </a>
       </div>
@@ -327,7 +342,7 @@ export function LandingHero() {
           <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
             <div className="text-center space-y-4 p-6">
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                <Play className="h-10 w-10 text-primary" />
+                <Play className="h-10 w-10 text-primary" aria-hidden="true" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold">Vidéo de démonstration</h3>
@@ -344,24 +359,13 @@ export function LandingHero() {
               <Link href="/auth/register" onClick={() => setShowDemoModal(false)}>
                 <Button className="mt-4">
                   Essayer gratuitement
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Button>
               </Link>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Styles for animations */}
-      <style jsx>{`
-        @keyframes ken-burns {
-          0% { transform: scale(1); }
-          100% { transform: scale(1.1); }
-        }
-        .animate-ken-burns {
-          animation: ken-burns 6s ease-out forwards;
-        }
-      `}</style>
     </section>
   )
 }

@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, memo } from "react"
+import Image from "next/image"
 import { ChevronLeft, ChevronRight, Star, Quote, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-const testimonials = [
+const TESTIMONIALS = [
   {
     name: "Kouamé Y.",
     role: "Éleveur à Bouaké",
@@ -29,18 +30,35 @@ const testimonials = [
       "Le module sanitaire avec les photos est très pratique pour documenter l'évolution des cas et partager avec le vétérinaire.",
     rating: 5,
   },
-]
+] as const
+
+const FEATURES = [
+  "Module vétérinaire complet",
+  "Suivi gestation J/114",
+  "Calcul rations automatique",
+  "Photos intégrées",
+] as const
+
+const StarRating = memo(function StarRating({ rating }: { rating: number }) {
+  return (
+    <div className="ml-auto flex gap-0.5" aria-label={`Note: ${rating} sur 5`}>
+      {Array.from({ length: rating }).map((_, i) => (
+        <Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" aria-hidden="true" />
+      ))}
+    </div>
+  )
+})
 
 export function LandingTestimonials() {
   const [activeIndex, setActiveIndex] = useState(0)
   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
 
   const next = useCallback(() => {
-    setActiveIndex((i) => (i + 1) % testimonials.length)
+    setActiveIndex((i) => (i + 1) % TESTIMONIALS.length)
   }, [])
 
   const prev = useCallback(() => {
-    setActiveIndex((i) => (i - 1 + testimonials.length) % testimonials.length)
+    setActiveIndex((i) => (i - 1 + TESTIMONIALS.length) % TESTIMONIALS.length)
   }, [])
 
   useEffect(() => {
@@ -49,8 +67,10 @@ export function LandingTestimonials() {
     return () => clearInterval(timer)
   }, [isAutoPlaying, next])
 
-  const handleMouseEnter = () => setIsAutoPlaying(false)
-  const handleMouseLeave = () => setIsAutoPlaying(true)
+  const handleMouseEnter = useCallback(() => setIsAutoPlaying(false), [])
+  const handleMouseLeave = useCallback(() => setIsAutoPlaying(true), [])
+
+  const currentTestimonial = TESTIMONIALS[activeIndex]
 
   return (
     <section id="testimonials" className="bg-muted py-20 px-4 md:py-32">
@@ -68,28 +88,27 @@ export function LandingTestimonials() {
         </div>
 
         <div className="relative mt-12" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-          <div className="overflow-hidden rounded-3xl bg-card p-8 shadow-soft md:p-12 transition-all">
-            <Quote className="mb-4 h-10 w-10 text-primary/20" />
+          <div className="overflow-hidden rounded-3xl bg-card p-8 shadow-soft md:p-12 min-h-[280px]">
+            <Quote className="mb-4 h-10 w-10 text-primary/20" aria-hidden="true" />
 
-            <p className="text-lg text-card-foreground md:text-xl min-h-[80px] transition-opacity duration-300">
-              "{testimonials[activeIndex].content}"
-            </p>
+            <p className="text-lg text-card-foreground md:text-xl min-h-[80px]">"{currentTestimonial.content}"</p>
 
             <div className="mt-8 flex items-center gap-4">
-              <img
-                src={testimonials[activeIndex].image || "/placeholder.svg"}
-                alt={testimonials[activeIndex].name}
-                className="h-14 w-14 rounded-full object-cover ring-2 ring-primary/20"
-              />
+              <div className="relative h-14 w-14 shrink-0">
+                <Image
+                  src={currentTestimonial.image || "/placeholder.svg"}
+                  alt={currentTestimonial.name}
+                  fill
+                  loading="lazy"
+                  className="rounded-full object-cover ring-2 ring-primary/20"
+                  sizes="56px"
+                />
+              </div>
               <div>
-                <div className="font-semibold text-card-foreground">{testimonials[activeIndex].name}</div>
-                <div className="text-sm text-muted-foreground">{testimonials[activeIndex].role}</div>
+                <div className="font-semibold text-card-foreground">{currentTestimonial.name}</div>
+                <div className="text-sm text-muted-foreground">{currentTestimonial.role}</div>
               </div>
-              <div className="ml-auto flex gap-0.5">
-                {Array.from({ length: testimonials[activeIndex].rating }).map((_, i) => (
-                  <Star key={i} className="h-5 w-5 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
+              <StarRating rating={currentTestimonial.rating} />
             </div>
           </div>
 
@@ -98,49 +117,43 @@ export function LandingTestimonials() {
             <Button
               variant="outline"
               size="icon"
-              className="rounded-full bg-transparent hover:bg-primary/10 hover:border-primary transition-all hover:scale-110 active:scale-95"
+              className="rounded-full bg-transparent hover:bg-primary/10 hover:border-primary"
               onClick={prev}
               aria-label="Témoignage précédent"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5" aria-hidden="true" />
             </Button>
-            <div className="flex items-center gap-2">
-              {testimonials.map((_, i) => (
+            <div className="flex items-center gap-2" role="tablist" aria-label="Témoignages">
+              {TESTIMONIALS.map((_, i) => (
                 <button
                   key={i}
-                  className={`h-2 rounded-full transition-all hover:opacity-80 ${
+                  className={`h-2 rounded-full transition-all ${
                     i === activeIndex ? "w-8 bg-primary" : "w-2 bg-border hover:bg-primary/50"
                   }`}
                   onClick={() => setActiveIndex(i)}
-                  aria-label={`Aller au témoignage ${i + 1}`}
+                  aria-label={`Témoignage ${i + 1}`}
+                  aria-selected={i === activeIndex}
+                  role="tab"
                 />
               ))}
             </div>
             <Button
               variant="outline"
               size="icon"
-              className="rounded-full bg-transparent hover:bg-primary/10 hover:border-primary transition-all hover:scale-110 active:scale-95"
+              className="rounded-full bg-transparent hover:bg-primary/10 hover:border-primary"
               onClick={next}
               aria-label="Témoignage suivant"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-5 w-5" aria-hidden="true" />
             </Button>
           </div>
         </div>
 
         {/* Features checklist */}
         <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            "Module vétérinaire complet",
-            "Suivi gestation J/114",
-            "Calcul rations automatique",
-            "Photos intégrées",
-          ].map((feature, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+          {FEATURES.map((feature, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
               <span>{feature}</span>
             </div>
           ))}

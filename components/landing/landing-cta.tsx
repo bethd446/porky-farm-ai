@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react"
 
@@ -9,14 +10,21 @@ const benefits = ["Inscription gratuite", "Aucune carte bancaire", "Données 100
 export function LandingCTA() {
   return (
     <section className="relative overflow-hidden py-24 px-4 md:py-32">
-      {/* Background with overlay */}
       <div className="absolute inset-0">
-        <img src="/happy-pigs-in-modern-clean-farm-sunrise.jpg" alt="Porcs en bonne santé" className="h-full w-full object-cover" />
+        <Image
+          src="/happy-pigs-in-modern-clean-farm-sunrise.jpg"
+          alt="Porcs en bonne santé dans une ferme moderne"
+          fill
+          loading="lazy"
+          quality={75}
+          sizes="100vw"
+          className="object-cover"
+        />
         <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary-dark/90 to-emerald-900/95" />
       </div>
 
-      {/* Decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Decorative elements - simplified for performance */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
       </div>
@@ -24,7 +32,7 @@ export function LandingCTA() {
       <div className="relative mx-auto max-w-4xl text-center">
         {/* Badge */}
         <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm border border-white/20">
-          <Sparkles className="h-4 w-4 text-accent-light" />
+          <Sparkles className="h-4 w-4 text-accent-light" aria-hidden="true" />
           <span className="text-sm font-medium text-white">Commencez dès maintenant</span>
         </div>
 
@@ -42,30 +50,30 @@ export function LandingCTA() {
           {benefits.map((benefit, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 text-white bg-white/10 rounded-full px-4 py-2 backdrop-blur-sm transition-all hover:bg-white/20 hover:scale-105"
+              className="flex items-center gap-2 text-white bg-white/10 rounded-full px-4 py-2 backdrop-blur-sm"
             >
-              <CheckCircle2 className="h-5 w-5 text-accent-light shrink-0" />
+              <CheckCircle2 className="h-5 w-5 text-accent-light shrink-0" aria-hidden="true" />
               <span className="text-sm font-medium">{benefit}</span>
             </div>
           ))}
         </div>
 
-        {/* CTA Buttons - Fixed hover and active states */}
+        {/* CTA Buttons */}
         <div className="mt-12 flex flex-col gap-4 sm:flex-row sm:justify-center">
           <Link href="/auth/register">
             <Button
               size="lg"
-              className="group h-14 gap-3 rounded-full bg-white px-8 text-lg text-primary hover:bg-white/90 shadow-xl shadow-black/20 transition-all hover:scale-105 active:scale-95"
+              className="group h-14 gap-3 rounded-full bg-white px-8 text-lg text-primary hover:bg-white/90 shadow-xl shadow-black/20"
             >
               Créer mon élevage gratuitement
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Button>
           </Link>
           <Link href="/auth/login">
             <Button
               size="lg"
               variant="outline"
-              className="h-14 rounded-full border-white/30 bg-white/10 px-8 text-lg text-white hover:bg-white/20 backdrop-blur-sm transition-all hover:scale-105 active:scale-95"
+              className="h-14 rounded-full border-white/30 bg-white/10 px-8 text-lg text-white hover:bg-white/20 backdrop-blur-sm"
             >
               J'ai déjà un compte
             </Button>

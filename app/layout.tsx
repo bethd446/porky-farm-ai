@@ -7,13 +7,17 @@ import "./globals.css"
 
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"], // Reduced weights for faster loading
   variable: "--font-poppins",
+  display: "swap",
+  preload: true,
 })
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+  preload: true,
 })
 
 export const metadata: Metadata = {
@@ -45,8 +49,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5, // Allow zoom for accessibility
   themeColor: "#16a34a",
 }
 
@@ -57,6 +60,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${poppins.variable} ${inter.variable}`}>
+      <head>
+        <link
+          rel="preload"
+          href="/modern-pig-farm-aerial-view-green-fields-sunset-iv.jpg"
+          as="image"
+          type="image/jpeg"
+        />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body className="font-sans antialiased bg-background text-foreground">
         <AuthProvider>{children}</AuthProvider>
         <Analytics />
