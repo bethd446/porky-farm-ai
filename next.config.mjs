@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  
   // TypeScript - ignorer les erreurs de build pour le moment
   typescript: {
     ignoreBuildErrors: true,

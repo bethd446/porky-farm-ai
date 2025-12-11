@@ -1,7 +1,7 @@
 import type React from "react"
 import { Resend } from "resend"
 
-const apiKey = process.env.RESEND_API_KEY || process.env.resend_domainkey
+const apiKey = process.env.RESEND_API_KEY
 
 if (!apiKey) {
   console.warn("[Resend] No API key found. Email functionality will be disabled.")
