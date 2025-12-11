@@ -1,25 +1,23 @@
-"use client";
+"use client"
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 
 // Singleton pattern
-let supabaseInstance: SupabaseClient | null = null;
+let supabaseInstance: SupabaseClient | null = null
 
 function getSupabaseClient(): SupabaseClient {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.warn(
-      "[Supabase] URL or ANON_KEY not configured. Using mock client."
-    );
+    console.warn("[Supabase] URL or ANON_KEY not configured. Using mock client.")
     // Return a mock client that won't crash but won't work either
     return createClient("https://placeholder.supabase.co", "placeholder-key", {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
       },
-    });
+    })
   }
 
   if (typeof window === "undefined") {
@@ -29,7 +27,7 @@ function getSupabaseClient(): SupabaseClient {
         autoRefreshToken: true,
         persistSession: false,
       },
-    });
+    })
   }
 
   // Client-side: use singleton
@@ -40,51 +38,32 @@ function getSupabaseClient(): SupabaseClient {
         persistSession: true,
         detectSessionInUrl: true,
       },
-    });
+    })
   }
 
-  return supabaseInstance;
+  return supabaseInstance
 }
 
-export const supabase = getSupabaseClient();
+export const supabase = getSupabaseClient()
 
 export function isSupabaseConfigured(): boolean {
-  return Boolean(
-    SUPABASE_URL &&
-    SUPABASE_ANON_KEY &&
-    SUPABASE_URL !== "https://placeholder.supabase.co"
-  );
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL !== "https://placeholder.supabase.co")
 }
 
 export const supabaseAuth = {
-  async signInWithPassword({
-    email,
-    password,
-  }: {
-    email: string;
-    password: string;
-  }) {
+  async signInWithPassword({ email, password }: { email: string; password: string }) {
     if (!isSupabaseConfigured()) {
-      return {
-        data: { user: null, session: null },
-        error: { message: "Supabase non configure" } as any,
-      };
+      return { data: { user: null, session: null }, error: { message: "Supabase non configure" } as any }
     }
     try {
-      const result = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const result = await supabase.auth.signInWithPassword({ email, password })
       if (result.error) {
-        console.error("[Auth] signInWithPassword error:", result.error.message);
+        console.error("[Auth] signInWithPassword error:", result.error.message)
       }
-      return result;
+      return result
     } catch (err) {
-      console.error("[Auth] signInWithPassword exception:", err);
-      return {
-        data: { user: null, session: null },
-        error: { message: "Erreur de connexion" } as any,
-      };
+      console.error("[Auth] signInWithPassword exception:", err)
+      return { data: { user: null, session: null }, error: { message: "Erreur de connexion" } as any }
     }
   },
 
@@ -92,31 +71,24 @@ export const supabaseAuth = {
     provider,
     options,
   }: {
-    provider: "google" | "facebook" | "apple" | "github";
-    options?: { redirectTo?: string; scopes?: string };
+    provider: "google" | "facebook" | "apple" | "github"
+    options?: { redirectTo?: string; scopes?: string }
   }) {
     if (!isSupabaseConfigured()) {
-      return {
-        data: { provider: null, url: null },
-        error: { message: "Supabase non configure" } as any,
-      };
+      return { data: { provider: null, url: null }, error: { message: "Supabase non configure" } as any }
     }
     try {
-      const redirectTo =
-        options?.redirectTo || `${window.location.origin}/auth/callback`;
+      const redirectTo = options?.redirectTo || `${window.location.origin}/auth/callback`
       return supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo,
           scopes: options?.scopes,
         },
-      });
+      })
     } catch (err) {
-      console.error("[Auth] signInWithOAuth exception:", err);
-      return {
-        data: { provider: null, url: null },
-        error: { message: "Erreur OAuth" } as any,
-      };
+      console.error("[Auth] signInWithOAuth exception:", err)
+      return { data: { provider: null, url: null }, error: { message: "Erreur OAuth" } as any }
     }
   },
 
@@ -125,21 +97,18 @@ export const supabaseAuth = {
     password,
     options,
   }: {
-    email: string;
-    password: string;
-    options?: { data?: Record<string, unknown>; emailRedirectTo?: string };
+    email: string
+    password: string
+    options?: { data?: Record<string, unknown>; emailRedirectTo?: string }
   }) {
     if (!isSupabaseConfigured()) {
-      return {
-        data: { user: null, session: null },
-        error: { message: "Supabase non configure" } as any,
-      };
+      return { data: { user: null, session: null }, error: { message: "Supabase non configure" } as any }
     }
     try {
       const emailRedirectTo =
         process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
         options?.emailRedirectTo ||
-        `${window.location.origin}/auth/callback`;
+        `${window.location.origin}/auth/callback`
 
       const result = await supabase.auth.signUp({
         email,
@@ -148,207 +117,137 @@ export const supabaseAuth = {
           data: options?.data,
           emailRedirectTo,
         },
-      });
+      })
       if (result.error) {
-        console.error("[Auth] signUp error:", result.error.message);
+        console.error("[Auth] signUp error:", result.error.message)
       }
-      return result;
+      return result
     } catch (err) {
-      console.error("[Auth] signUp exception:", err);
-      return {
-        data: { user: null, session: null },
-        error: { message: "Erreur d'inscription" } as any,
-      };
+      console.error("[Auth] signUp exception:", err)
+      return { data: { user: null, session: null }, error: { message: "Erreur d'inscription" } as any }
     }
   },
 
   async signOut() {
     try {
-      return supabase.auth.signOut();
+      return supabase.auth.signOut()
     } catch (err) {
-      console.error("[Auth] signOut exception:", err);
-      return { error: { message: "Erreur de deconnexion" } as any };
+      console.error("[Auth] signOut exception:", err)
+      return { error: { message: "Erreur de deconnexion" } as any }
     }
   },
 
   async getSession() {
     try {
-      return supabase.auth.getSession();
+      return supabase.auth.getSession()
     } catch (err) {
-      console.error("[Auth] getSession exception:", err);
-      return {
-        data: { session: null },
-        error: { message: "Erreur session" } as any,
-      };
+      console.error("[Auth] getSession exception:", err)
+      return { data: { session: null }, error: { message: "Erreur session" } as any }
     }
   },
 
   async getUser() {
     try {
-      return supabase.auth.getUser();
+      return supabase.auth.getUser()
     } catch (err) {
-      console.error("[Auth] getUser exception:", err);
-      return {
-        data: { user: null },
-        error: { message: "Erreur utilisateur" } as any,
-      };
+      console.error("[Auth] getUser exception:", err)
+      return { data: { user: null }, error: { message: "Erreur utilisateur" } as any }
     }
   },
 
-  onAuthStateChange(
-    callback: Parameters<typeof supabase.auth.onAuthStateChange>[0]
-  ) {
-    return supabase.auth.onAuthStateChange(callback);
+  onAuthStateChange(callback: Parameters<typeof supabase.auth.onAuthStateChange>[0]) {
+    return supabase.auth.onAuthStateChange(callback)
   },
 
-  async resetPasswordForEmail(
-    email: string,
-    options?: { redirectTo?: string }
-  ) {
+  async resetPasswordForEmail(email: string, options?: { redirectTo?: string }) {
     if (!isSupabaseConfigured()) {
-      return { data: {}, error: { message: "Supabase non configure" } as any };
+      return { data: {}, error: { message: "Supabase non configure" } as any }
     }
     try {
-      const redirectTo =
-        options?.redirectTo || `${window.location.origin}/auth/update-password`;
-      const result = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo,
-      });
-
-      if (result.error) {
-        console.error(
-          "[Auth] resetPasswordForEmail error:",
-          result.error.message
-        );
-      } else {
-        console.log("[Auth] Password reset email sent via Supabase");
-
-        // Also send custom email via Resend for better UX (non-blocking)
-        // Supabase email is primary, Resend is backup/enhancement
-        // Note: This requires the resetUrl to be generated server-side
-        // For now, we rely on Supabase email which is more reliable
-        // Custom Resend email can be added later if needed
-      }
-
-      return result;
+      const redirectTo = options?.redirectTo || `${window.location.origin}/auth/update-password`
+      return supabase.auth.resetPasswordForEmail(email, { redirectTo })
     } catch (err) {
-      console.error("[Auth] resetPasswordForEmail exception:", err);
-      return { data: {}, error: { message: "Erreur reinitialisation" } as any };
+      console.error("[Auth] resetPasswordForEmail exception:", err)
+      return { data: {}, error: { message: "Erreur reinitialisation" } as any }
     }
   },
 
-  async updateUser(attributes: {
-    password?: string;
-    data?: Record<string, unknown>;
-  }) {
+  async updateUser(attributes: { password?: string; data?: Record<string, unknown> }) {
     if (!isSupabaseConfigured()) {
-      return {
-        data: { user: null },
-        error: { message: "Supabase non configure" } as any,
-      };
+      return { data: { user: null }, error: { message: "Supabase non configure" } as any }
     }
     try {
-      return supabase.auth.updateUser(attributes);
+      return supabase.auth.updateUser(attributes)
     } catch (err) {
-      console.error("[Auth] updateUser exception:", err);
-      return {
-        data: { user: null },
-        error: { message: "Erreur mise a jour" } as any,
-      };
+      console.error("[Auth] updateUser exception:", err)
+      return { data: { user: null }, error: { message: "Erreur mise a jour" } as any }
     }
   },
-};
+}
 
 export const db = {
   from: (table: string) => supabase.from(table),
 
   async getProfile(userId: string) {
     try {
-      return await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
+      return await supabase.from("profiles").select("*").eq("id", userId).single()
     } catch (err) {
-      console.error("[DB] getProfile exception:", err);
-      return { data: null, error: { message: "Erreur profil" } as any };
+      console.error("[DB] getProfile exception:", err)
+      return { data: null, error: { message: "Erreur profil" } as any }
     }
   },
 
   async updateProfile(userId: string, updates: Record<string, unknown>) {
     try {
-      return await supabase
-        .from("profiles")
-        .update(updates)
-        .eq("id", userId)
-        .select()
-        .single();
+      return await supabase.from("profiles").update(updates).eq("id", userId).select().single()
     } catch (err) {
-      console.error("[DB] updateProfile exception:", err);
-      return {
-        data: null,
-        error: { message: "Erreur mise a jour profil" } as any,
-      };
+      console.error("[DB] updateProfile exception:", err)
+      return { data: null, error: { message: "Erreur mise a jour profil" } as any }
     }
   },
 
   async upsertProfile(profile: Record<string, unknown>) {
     try {
-      return await supabase.from("profiles").upsert(profile).select().single();
+      return await supabase.from("profiles").upsert(profile).select().single()
     } catch (err) {
-      console.error("[DB] upsertProfile exception:", err);
-      return { data: null, error: { message: "Erreur upsert profil" } as any };
+      console.error("[DB] upsertProfile exception:", err)
+      return { data: null, error: { message: "Erreur upsert profil" } as any }
     }
   },
 
   async getPigs(userId: string) {
     try {
-      return await supabase
-        .from("pigs")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+      return await supabase.from("pigs").select("*").eq("user_id", userId).order("created_at", { ascending: false })
     } catch (err) {
-      console.error("[DB] getPigs exception:", err);
-      return {
-        data: null,
-        error: { message: "Erreur chargement animaux" } as any,
-      };
+      console.error("[DB] getPigs exception:", err)
+      return { data: null, error: { message: "Erreur chargement animaux" } as any }
     }
   },
 
   async addPig(pig: Record<string, unknown>) {
     try {
-      return await supabase.from("pigs").insert(pig).select().single();
+      return await supabase.from("pigs").insert(pig).select().single()
     } catch (err) {
-      console.error("[DB] addPig exception:", err);
-      return { data: null, error: { message: "Erreur ajout animal" } as any };
+      console.error("[DB] addPig exception:", err)
+      return { data: null, error: { message: "Erreur ajout animal" } as any }
     }
   },
 
   async updatePig(pigId: string, updates: Record<string, unknown>) {
     try {
-      return await supabase
-        .from("pigs")
-        .update(updates)
-        .eq("id", pigId)
-        .select()
-        .single();
+      return await supabase.from("pigs").update(updates).eq("id", pigId).select().single()
     } catch (err) {
-      console.error("[DB] updatePig exception:", err);
-      return {
-        data: null,
-        error: { message: "Erreur mise a jour animal" } as any,
-      };
+      console.error("[DB] updatePig exception:", err)
+      return { data: null, error: { message: "Erreur mise a jour animal" } as any }
     }
   },
 
   async deletePig(pigId: string) {
     try {
-      return await supabase.from("pigs").delete().eq("id", pigId);
+      return await supabase.from("pigs").delete().eq("id", pigId)
     } catch (err) {
-      console.error("[DB] deletePig exception:", err);
-      return { error: { message: "Erreur suppression animal" } as any };
+      console.error("[DB] deletePig exception:", err)
+      return { error: { message: "Erreur suppression animal" } as any }
     }
   },
 
@@ -358,29 +257,19 @@ export const db = {
         .from("gestations")
         .select("*")
         .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
     } catch (err) {
-      console.error("[DB] getGestations exception:", err);
-      return {
-        data: null,
-        error: { message: "Erreur chargement gestations" } as any,
-      };
+      console.error("[DB] getGestations exception:", err)
+      return { data: null, error: { message: "Erreur chargement gestations" } as any }
     }
   },
 
   async addGestation(gestation: Record<string, unknown>) {
     try {
-      return await supabase
-        .from("gestations")
-        .insert(gestation)
-        .select()
-        .single();
+      return await supabase.from("gestations").insert(gestation).select().single()
     } catch (err) {
-      console.error("[DB] addGestation exception:", err);
-      return {
-        data: null,
-        error: { message: "Erreur ajout gestation" } as any,
-      };
+      console.error("[DB] addGestation exception:", err)
+      return { data: null, error: { message: "Erreur ajout gestation" } as any }
     }
   },
 
@@ -390,31 +279,21 @@ export const db = {
         .from("veterinary_cases")
         .select("*")
         .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
     } catch (err) {
-      console.error("[DB] getVeterinaryCases exception:", err);
-      return {
-        data: null,
-        error: { message: "Erreur chargement cas veterinaires" } as any,
-      };
+      console.error("[DB] getVeterinaryCases exception:", err)
+      return { data: null, error: { message: "Erreur chargement cas veterinaires" } as any }
     }
   },
 
   async addVeterinaryCase(vetCase: Record<string, unknown>) {
     try {
-      return await supabase
-        .from("veterinary_cases")
-        .insert(vetCase)
-        .select()
-        .single();
+      return await supabase.from("veterinary_cases").insert(vetCase).select().single()
     } catch (err) {
-      console.error("[DB] addVeterinaryCase exception:", err);
-      return {
-        data: null,
-        error: { message: "Erreur ajout cas veterinaire" } as any,
-      };
+      console.error("[DB] addVeterinaryCase exception:", err)
+      return { data: null, error: { message: "Erreur ajout cas veterinaire" } as any }
     }
   },
-};
+}
 
-export default supabase;
+export default supabase

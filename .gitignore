@@ -1,9 +1,0 @@
-node_modules
-.env.local
-.env*.local
-.sentryclirc
-.next
-dist
-build
-*.log
-.DS_Store

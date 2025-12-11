@@ -1,23 +1,13 @@
-import * as React from "react";
-
-/**
- * Welcome email template
- * Follows Resend official documentation pattern for React email templates
- */
 interface WelcomeEmailProps {
-  userName: string;
-  loginUrl?: string;
+  userName: string
+  loginUrl?: string
 }
 
-export function WelcomeEmail({
-  userName,
-  loginUrl = "https://www.porkyfarm.app/auth/login",
-}: WelcomeEmailProps) {
+export function WelcomeEmail({ userName, loginUrl = "https://www.porkyfarm.app/auth/login" }: WelcomeEmailProps) {
   return (
     <div
       style={{
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         maxWidth: "600px",
         margin: "0 auto",
         padding: "40px 20px",
@@ -69,9 +59,8 @@ export function WelcomeEmail({
             marginBottom: "24px",
           }}
         >
-          Votre compte a ete cree avec succes. Vous pouvez maintenant acceder a
-          toutes les fonctionnalites pour gerer votre elevage porcin de maniere
-          professionnelle.
+          Votre compte a ete cree avec succes. Vous pouvez maintenant acceder a toutes les fonctionnalites pour gerer
+          votre elevage porcin de maniere professionnelle.
         </p>
 
         {/* Features */}
@@ -150,9 +139,7 @@ export function WelcomeEmail({
           color: "#9ca3af",
         }}
       >
-        <p style={{ margin: "0 0 8px 0" }}>
-          © 2025 PorkyFarm - Gestion d&apos;elevage porcin
-        </p>
+        <p style={{ margin: "0 0 8px 0" }}>© 2025 PorkyFarm - Gestion d&apos;elevage porcin</p>
         <p style={{ margin: "0" }}>
           <a href="https://www.porkyfarm.app" style={{ color: "#16a34a" }}>
             www.porkyfarm.app
@@ -160,5 +147,5 @@ export function WelcomeEmail({
         </p>
       </div>
     </div>
-  );
+  )
 }

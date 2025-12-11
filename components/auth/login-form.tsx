@@ -1,218 +1,120 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  Loader2,
-  AlertCircle,
-  CheckCircle,
-  Phone,
-} from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
-import { loginSchema } from "@/lib/validations/schemas";
+import type React from "react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle, CheckCircle } from "lucide-react"
+import { supabase } from "@/lib/supabase/client"
 
-function GoogleIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24">
-      <path
-        fill="#4285F4"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-      />
-    </svg>
-  );
-}
-
-function FacebookIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="#1877F2">
-      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-    </svg>
-  );
-}
-
-type AuthMethod = "email" | "phone";
+const GoogleIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      fill="#4285F4"
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+    />
+    <path
+      fill="#34A853"
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+    />
+    <path
+      fill="#EA4335"
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+    />
+  </svg>
+)
 
 export function LoginForm() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [authMethod, setAuthMethod] = useState<AuthMethod>("email");
-  const [formData, setFormData] = useState({
-    email: "",
-    phone: "",
-    password: "",
-  });
-  const router = useRouter();
-
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+  const [formData, setFormData] = useState({ email: "", password: "" })
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFieldErrors({});
-    setError(null);
-    setSuccess(false);
+    e.preventDefault()
+    setError(null)
 
-    const dataToValidate = {
-      email:
-        authMethod === "email"
-          ? formData.email
-          : `${formData.phone}@phone.porkyfarm.app`,
-      password: formData.password,
-    };
-
-    const result = loginSchema.safeParse(dataToValidate);
-    if (!result.success) {
-      const errors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
-        const field = err.path[0] as string;
-        errors[field] = err.message;
-      });
-      setFieldErrors(errors);
-      return;
+    if (!formData.email || !formData.password) {
+      setError("Veuillez remplir tous les champs")
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword(
-        {
-          email: dataToValidate.email,
-          password: formData.password,
-        }
-      );
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      })
 
       if (authError) {
-        let errorMessage = "Une erreur est survenue. Veuillez reessayer.";
-
         if (authError.message === "Invalid login credentials") {
-          errorMessage = "Email ou mot de passe incorrect";
+          setError("Email ou mot de passe incorrect")
         } else if (authError.message.includes("Email not confirmed")) {
-          errorMessage =
-            "Veuillez confirmer votre email avant de vous connecter. Verifiez votre boite de reception.";
-        } else if (authError.message.includes("User not found")) {
-          errorMessage = "Aucun compte trouve avec cet email.";
-        } else if (authError.message.includes("Too many requests")) {
-          errorMessage =
-            "Trop de tentatives. Veuillez patienter quelques instants.";
+          setError("Veuillez confirmer votre email avant de vous connecter")
         } else {
-          errorMessage = authError.message;
+          setError(authError.message)
         }
-
-        setError(errorMessage);
-        setIsLoading(false);
-        return;
+        return
       }
 
       if (data?.session) {
-        setSuccess(true);
+        setSuccess(true)
         setTimeout(() => {
-          router.push("/dashboard");
-          router.refresh();
-        }, 500);
+          router.push("/dashboard")
+          router.refresh()
+        }, 500)
       }
-    } catch (err) {
-      setError("Une erreur est survenue. Veuillez reessayer.");
-      setIsLoading(false);
+    } catch {
+      setError("Une erreur est survenue. Veuillez reessayer.")
+    } finally {
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleGoogleLogin = async () => {
-    setSocialLoading("google");
-    setError(null);
+    setGoogleLoading(true)
+    setError(null)
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      })
       if (error) {
-        setError(error.message);
-        setSocialLoading(null);
+        setError("Erreur de connexion avec Google")
+        setGoogleLoading(false)
       }
     } catch {
-      setError("Erreur de connexion avec Google");
-      setSocialLoading(null);
+      setError("Erreur de connexion avec Google")
+      setGoogleLoading(false)
     }
-  };
-
-  const handleFacebookLogin = async () => {
-    setSocialLoading("facebook");
-    setError(null);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "facebook",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (error) {
-        setError(error.message);
-        setSocialLoading(null);
-      }
-    } catch {
-      setError("Erreur de connexion avec Facebook");
-      setSocialLoading(null);
-    }
-  };
+  }
 
   return (
     <div className="space-y-6">
-      <div className="space-y-3">
-        <Button
-          type="button"
-          variant="outline"
-          className="h-12 w-full gap-3 bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
-          onClick={handleGoogleLogin}
-          disabled={isLoading || success || socialLoading !== null}
-        >
-          {socialLoading === "google" ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <GoogleIcon className="h-5 w-5" />
-          )}
-          Continuer avec Google
-        </Button>
+      {/* Google OAuth */}
+      <Button
+        type="button"
+        variant="outline"
+        className="h-12 w-full gap-3 bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
+        onClick={handleGoogleLogin}
+        disabled={isLoading || success || googleLoading}
+      >
+        {googleLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <GoogleIcon className="h-5 w-5" />}
+        Continuer avec Google
+      </Button>
 
-        <Button
-          type="button"
-          variant="outline"
-          className="h-12 w-full gap-3 bg-[#1877F2] hover:bg-[#166FE5] text-white border-0"
-          onClick={handleFacebookLogin}
-          disabled={isLoading || success || socialLoading !== null}
-        >
-          {socialLoading === "facebook" ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <FacebookIcon className="h-5 w-5" />
-          )}
-          Continuer avec Facebook
-        </Button>
-      </div>
-
+      {/* Separator */}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t" />
@@ -222,36 +124,13 @@ export function LoginForm() {
         </div>
       </div>
 
-      <div className="flex rounded-lg bg-muted p-1">
-        <button
-          type="button"
-          onClick={() => setAuthMethod("email")}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors ${
-            authMethod === "email"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Mail className="h-4 w-4" />
-          Email
-        </button>
-        <button
-          type="button"
-          onClick={() => setAuthMethod("phone")}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors ${
-            authMethod === "phone"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Phone className="h-4 w-4" />
-          Telephone
-        </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Login Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+          <div
+            className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive"
+            role="alert"
+          >
             <AlertCircle className="h-4 w-4 shrink-0" />
             {error}
           </div>
@@ -260,66 +139,33 @@ export function LoginForm() {
         {success && (
           <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
             <CheckCircle className="h-4 w-4 shrink-0" />
-            Connexion reussie ! Redirection en cours...
+            Connexion reussie ! Redirection...
           </div>
         )}
 
-        {authMethod === "email" ? (
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="votre@email.com"
-                className={`h-12 pl-10 ${fieldErrors.email ? "border-destructive" : ""}`}
-                value={formData.email}
-                onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value });
-                  if (fieldErrors.email)
-                    setFieldErrors({ ...fieldErrors, email: "" });
-                }}
-                required
-                disabled={isLoading || success}
-                aria-invalid={!!fieldErrors.email}
-              />
-            </div>
-            {fieldErrors.email && (
-              <p className="flex items-center gap-1 text-xs text-destructive">
-                <AlertCircle className="h-3 w-3" />
-                {fieldErrors.email}
-              </p>
-            )}
+        {/* Email */}
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="email"
+              type="email"
+              placeholder="votre@email.com"
+              className="h-12 pl-10"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+              disabled={isLoading || success}
+            />
           </div>
-        ) : (
-          <div className="space-y-2">
-            <Label htmlFor="phone">Numero de telephone</Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+225 07 00 00 00 00"
-                className="h-12 pl-10"
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                required
-                disabled={isLoading || success}
-              />
-            </div>
-          </div>
-        )}
+        </div>
 
+        {/* Password */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Mot de passe</Label>
-            <Link
-              href="/auth/reset-password"
-              className="text-sm text-primary hover:underline"
-            >
+            <Link href="/auth/reset-password" className="text-sm text-primary hover:underline">
               Mot de passe oublie ?
             </Link>
           </div>
@@ -329,42 +175,24 @@ export function LoginForm() {
               id="password"
               type={showPassword ? "text" : "password"}
               placeholder="********"
-              className={`h-12 pl-10 pr-10 ${fieldErrors.password ? "border-destructive" : ""}`}
+              className="h-12 pl-10 pr-10"
               value={formData.password}
-              onChange={(e) => {
-                setFormData({ ...formData, password: e.target.value });
-                if (fieldErrors.password)
-                  setFieldErrors({ ...fieldErrors, password: "" });
-              }}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
               disabled={isLoading || success}
-              aria-invalid={!!fieldErrors.password}
             />
             <button
               type="button"
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
-          {fieldErrors.password && (
-            <p className="flex items-center gap-1 text-xs text-destructive">
-              <AlertCircle className="h-3 w-3" />
-              {fieldErrors.password}
-            </p>
-          )}
         </div>
 
-        <Button
-          type="submit"
-          className="h-12 w-full"
-          disabled={isLoading || success}
-        >
+        {/* Submit */}
+        <Button type="submit" className="h-12 w-full" disabled={isLoading || success}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -381,5 +209,5 @@ export function LoginForm() {
         </Button>
       </form>
     </div>
-  );
+  )
 }

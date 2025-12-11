@@ -1,44 +1,26 @@
-import { generateText } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
+import { generateText } from "ai"
+import { createOpenAI } from "@ai-sdk/openai"
 
-// Create OpenAI provider with API key
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
+})
 
 export async function POST(req: Request) {
   try {
-    // Vérifier si la clé API est configurée
-    const apiKey = process.env.OPENAI_API_KEY;
-
-    if (!apiKey) {
-      console.error(
-        "[Chat API] OPENAI_API_KEY is not set in environment variables"
-      );
+    if (!process.env.OPENAI_API_KEY) {
       return Response.json(
         {
-          content:
-            "L'assistant IA n'est pas configuré. Veuillez ajouter votre clé OPENAI_API_KEY dans le fichier .env.local et redémarrer le serveur de développement.",
+          content: "L'assistant IA n'est pas configure. Veuillez contacter le support.",
         },
-        { status: 200 }
-      );
+        { status: 200 },
+      )
     }
 
-    // Vérifier le format de la clé (doit commencer par "sk-")
-    if (!apiKey.startsWith("sk-")) {
-      console.error(
-        "[Chat API] OPENAI_API_KEY format is invalid (should start with 'sk-')"
-      );
-      return Response.json(
-        {
-          content:
-            "Format de clé API invalide. La clé OpenAI doit commencer par 'sk-'. Vérifiez votre OPENAI_API_KEY dans .env.local.",
-        },
-        { status: 200 }
-      );
-    }
+    const { messages, livestockContext, hasImage } = await req.json()
 
-    const { messages, livestockContext, hasImage } = await req.json();
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return Response.json({ content: "Veuillez poser une question." }, { status: 200 })
+    }
 
     const systemPrompt = `Tu es PorkyAssistant, un assistant IA expert en elevage porcin, specialement concu pour aider les eleveurs ivoiriens. 
 
@@ -76,7 +58,7 @@ ${
     ? `CONTEXTE DE L'ELEVAGE DE L'UTILISATEUR:
 ${livestockContext}
 
-Utilise ces informations pour personnaliser tes conseils. Par exemple, si l'utilisateur a beaucoup de truies, donne des conseils adaptes a la gestion des reproductions. Si le cheptel est petit, adapte les recommandations en consequence.`
+Utilise ces informations pour personnaliser tes conseils.`
     : ""
 }
 
@@ -86,72 +68,43 @@ REGLES DE REPONSE:
 - Sois empathique et encourage les bonnes pratiques d'elevage
 - Donne des conseils concrets et applicables en Cote d'Ivoire
 - Si on te pose une question hors sujet, ramene poliment la conversation vers l'elevage porcin
-- Pour les medicaments, rappelle toujours de consulter un veterinaire pour le dosage exact`;
+- Pour les medicaments, rappelle toujours de consulter un veterinaire pour le dosage exact`
 
-    const formattedMessages = messages.map(
-      (m: { role: string; content: string; image?: string }) => {
-        if (m.image) {
-          return {
-            role: m.role as "user" | "assistant",
-            content: [
-              {
-                type: "text",
-                text:
-                  m.content ||
-                  "Que voyez-vous sur cette image ? Identifiez et donnez des conseils.",
-              },
-              { type: "image", image: m.image },
-            ],
-          };
-        }
+    const formattedMessages = messages.map((m: { role: string; content: string; image?: string }) => {
+      if (m.image) {
         return {
           role: m.role as "user" | "assistant",
-          content: m.content,
-        };
+          content: [
+            { type: "text", text: m.content || "Que voyez-vous sur cette image ? Identifiez et donnez des conseils." },
+            { type: "image", image: m.image },
+          ],
+        }
       }
-    );
+      return {
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }
+    })
 
     const { text } = await generateText({
       model: hasImage ? openai("gpt-4o") : openai("gpt-4o-mini"),
       system: systemPrompt,
       messages: formattedMessages,
-    });
+    })
 
-    return Response.json({ content: text });
-  } catch (error: any) {
-    console.error("[Chat API] Error:", {
-      message: error?.message,
-      code: error?.code,
-      status: error?.status,
-      apiKeyPresent: !!process.env.OPENAI_API_KEY,
-      apiKeyPrefix: process.env.OPENAI_API_KEY?.substring(0, 7) + "...",
-    });
+    return Response.json({ content: text })
+  } catch (error: unknown) {
+    const err = error as Error
 
-    let errorMessage =
-      "Désolé, je rencontre des difficultés techniques. Veuillez réessayer dans quelques instants.";
+    // Determine error type for appropriate user message
+    let errorMessage = "Desole, je rencontre des difficultes techniques. Veuillez reessayer."
 
-    if (
-      error?.message?.includes("API key") ||
-      error?.message?.includes("401") ||
-      error?.message?.includes("Incorrect API key") ||
-      error?.message?.includes("Invalid API key")
-    ) {
-      errorMessage =
-        "Clé API OpenAI invalide ou expirée. Vérifiez votre OPENAI_API_KEY dans le fichier .env.local. Si vous venez de l'ajouter, redémarrez le serveur de développement (Ctrl+C puis npm run dev).";
-    } else if (
-      error?.message?.includes("quota") ||
-      error?.message?.includes("429")
-    ) {
-      errorMessage =
-        "Quota OpenAI dépassé. Vérifiez votre compte OpenAI ou attendez quelques minutes.";
-    } else if (error?.message?.includes("model")) {
-      errorMessage =
-        "Modèle OpenAI non disponible. Vérifiez que votre compte a accès à GPT-4.";
-    } else if (error?.status === 401) {
-      errorMessage =
-        "Authentification OpenAI échouée. Vérifiez que votre clé API est valide et active.";
+    if (err?.message?.includes("API key") || err?.message?.includes("401")) {
+      errorMessage = "Service IA temporairement indisponible. Veuillez reessayer plus tard."
+    } else if (err?.message?.includes("quota") || err?.message?.includes("429")) {
+      errorMessage = "Service tres sollicite. Veuillez patienter quelques instants et reessayer."
     }
 
-    return Response.json({ content: errorMessage }, { status: 200 });
+    return Response.json({ content: errorMessage }, { status: 200 })
   }
 }

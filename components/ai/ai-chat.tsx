@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useState, useEffect, useRef } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import type React from "react"
+import { useState, useEffect, useRef } from "react"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Send,
   Bot,
@@ -19,14 +19,14 @@ import {
   ImageIcon,
   X,
   Camera,
-} from "lucide-react";
-import { useApp } from "@/contexts/app-context";
+} from "lucide-react"
+import { useApp } from "@/contexts/app-context"
 
 interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  image?: string;
+  id: string
+  role: "user" | "assistant"
+  content: string
+  image?: string
 }
 
 const questionCategories = [
@@ -57,17 +57,17 @@ const questionCategories = [
       "Comment ameliorer le taux de fecondite ?",
     ],
   },
-];
+]
 
 export function AIChat() {
-  const { animals, stats } = useApp();
+  const { animals, stats } = useApp()
 
   const getWelcomeMessage = (): Message => ({
     id: "welcome",
     role: "assistant",
     content: `Bonjour ! Je suis **PorkyAssistant**, votre conseiller IA specialise en elevage porcin.
 
-${stats.totalAnimals > 0 ? `Je vois que vous avez **${stats.totalAnimals} animaux** dans votre cheptel (${stats.truies} truies, ${stats.verrats} verrats, ${stats.porcelets} porcelets).` : "Commencez par ajouter vos premiers animaux pour que je puisse vous donner des conseils personnalises."}
+${stats.total > 0 ? `Je vois que vous avez **${stats.total} animaux** dans votre cheptel (${stats.truies} truies, ${stats.verrats} verrats, ${stats.porcelets} porcelets).` : "Commencez par ajouter vos premiers animaux pour que je puisse vous donner des conseils personnalises."}
 
 **Demandez-moi conseil sur :**
 - L'alimentation et les rations
@@ -77,97 +77,92 @@ ${stats.totalAnimals > 0 ? `Je vois que vous avez **${stats.totalAnimals} animau
 **Nouveau !** Vous pouvez m'envoyer des photos de vos porcs, medicaments ou aliments pour que je vous aide a les identifier.
 
 Selectionnez une question ci-dessous ou posez la votre !`,
-  });
+  })
 
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setMessages([getWelcomeMessage()]);
-  }, [stats.totalAnimals]);
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    setMessages([getWelcomeMessage()])
+  }, [stats.total])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
 
   const buildLivestockContext = () => {
-    if (animals.length === 0) return "";
+    if (animals.length === 0) return ""
 
-    let context = `\n\nContexte du cheptel de l'utilisateur:\n`;
-    context += `- Total: ${animals.length} animaux\n`;
-    context += `- Truies: ${stats.truies}\n`;
-    context += `- Verrats: ${stats.verrats}\n`;
-    context += `- Porcelets: ${stats.porcelets}\n`;
-    context += `- Porcs d'engraissement: ${stats.porcs}\n`;
+    let context = `\n\nContexte du cheptel de l'utilisateur:\n`
+    context += `- Total: ${animals.length} animaux\n`
+    context += `- Truies: ${stats.truies}\n`
+    context += `- Verrats: ${stats.verrats}\n`
+    context += `- Porcelets: ${stats.porcelets}\n`
+    context += `- Porcs d'engraissement: ${stats.porcs}\n`
 
-    // Health status typing in animal data is: "bon" | "moyen" | "mauvais"
-    const healthyCount = animals.filter((a) => a.healthStatus === "bon").length;
-    const needsAttentionCount = animals.filter(
-      (a) => a.healthStatus === "moyen" || a.healthStatus === "mauvais"
-    ).length;
-    if (healthyCount > 0 || needsAttentionCount > 0) {
-      context += `- En bonne sante: ${healthyCount}, Necessitant attention: ${needsAttentionCount}\n`;
+    const healthyCount = animals.filter((a) => a.healthStatus === "bon").length
+    const sickCount = animals.filter((a) => a.healthStatus === "malade" || a.healthStatus === "critique").length
+    if (healthyCount > 0 || sickCount > 0) {
+      context += `- En bonne sante: ${healthyCount}, Necessitant attention: ${sickCount}\n`
     }
 
-    return context;
-  };
+    return context
+  }
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]
+    if (!file) return
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("L'image ne doit pas depasser 5 Mo");
-      return;
+      setError("L'image ne doit pas depasser 5 Mo")
+      return
     }
 
-    const reader = new FileReader();
+    const reader = new FileReader()
     reader.onloadend = () => {
-      const base64 = reader.result as string;
-      setSelectedImage(base64);
-      setImagePreview(base64);
-    };
-    reader.readAsDataURL(file);
-  };
+      const base64 = reader.result as string
+      setSelectedImage(base64)
+      setImagePreview(base64)
+    }
+    reader.readAsDataURL(file)
+  }
 
   const removeImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    if (cameraInputRef.current) cameraInputRef.current.value = "";
-  };
+    setSelectedImage(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+    if (cameraInputRef.current) cameraInputRef.current.value = ""
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if ((!input.trim() && !selectedImage) || isLoading) return;
+    e.preventDefault()
+    if ((!input.trim() && !selectedImage) || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content:
-        input.trim() ||
-        (selectedImage ? "Que voyez-vous sur cette image ?" : ""),
+      content: input.trim() || (selectedImage ? "Que voyez-vous sur cette image ?" : ""),
       image: selectedImage || undefined,
-    };
+    }
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setSelectedImage(null);
-    setImagePreview(null);
-    setIsLoading(true);
-    setError(null);
-    setSelectedCategory(null);
+    setMessages((prev) => [...prev, userMessage])
+    setInput("")
+    setSelectedImage(null)
+    setImagePreview(null)
+    setIsLoading(true)
+    setError(null)
+    setSelectedCategory(null)
 
     try {
-      const livestockContext = buildLivestockContext();
+      const livestockContext = buildLivestockContext()
 
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -181,54 +176,45 @@ Selectionnez une question ci-dessous ou posez la votre !`,
           livestockContext,
           hasImage: !!userMessage.image,
         }),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("Erreur de communication avec l'assistant");
+        throw new Error("Erreur de communication avec l'assistant")
       }
 
-      const data = await response.json();
+      const data = await response.json()
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content:
-          data.content ||
-          data.message ||
-          "Desole, je n'ai pas pu generer une reponse.",
-      };
+        content: data.content || data.message || "Desole, je n'ai pas pu generer une reponse.",
+      }
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage])
     } catch (err) {
-      setError("Une erreur est survenue. Veuillez reessayer.");
+      setError("Une erreur est survenue. Veuillez reessayer.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleQuestionClick = (question: string) => {
-    setInput(question);
-    setSelectedCategory(null);
-  };
+    setInput(question)
+    setSelectedCategory(null)
+  }
 
   const handleReset = () => {
-    setMessages([getWelcomeMessage()]);
-    setError(null);
-    setSelectedCategory(null);
-    setSelectedImage(null);
-    setImagePreview(null);
-  };
+    setMessages([getWelcomeMessage()])
+    setError(null)
+    setSelectedCategory(null)
+    setSelectedImage(null)
+    setImagePreview(null)
+  }
 
   return (
     <Card className="flex h-[calc(100vh-200px)] flex-col shadow-soft overflow-hidden">
       {/* Hidden file inputs */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleImageSelect}
-        accept="image/*"
-        className="hidden"
-      />
+      <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
       <input
         type="file"
         ref={cameraInputRef}
@@ -247,18 +233,11 @@ Selectionnez une question ci-dessous ou posez la votre !`,
           <div>
             <h3 className="font-semibold text-foreground">PorkyAssistant</h3>
             <p className="text-xs text-muted-foreground">
-              {stats.totalAnimals > 0
-                ? `${stats.totalAnimals} animaux dans votre cheptel`
-                : "Expert en elevage porcin"}
+              {stats.total > 0 ? `${stats.total} animaux dans votre cheptel` : "Expert en elevage porcin"}
             </p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleReset}
-          disabled={isLoading}
-        >
+        <Button variant="ghost" size="sm" onClick={handleReset} disabled={isLoading}>
           <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
         </Button>
       </div>
@@ -266,15 +245,10 @@ Selectionnez une question ci-dessous ou posez la votre !`,
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}
-          >
+          <div key={message.id} className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}>
             <div
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                message.role === "user"
-                  ? "bg-primary"
-                  : "bg-gradient-to-br from-primary to-primary-dark"
+                message.role === "user" ? "bg-primary" : "bg-gradient-to-br from-primary to-primary-dark"
               }`}
             >
               {message.role === "user" ? (
@@ -285,9 +259,7 @@ Selectionnez une question ci-dessous ou posez la votre !`,
             </div>
             <div
               className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                message.role === "user"
-                  ? "bg-primary text-white"
-                  : "bg-muted text-foreground border border-border"
+                message.role === "user" ? "bg-primary text-white" : "bg-muted text-foreground border border-border"
               }`}
             >
               {/* Show image if present */}
@@ -303,9 +275,7 @@ Selectionnez une question ci-dessous ou posez la votre !`,
               <div
                 className="whitespace-pre-wrap text-sm prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{
-                  __html: message.content
-                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                    .replace(/\n/g, "<br/>"),
+                  __html: message.content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br/>"),
                 }}
               />
             </div>
@@ -320,9 +290,7 @@ Selectionnez une question ci-dessous ou posez la votre !`,
             <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-3 border border-border">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <span className="text-sm text-muted-foreground">
-                {selectedImage
-                  ? "Analyse de l'image..."
-                  : "Reflexion en cours..."}
+                {selectedImage ? "Analyse de l'image..." : "Reflexion en cours..."}
               </span>
             </div>
           </div>
@@ -354,9 +322,7 @@ Selectionnez une question ci-dessous ou posez la votre !`,
             {questionCategories.map((cat, i) => (
               <button
                 key={i}
-                onClick={() =>
-                  setSelectedCategory(selectedCategory === i ? null : i)
-                }
+                onClick={() => setSelectedCategory(selectedCategory === i ? null : i)}
                 className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                   selectedCategory === i
                     ? "bg-primary text-white"
@@ -391,11 +357,7 @@ Selectionnez une question ci-dessous ou posez la votre !`,
       {imagePreview && (
         <div className="border-t border-border px-4 py-2 bg-muted/50">
           <div className="relative inline-block">
-            <img
-              src={imagePreview || "/placeholder.svg"}
-              alt="Preview"
-              className="h-20 rounded-lg object-cover"
-            />
+            <img src={imagePreview || "/placeholder.svg"} alt="Preview" className="h-20 rounded-lg object-cover" />
             <button
               onClick={removeImage}
               className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-white shadow-md hover:bg-destructive/90"
@@ -435,9 +397,7 @@ Selectionnez une question ci-dessous ou posez la votre !`,
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={
-              selectedImage
-                ? "Decrivez ce que vous voulez savoir..."
-                : "Posez votre question sur l'elevage porcin..."
+              selectedImage ? "Decrivez ce que vous voulez savoir..." : "Posez votre question sur l'elevage porcin..."
             }
             className="flex-1"
             disabled={isLoading}
@@ -447,11 +407,7 @@ Selectionnez une question ci-dessous ou posez la votre !`,
             className="bg-primary text-white hover:bg-primary-dark"
             disabled={(!input.trim() && !selectedImage) || isLoading}
           >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>
         <p className="text-xs text-muted-foreground mt-2 text-center">
@@ -459,5 +415,5 @@ Selectionnez une question ci-dessous ou posez la votre !`,
         </p>
       </div>
     </Card>
-  );
+  )
 }

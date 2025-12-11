@@ -1,9 +1,9 @@
 // Email service exports
-export { sendEmail, resend, EMAIL_CONFIG } from "./resend";
-export { WelcomeEmail } from "./templates/welcome-email";
-export { PasswordResetEmail } from "./templates/password-reset-email";
-export { AlertEmail } from "./templates/alert-email";
-export { WeeklyReportEmail } from "./templates/weekly-report-email";
+export { sendEmail, resend, EMAIL_CONFIG } from "./resend"
+export { WelcomeEmail } from "./templates/welcome-email"
+export { PasswordResetEmail } from "./templates/password-reset-email"
+export { AlertEmail } from "./templates/alert-email"
+export { WeeklyReportEmail } from "./templates/weekly-report-email"
 
 // Notification utilities
 export {
@@ -12,72 +12,51 @@ export {
   sendWelcomeEmail as sendWelcomeNotification,
   areEmailNotificationsEnabled,
   getUserEmail,
-} from "./notifications";
+} from "./notifications"
 
 // Helper functions for common email operations (server-side)
-// Use critical email functions for guaranteed delivery
-export async function sendWelcomeEmailServer(
-  to: string,
-  userName: string,
-  userId?: string
-) {
-  const { sendCriticalEmail } = await import("./utils");
-  const { WelcomeEmail } = await import("./templates/welcome-email");
+export async function sendWelcomeEmailServer(to: string, userName: string) {
+  const { sendEmail } = await import("./resend")
+  const { WelcomeEmail } = await import("./templates/welcome-email")
 
-  return sendCriticalEmail(
-    {
-      to,
-      subject: "Bienvenue sur PorkyFarm !",
-      react: WelcomeEmail({
-        userName,
-        loginUrl: "https://www.porkyfarm.app/auth/login",
-      }),
-    },
-    {
-      userId,
-      action: "welcome",
-    }
-  );
+  return sendEmail({
+    to,
+    subject: "Bienvenue sur PorkyFarm !",
+    react: WelcomeEmail({
+      userName,
+      loginUrl: "https://www.porkyfarm.app/auth/login",
+    }),
+  })
 }
 
-export async function sendPasswordResetEmailServer(
-  to: string,
-  userName: string,
-  resetUrl: string
-) {
-  const { sendCriticalEmail } = await import("./utils");
-  const { PasswordResetEmail } =
-    await import("./templates/password-reset-email");
+export async function sendPasswordResetEmailServer(to: string, userName: string, resetUrl: string) {
+  const { sendEmail } = await import("./resend")
+  const { PasswordResetEmail } = await import("./templates/password-reset-email")
 
-  return sendCriticalEmail(
-    {
-      to,
-      subject: "Reinitialisation de votre mot de passe PorkyFarm",
-      react: PasswordResetEmail({
-        userName,
-        resetUrl,
-        expiresIn: "24 heures",
-      }),
-    },
-    {
-      action: "password-reset",
-    }
-  );
+  return sendEmail({
+    to,
+    subject: "Reinitialisation de votre mot de passe PorkyFarm",
+    react: PasswordResetEmail({
+      userName,
+      resetUrl,
+      expiresIn: "24 heures",
+    }),
+  })
 }
 
 export async function sendAlertEmailServer(
   to: string,
   userName: string,
   alert: {
-    type: "vaccination" | "gestation" | "health" | "general";
-    title: string;
-    message: string;
-    animalName?: string;
-    actionUrl?: string;
-  }
+    type: "vaccination" | "gestation" | "health" | "general"
+    title: string
+    message: string
+    animalName?: string
+    actionUrl?: string
+  },
 ) {
-  const { sendEmail } = await import("./resend");
-  const { AlertEmail } = await import("./templates/alert-email");
+  const { sendEmail } = await import("./resend")
+  const { AlertEmail } = await import("./templates/alert-email")
 
   return sendEmail({
     to,
@@ -91,7 +70,7 @@ export async function sendAlertEmailServer(
       actionUrl: alert.actionUrl || "https://www.porkyfarm.app/dashboard",
       actionLabel: "Voir dans PorkyFarm",
     }),
-  });
+  })
 }
 
 export async function sendWeeklyReportEmailServer(
@@ -99,24 +78,24 @@ export async function sendWeeklyReportEmailServer(
   userName: string,
   farmName: string,
   stats: {
-    totalAnimals: number;
-    newBirths: number;
-    gestationsInProgress: number;
-    upcomingBirths: number;
-    healthCases: number;
-    resolvedCases: number;
+    totalAnimals: number
+    newBirths: number
+    gestationsInProgress: number
+    upcomingBirths: number
+    healthCases: number
+    resolvedCases: number
   },
-  alerts: Array<{ type: string; message: string }>
+  alerts: Array<{ type: string; message: string }>,
 ) {
-  const { sendEmail } = await import("./resend");
-  const { WeeklyReportEmail } = await import("./templates/weekly-report-email");
+  const { sendEmail } = await import("./resend")
+  const { WeeklyReportEmail } = await import("./templates/weekly-report-email")
 
-  const now = new Date();
+  const now = new Date()
   const reportDate = now.toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",
     year: "numeric",
-  });
+  })
 
   return sendEmail({
     to,
@@ -128,5 +107,5 @@ export async function sendWeeklyReportEmailServer(
       stats,
       alerts,
     }),
-  });
+  })
 }

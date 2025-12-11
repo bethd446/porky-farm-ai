@@ -1,7 +1,7 @@
-import { AddAnimalForm } from "@/components/livestock/add-animal-form";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { AddAnimalForm } from "@/components/livestock/add-animal-form"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
 export default function AddAnimalPage() {
   return (
@@ -13,16 +13,12 @@ export default function AddAnimalPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Ajouter un porc
-          </h1>
-          <p className="text-muted-foreground">
-            Enregistrez un nouvel animal dans votre élevage
-          </p>
+          <h1 className="text-2xl font-bold text-foreground">Ajouter un animal</h1>
+          <p className="text-muted-foreground">Enregistrez un nouveau membre de votre cheptel</p>
         </div>
       </div>
 
       <AddAnimalForm />
     </div>
-  );
+  )
 }

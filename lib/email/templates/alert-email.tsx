@@ -1,17 +1,11 @@
-import * as React from "react";
-
-/**
- * Alert email template
- * Follows Resend official documentation pattern for React email templates
- */
 interface AlertEmailProps {
-  userName: string;
-  alertType: "vaccination" | "gestation" | "health" | "general";
-  alertTitle: string;
-  alertMessage: string;
-  animalName?: string;
-  actionUrl?: string;
-  actionLabel?: string;
+  userName: string
+  alertType: "vaccination" | "gestation" | "health" | "general"
+  alertTitle: string
+  alertMessage: string
+  animalName?: string
+  actionUrl?: string
+  actionLabel?: string
 }
 
 const alertStyles = {
@@ -19,7 +13,7 @@ const alertStyles = {
   gestation: { bg: "#fce7f3", border: "#ec4899", icon: "🐷" },
   health: { bg: "#fee2e2", border: "#ef4444", icon: "🏥" },
   general: { bg: "#f0fdf4", border: "#16a34a", icon: "📢" },
-};
+}
 
 export function AlertEmail({
   userName,
@@ -30,13 +24,12 @@ export function AlertEmail({
   actionUrl = "https://www.porkyfarm.app/dashboard",
   actionLabel = "Voir dans l'application",
 }: AlertEmailProps) {
-  const style = alertStyles[alertType];
+  const style = alertStyles[alertType]
 
   return (
     <div
       style={{
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         maxWidth: "600px",
         margin: "0 auto",
         padding: "40px 20px",
@@ -178,19 +171,14 @@ export function AlertEmail({
           color: "#9ca3af",
         }}
       >
-        <p style={{ margin: "0 0 8px 0" }}>
-          Vous recevez cet email car vous avez active les notifications.
-        </p>
+        <p style={{ margin: "0 0 8px 0" }}>Vous recevez cet email car vous avez active les notifications.</p>
         <p style={{ margin: "0" }}>
           © 2025 PorkyFarm |{" "}
-          <a
-            href="https://www.porkyfarm.app/dashboard/settings"
-            style={{ color: "#16a34a" }}
-          >
+          <a href="https://www.porkyfarm.app/dashboard/settings" style={{ color: "#16a34a" }}>
             Gerer mes notifications
           </a>
         </p>
       </div>
     </div>
-  );
+  )
 }

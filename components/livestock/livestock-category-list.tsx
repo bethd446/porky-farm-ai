@@ -18,102 +18,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
-const allAnimals = [
-  {
-    id: 1,
-    name: "Truie #32",
-    type: "truie",
-    breed: "Large White",
-    age: "2 ans 3 mois",
-    weight: "185 kg",
-    status: "Gestante",
-    statusColor: "bg-pink-500",
-    image: "/white-sow-pig-healthy-farm.jpg",
-    healthScore: 95,
-    nextEvent: "Mise-bas dans 8 jours",
-  },
-  {
-    id: 5,
-    name: "Truie #28",
-    type: "truie",
-    breed: "Large White",
-    age: "4 ans",
-    weight: "195 kg",
-    status: "Allaitante",
-    statusColor: "bg-purple-500",
-    image: "/nursing-sow-with-piglets-farm.jpg",
-    healthScore: 90,
-    nextEvent: "Sevrage dans 12 jours",
-  },
-  {
-    id: 3,
-    name: "Truie #45",
-    type: "truie",
-    breed: "Landrace",
-    age: "1 an 8 mois",
-    weight: "165 kg",
-    status: "Sous traitement",
-    statusColor: "bg-amber-500",
-    image: "/landrace-sow-pig-farm.jpg",
-    healthScore: 72,
-    nextEvent: "Fin traitement dans 3 jours",
-  },
-  {
-    id: 2,
-    name: "Verrat #8",
-    type: "verrat",
-    breed: "Duroc",
-    age: "3 ans",
-    weight: "285 kg",
-    status: "Reproducteur",
-    statusColor: "bg-blue-500",
-    image: "/duroc-boar-pig-farm.jpg",
-    healthScore: 98,
-    nextEvent: "Saillie prévue demain",
-  },
-  {
-    id: 7,
-    name: "Verrat #12",
-    type: "verrat",
-    breed: "Piétrain",
-    age: "2 ans 6 mois",
-    weight: "260 kg",
-    status: "Actif",
-    statusColor: "bg-blue-500",
-    image: "/pietrain-boar-pig-farm.jpg",
-    healthScore: 96,
-    nextEvent: "Contrôle dans 5 jours",
-  },
-  {
-    id: 4,
-    name: "Lot Porcelets A12",
-    type: "porcelet",
-    breed: "Croisé",
-    age: "6 semaines",
-    weight: "12 kg moy.",
-    status: "Sevrage",
-    statusColor: "bg-green-500",
-    image: "/piglets-group-farm-cute.jpg",
-    healthScore: 100,
-    count: 11,
-    nextEvent: "Vaccination dans 2 jours",
-  },
-  {
-    id: 8,
-    name: "Lot Porcelets B08",
-    type: "porcelet",
-    breed: "Croisé",
-    age: "3 semaines",
-    weight: "6 kg moy.",
-    status: "Allaitement",
-    statusColor: "bg-pink-400",
-    image: "/baby-piglets-nursing-sow-farm.jpg",
-    healthScore: 98,
-    count: 9,
-    nextEvent: "Pesée dans 1 semaine",
-  },
-]
+import { useApp } from "@/contexts/app-context"
+import { useToast } from "@/hooks/use-toast"
 
 interface LivestockCategoryListProps {
   category: "truie" | "verrat" | "porcelet"
@@ -121,22 +27,63 @@ interface LivestockCategoryListProps {
 
 export function LivestockCategoryList({ category }: LivestockCategoryListProps) {
   const router = useRouter()
-  const animals = allAnimals.filter((animal) => animal.type === category)
-  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const { animals, deleteAnimal } = useApp()
+  const { toast } = useToast()
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  const handleDelete = (id: number) => {
+  const filteredAnimals = animals.filter((animal) => {
+    if (category === "truie") return animal.category === "truie"
+    if (category === "verrat") return animal.category === "verrat"
+    if (category === "porcelet") return animal.category === "porcelet" || animal.category === "porc"
+    return false
+  })
+
+  const handleDelete = (id: string) => {
     setDeleteId(id)
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteId) {
-      // Logique de suppression ici
-      console.log(`Suppression de l'animal ${deleteId}`)
-      setDeleteId(null)
+      setIsDeleting(true)
+      try {
+        deleteAnimal(deleteId)
+        toast({
+          title: "Animal supprimé",
+          description: "L'animal a été supprimé avec succès.",
+        })
+      } catch {
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer l'animal. Veuillez réessayer.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsDeleting(false)
+        setDeleteId(null)
+      }
     }
   }
 
-  if (animals.length === 0) {
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "gestante":
+        return "bg-pink-500"
+      case "allaitante":
+        return "bg-purple-500"
+      case "actif":
+      case "reproducteur":
+        return "bg-blue-500"
+      case "sevrage":
+        return "bg-green-500"
+      case "sous traitement":
+        return "bg-amber-500"
+      default:
+        return "bg-gray-500"
+    }
+  }
+
+  if (filteredAnimals.length === 0) {
     return (
       <Card className="flex flex-col items-center justify-center p-12 text-center shadow-soft">
         <p className="text-lg font-medium text-muted-foreground">Aucun animal dans cette catégorie</p>
@@ -148,21 +95,16 @@ export function LivestockCategoryList({ category }: LivestockCategoryListProps) 
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {animals.map((animal) => (
+        {filteredAnimals.map((animal) => (
           <Card key={animal.id} className="group overflow-hidden shadow-soft transition hover:shadow-lg">
             <div className="relative">
               <img
-                src={animal.image || "/placeholder.svg"}
-                alt={animal.name}
+                src={animal.photo || "/placeholder.svg?height=192&width=256&query=pig"}
+                alt={animal.name || animal.identifier}
                 className="h-48 w-full object-cover transition group-hover:scale-105"
               />
               <div className="absolute left-3 top-3 flex gap-2">
-                <Badge className={`${animal.statusColor} text-white`}>{animal.status}</Badge>
-                {animal.count && (
-                  <Badge variant="secondary" className="bg-black/50 text-white">
-                    {animal.count} têtes
-                  </Badge>
-                )}
+                <Badge className={`${getStatusColor(animal.status)} text-white`}>{animal.status || "Actif"}</Badge>
               </div>
               <div className="absolute right-3 top-3">
                 <DropdownMenu>
@@ -192,23 +134,25 @@ export function LivestockCategoryList({ category }: LivestockCategoryListProps) 
             <div className="p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-semibold text-foreground">{animal.name}</h3>
+                  <h3 className="font-semibold text-foreground">{animal.name || animal.identifier}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {animal.breed} • {animal.age}
+                    {animal.breed} •{" "}
+                    {animal.birthDate
+                      ? `Ne le ${new Date(animal.birthDate).toLocaleDateString("fr-FR")}`
+                      : "Age inconnu"}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 rounded-full bg-green-50 px-2 py-1">
                   <Heart className="h-3 w-3 text-green-600" />
-                  <span className="text-xs font-medium text-green-600">{animal.healthScore}%</span>
+                  <span className="text-xs font-medium text-green-600">OK</span>
                 </div>
               </div>
 
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Weight className="h-4 w-4" />
-                  {animal.weight}
+                  {animal.weight ? `${animal.weight} kg` : "Poids non renseigné"}
                 </div>
-                <span className="text-xs text-muted-foreground">{animal.nextEvent}</span>
               </div>
 
               <Link href={`/dashboard/livestock/${animal.id}`}>
@@ -230,12 +174,13 @@ export function LivestockCategoryList({ category }: LivestockCategoryListProps) 
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Supprimer
+              {isDeleting ? "Suppression..." : "Supprimer"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
