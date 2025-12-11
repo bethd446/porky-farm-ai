@@ -1,73 +1,105 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Lock, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react"
-import { supabase } from "@/lib/supabase/client"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Lock,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
 
 export default function UpdatePasswordPage() {
-  const router = useRouter()
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const router = useRouter();
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     // Check if user has a valid session from the reset link
     const checkSession = async () => {
       const {
         data: { session },
-      } = await supabase.auth.getSession()
+      } = await supabase.auth.getSession();
       if (!session) {
-        setError("Lien invalide ou expire. Veuillez demander un nouveau lien de reinitialisation.")
+        setError(
+          "Lien invalide ou expire. Veuillez demander un nouveau lien de reinitialisation."
+        );
       }
-    }
-    checkSession()
-  }, [])
+    };
+    checkSession();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
+    e.preventDefault();
+    setError(null);
 
     if (password !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas")
-      return
+      setError("Les mots de passe ne correspondent pas");
+      return;
     }
 
     if (password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caracteres")
-      return
+      setError("Le mot de passe doit contenir au moins 8 caracteres");
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password })
+      const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
-        setError(error.message)
-        return
+        let errorMessage = "Une erreur est survenue lors de la mise a jour.";
+
+        if (error.message.includes("session")) {
+          errorMessage =
+            "Votre session a expire. Veuillez demander un nouveau lien de reinitialisation.";
+        } else if (error.message.includes("password")) {
+          errorMessage =
+            "Le mot de passe ne respecte pas les criteres de securite.";
+        } else if (error.message.includes("weak")) {
+          errorMessage =
+            "Le mot de passe est trop faible. Utilisez au moins 8 caracteres avec majuscules, minuscules et chiffres.";
+        } else {
+          errorMessage = error.message;
+        }
+
+        setError(errorMessage);
+        setIsLoading(false);
+        return;
       }
 
-      setSuccess(true)
+      setSuccess(true);
       setTimeout(() => {
-        router.push("/auth/login")
-      }, 2000)
-    } catch {
-      setError("Une erreur est survenue. Veuillez reessayer.")
+        router.push("/auth/login");
+      }, 2000);
+    } catch (err) {
+      console.error("[Update Password] Exception:", err);
+      setError("Une erreur est survenue. Veuillez reessayer.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (success) {
     return (
@@ -79,12 +111,13 @@ export default function UpdatePasswordPage() {
             </div>
             <CardTitle>Mot de passe mis a jour !</CardTitle>
             <CardDescription>
-              Votre mot de passe a ete modifie avec succes. Vous allez etre redirige vers la page de connexion.
+              Votre mot de passe a ete modifie avec succes. Vous allez etre
+              redirige vers la page de connexion.
             </CardDescription>
           </CardHeader>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -95,7 +128,9 @@ export default function UpdatePasswordPage() {
             <Lock className="h-6 w-6 text-white" />
           </div>
           <CardTitle>Nouveau mot de passe</CardTitle>
-          <CardDescription>Choisissez un nouveau mot de passe securise pour votre compte.</CardDescription>
+          <CardDescription>
+            Choisissez un nouveau mot de passe securise pour votre compte.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -126,7 +161,11 @@ export default function UpdatePasswordPage() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -161,7 +200,10 @@ export default function UpdatePasswordPage() {
             </Button>
 
             <div className="text-center">
-              <Link href="/auth/login" className="text-sm text-muted-foreground hover:text-foreground">
+              <Link
+                href="/auth/login"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
                 Retour a la connexion
               </Link>
             </div>
@@ -169,5 +211,5 @@ export default function UpdatePasswordPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

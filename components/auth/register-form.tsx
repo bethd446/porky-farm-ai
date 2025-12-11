@@ -1,14 +1,27 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useCallback, useId } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Eye, EyeOff, Mail, Lock, User, Phone, Loader2, AlertCircle, CheckCircle2, Check, X } from "lucide-react"
-import { supabase } from "@/lib/supabase/client"
+import type React from "react";
+import { useState, useCallback, useId } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Check,
+  ArrowRight,
+  X,
+} from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
 
 const GoogleIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
@@ -29,103 +42,111 @@ const GoogleIcon = ({ className }: { className?: string }) => (
       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
     />
   </svg>
-)
+);
 
 const FacebookIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#1877F2" aria-hidden="true">
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="#1877F2"
+    aria-hidden="true"
+  >
     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
   </svg>
-)
+);
 
-type AuthMethod = "email" | "phone"
+type AuthMethod = "email" | "phone";
 
 interface FormErrors {
-  name?: string
-  email?: string
-  phone?: string
-  password?: string
-  general?: string
+  name?: string;
+  email?: string;
+  phone?: string;
+  password?: string;
+  general?: string;
 }
 
 export function RegisterForm() {
-  const router = useRouter()
+  const router = useRouter();
 
-  const formId = useId()
-  const nameErrorId = `${formId}-name-error`
-  const emailErrorId = `${formId}-email-error`
-  const phoneErrorId = `${formId}-phone-error`
-  const passwordErrorId = `${formId}-password-error`
-  const generalErrorId = `${formId}-general-error`
+  const formId = useId();
+  const nameErrorId = `${formId}-name-error`;
+  const emailErrorId = `${formId}-email-error`;
+  const phoneErrorId = `${formId}-phone-error`;
+  const passwordErrorId = `${formId}-password-error`;
+  const generalErrorId = `${formId}-general-error`;
 
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [socialLoading, setSocialLoading] = useState<string | null>(null)
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [success, setSuccess] = useState(false)
-  const [authMethod, setAuthMethod] = useState<AuthMethod>("email")
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [success, setSuccess] = useState(false);
+  const [authMethod, setAuthMethod] = useState<AuthMethod>("email");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     password: "",
-  })
+  });
 
   const passwordChecks = {
     length: formData.password.length >= 8,
     uppercase: /[A-Z]/.test(formData.password),
     lowercase: /[a-z]/.test(formData.password),
     number: /[0-9]/.test(formData.password),
-  }
-  const passwordStrength = Object.values(passwordChecks).filter(Boolean).length
+  };
+  const passwordStrength = Object.values(passwordChecks).filter(Boolean).length;
 
   const validateForm = useCallback((): boolean => {
-    const newErrors: FormErrors = {}
+    const newErrors: FormErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Le nom est requis"
+      newErrors.name = "Le nom est requis";
     } else if (formData.name.trim().length < 2) {
-      newErrors.name = "Le nom doit contenir au moins 2 caracteres"
+      newErrors.name = "Le nom doit contenir au moins 2 caracteres";
     }
 
     if (authMethod === "email") {
       if (!formData.email.trim()) {
-        newErrors.email = "L'email est requis"
+        newErrors.email = "L'email est requis";
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        newErrors.email = "Format d'email invalide"
+        newErrors.email = "Format d'email invalide";
       }
     } else {
       if (!formData.phone.trim()) {
-        newErrors.phone = "Le numero de telephone est requis"
+        newErrors.phone = "Le numero de telephone est requis";
       } else if (!/^[+]?[\d\s-]{8,}$/.test(formData.phone.replace(/\s/g, ""))) {
-        newErrors.phone = "Format de telephone invalide"
+        newErrors.phone = "Format de telephone invalide";
       }
     }
 
     if (!formData.password) {
-      newErrors.password = "Le mot de passe est requis"
+      newErrors.password = "Le mot de passe est requis";
     } else if (formData.password.length < 8) {
-      newErrors.password = "Le mot de passe doit contenir au moins 8 caracteres"
+      newErrors.password =
+        "Le mot de passe doit contenir au moins 8 caracteres";
     } else if (passwordStrength < 3) {
-      newErrors.password = "Le mot de passe n'est pas assez securise"
+      newErrors.password = "Le mot de passe n'est pas assez securise";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }, [formData, authMethod, passwordStrength])
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData, authMethod, passwordStrength]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!validateForm()) {
-      return
+      return;
     }
 
-    setIsLoading(true)
-    setErrors({})
+    setIsLoading(true);
+    setErrors({});
 
     try {
       const emailToUse =
-        authMethod === "email" ? formData.email : `${formData.phone.replace(/\s/g, "")}@phone.porkyfarm.app`
+        authMethod === "email"
+          ? formData.email
+          : `${formData.phone.replace(/\s/g, "")}@phone.porkyfarm.app`;
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: emailToUse,
@@ -137,54 +158,104 @@ export function RegisterForm() {
             phone: formData.phone,
           },
         },
-      })
+      });
 
       if (signUpError) {
-        console.error("Registration error:", signUpError)
+        console.error("[Registration] Error:", signUpError);
 
-        if (signUpError.message.includes("already registered")) {
-          setErrors({ email: "Cet email est deja utilise" })
-        } else if (signUpError.message.includes("invalid")) {
-          setErrors({ general: "Donnees invalides. Veuillez verifier vos informations." })
+        let errorMessage = "Une erreur est survenue lors de l'inscription.";
+
+        if (
+          signUpError.message.includes("already registered") ||
+          signUpError.message.includes("already exists")
+        ) {
+          setErrors({
+            email:
+              "Cet email est deja utilise. Connectez-vous ou utilisez un autre email.",
+          });
+        } else if (
+          signUpError.message.includes("invalid") ||
+          signUpError.message.includes("Invalid")
+        ) {
+          setErrors({
+            general: "Donnees invalides. Veuillez verifier vos informations.",
+          });
+        } else if (signUpError.message.includes("password")) {
+          setErrors({
+            password: "Le mot de passe ne respecte pas les criteres requis.",
+          });
+        } else if (signUpError.message.includes("email")) {
+          setErrors({
+            email: "Format d'email invalide.",
+          });
         } else {
-          setErrors({ general: signUpError.message })
+          errorMessage = signUpError.message;
+          setErrors({ general: errorMessage });
         }
-        return
+
+        // Log to Sentry
+        if (typeof window !== "undefined" && (window as any).Sentry) {
+          (window as any).Sentry.captureException(signUpError, {
+            tags: { type: "auth", action: "signup" },
+            extra: {
+              email: formData.email,
+              authMethod,
+            },
+          });
+        }
+
+        return;
       }
 
-      // Send welcome email (non-blocking)
+      // Send welcome email via dedicated server route (non-blocking)
+      // Email is sent server-side with retry logic and proper error handling
       if (authMethod === "email" && data?.user) {
-        try {
-          await fetch("/api/email/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "welcome",
-              to: formData.email,
-              data: {
-                firstName: formData.name.split(" ")[0],
-                name: formData.name,
-              },
-            }),
-          })
-        } catch (emailError) {
-          // Log but don't block registration
-          console.error("Failed to send welcome email:", emailError)
-        }
+        // Fire-and-forget: don't block registration
+        // All error handling and retries are done server-side
+        fetch("/api/auth/send-welcome-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            userName: formData.name,
+            userId: data.user.id,
+          }),
+        }).catch((err) => {
+          // Silent fail - email sending doesn't block registration
+          // All errors are logged server-side with Sentry
+          console.error("[Registration] Failed to trigger welcome email:", err);
+        });
       }
 
-      setSuccess(true)
+      setSuccess(true);
+
+      // Auto-redirect to dashboard after 2 seconds
+      // For email auth, user needs to confirm email first, so we show success message
+      // For OAuth, redirect happens via callback
+      if (authMethod === "email" && data?.user) {
+        // Check if email confirmation is required
+        // If user is immediately logged in (no email confirmation), redirect
+        if (data.session) {
+          setTimeout(() => {
+            router.push("/dashboard");
+            router.refresh();
+          }, 2000);
+        }
+        // Otherwise, user needs to confirm email first (message already shown)
+      }
     } catch (error) {
-      console.error("Unexpected registration error:", error)
-      setErrors({ general: "Une erreur inattendue est survenue. Veuillez reessayer." })
+      console.error("Unexpected registration error:", error);
+      setErrors({
+        general: "Une erreur inattendue est survenue. Veuillez reessayer.",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleOAuthSignup = async (provider: "google" | "facebook") => {
-    setSocialLoading(provider)
-    setErrors({})
+    setSocialLoading(provider);
+    setErrors({});
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -192,49 +263,89 @@ export function RegisterForm() {
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
-      })
+      });
 
       if (error) {
-        console.error(`OAuth ${provider} error:`, error)
-        setErrors({ general: `Erreur de connexion avec ${provider === "google" ? "Google" : "Facebook"}` })
-        setSocialLoading(null)
+        console.error(`OAuth ${provider} error:`, error);
+        setErrors({
+          general: `Erreur de connexion avec ${provider === "google" ? "Google" : "Facebook"}`,
+        });
+        setSocialLoading(null);
       }
     } catch (error) {
-      console.error(`OAuth ${provider} error:`, error)
-      setErrors({ general: `Erreur de connexion avec ${provider === "google" ? "Google" : "Facebook"}` })
-      setSocialLoading(null)
+      console.error(`OAuth ${provider} error:`, error);
+      setErrors({
+        general: `Erreur de connexion avec ${provider === "google" ? "Google" : "Facebook"}`,
+      });
+      setSocialLoading(null);
     }
-  }
+  };
 
   if (success) {
     return (
-      <div className="space-y-4 text-center" role="status" aria-live="polite" aria-label="Inscription reussie">
+      <div
+        className="space-y-4 text-center"
+        role="status"
+        aria-live="polite"
+        aria-label="Inscription reussie"
+      >
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
           <CheckCircle2 className="h-8 w-8 text-primary" aria-hidden="true" />
         </div>
-        <h3 className="text-xl font-semibold text-foreground">Bienvenue sur PorkyFarm !</h3>
+        <h3 className="text-xl font-semibold text-foreground">
+          Bienvenue sur PorkyFarm !
+        </h3>
         <p className="text-muted-foreground">
           {authMethod === "email" ? (
             <>
-              Nous avons envoye un lien de confirmation a <strong>{formData.email}</strong>. Cliquez sur le lien pour
-              activer votre compte.
+              Votre compte a ete cree avec succes ! Un email de bienvenue a ete
+              envoye a <strong>{formData.email}</strong>. Verifiez votre boite
+              de reception (et le dossier spam si necessaire).
+              <br />
+              <br />
+              <span className="text-sm">
+                Si vous ne recevez pas l'email, vous pouvez vous connecter
+                directement avec vos identifiants.
+              </span>
             </>
           ) : (
             <>Votre compte a ete cree avec succes !</>
           )}
         </p>
         <div className="pt-4 space-y-3">
-          <Link href="/guide">
-            <Button variant="outline" className="w-full bg-transparent">
-              Decouvrir le guide de demarrage
-            </Button>
-          </Link>
-          <Button variant="ghost" onClick={() => router.push("/auth/login")} className="w-full">
-            Retour a la connexion
-          </Button>
+          {authMethod === "email" && !data?.session ? (
+            // Email confirmation required - show login button
+            <>
+              <Link href="/auth/login">
+                <Button className="w-full bg-primary text-white hover:bg-primary-dark">
+                  Se connecter maintenant
+                </Button>
+              </Link>
+              <Link href="/guide">
+                <Button variant="outline" className="w-full bg-transparent">
+                  Decouvrir le guide de demarrage
+                </Button>
+              </Link>
+            </>
+          ) : (
+            // Auto-logged in (OAuth or no email confirmation) - redirect to dashboard
+            <>
+              <Link href="/dashboard">
+                <Button className="w-full bg-primary text-white hover:bg-primary-dark">
+                  Acceder a mon tableau de bord
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/guide">
+                <Button variant="outline" className="w-full bg-transparent">
+                  Decouvrir le guide de demarrage
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -280,12 +391,18 @@ export function RegisterForm() {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Ou creez un compte</span>
+          <span className="bg-background px-2 text-muted-foreground">
+            Ou creez un compte
+          </span>
         </div>
       </div>
 
       {/* Auth Method Toggle */}
-      <div className="flex rounded-lg bg-muted p-1" role="tablist" aria-label="Methode d'inscription">
+      <div
+        className="flex rounded-lg bg-muted p-1"
+        role="tablist"
+        aria-label="Methode d'inscription"
+      >
         <button
           type="button"
           role="tab"
@@ -358,8 +475,8 @@ export function RegisterForm() {
               className={`h-12 pl-10 ${errors.name ? "border-destructive focus-visible:ring-destructive" : ""}`}
               value={formData.name}
               onChange={(e) => {
-                setFormData({ ...formData, name: e.target.value })
-                if (errors.name) setErrors({ ...errors, name: undefined })
+                setFormData({ ...formData, name: e.target.value });
+                if (errors.name) setErrors({ ...errors, name: undefined });
               }}
               required
               aria-required="true"
@@ -369,7 +486,11 @@ export function RegisterForm() {
             />
           </div>
           {errors.name && (
-            <p id={nameErrorId} className="text-sm text-destructive" role="alert">
+            <p
+              id={nameErrorId}
+              className="text-sm text-destructive"
+              role="alert"
+            >
               {errors.name}
             </p>
           )}
@@ -396,8 +517,8 @@ export function RegisterForm() {
                 className={`h-12 pl-10 ${errors.email ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 value={formData.email}
                 onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value })
-                  if (errors.email) setErrors({ ...errors, email: undefined })
+                  setFormData({ ...formData, email: e.target.value });
+                  if (errors.email) setErrors({ ...errors, email: undefined });
                 }}
                 required
                 aria-required="true"
@@ -407,7 +528,11 @@ export function RegisterForm() {
               />
             </div>
             {errors.email && (
-              <p id={emailErrorId} className="text-sm text-destructive" role="alert">
+              <p
+                id={emailErrorId}
+                className="text-sm text-destructive"
+                role="alert"
+              >
                 {errors.email}
               </p>
             )}
@@ -432,8 +557,8 @@ export function RegisterForm() {
                 className={`h-12 pl-10 ${errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 value={formData.phone}
                 onChange={(e) => {
-                  setFormData({ ...formData, phone: e.target.value })
-                  if (errors.phone) setErrors({ ...errors, phone: undefined })
+                  setFormData({ ...formData, phone: e.target.value });
+                  if (errors.phone) setErrors({ ...errors, phone: undefined });
                 }}
                 required
                 aria-required="true"
@@ -443,7 +568,11 @@ export function RegisterForm() {
               />
             </div>
             {errors.phone && (
-              <p id={phoneErrorId} className="text-sm text-destructive" role="alert">
+              <p
+                id={phoneErrorId}
+                className="text-sm text-destructive"
+                role="alert"
+              >
                 {errors.phone}
               </p>
             )}
@@ -470,8 +599,9 @@ export function RegisterForm() {
               className={`h-12 pl-10 pr-10 ${errors.password ? "border-destructive focus-visible:ring-destructive" : ""}`}
               value={formData.password}
               onChange={(e) => {
-                setFormData({ ...formData, password: e.target.value })
-                if (errors.password) setErrors({ ...errors, password: undefined })
+                setFormData({ ...formData, password: e.target.value });
+                if (errors.password)
+                  setErrors({ ...errors, password: undefined });
               }}
               required
               aria-required="true"
@@ -484,7 +614,11 @@ export function RegisterForm() {
               type="button"
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
               onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              aria-label={
+                showPassword
+                  ? "Masquer le mot de passe"
+                  : "Afficher le mot de passe"
+              }
             >
               {showPassword ? (
                 <EyeOff className="h-5 w-5" aria-hidden="true" />
@@ -494,14 +628,22 @@ export function RegisterForm() {
             </button>
           </div>
           {errors.password && (
-            <p id={passwordErrorId} className="text-sm text-destructive" role="alert">
+            <p
+              id={passwordErrorId}
+              className="text-sm text-destructive"
+              role="alert"
+            >
               {errors.password}
             </p>
           )}
 
           {/* Password Strength Indicator */}
           {formData.password && (
-            <div className="space-y-2" id="password-requirements" aria-label="Exigences du mot de passe">
+            <div
+              className="space-y-2"
+              id="password-requirements"
+              aria-label="Exigences du mot de passe"
+            >
               <div className="flex gap-1">
                 {[1, 2, 3, 4].map((level) => (
                   <div
@@ -570,7 +712,10 @@ export function RegisterForm() {
         >
           {isLoading ? (
             <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+              <Loader2
+                className="mr-2 h-5 w-5 animate-spin"
+                aria-hidden="true"
+              />
               <span>Inscription en cours...</span>
             </>
           ) : (
@@ -590,5 +735,5 @@ export function RegisterForm() {
         </Link>
       </p>
     </div>
-  )
+  );
 }

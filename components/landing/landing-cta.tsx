@@ -1,11 +1,16 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react"
+import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 
-const benefits = ["Inscription gratuite", "Aucune carte bancaire", "Données 100% sécurisées", "Fonctionne sur mobile"]
+const benefits = [
+  "Inscription gratuite",
+  "Aucune carte bancaire",
+  "Données 100% sécurisées",
+  "Fonctionne sur mobile",
+];
 
 export function LandingCTA() {
   return (
@@ -24,7 +29,10 @@ export function LandingCTA() {
       </div>
 
       {/* Decorative elements - simplified for performance */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      <div
+        className="absolute inset-0 overflow-hidden pointer-events-none"
+        aria-hidden="true"
+      >
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
       </div>
@@ -33,7 +41,9 @@ export function LandingCTA() {
         {/* Badge */}
         <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm border border-white/20">
           <Sparkles className="h-4 w-4 text-accent-light" aria-hidden="true" />
-          <span className="text-sm font-medium text-white">Commencez dès maintenant</span>
+          <span className="text-sm font-medium text-white">
+            Commencez dès maintenant
+          </span>
         </div>
 
         <h2 className="text-balance text-3xl font-bold text-white md:text-5xl lg:text-6xl">
@@ -41,8 +51,8 @@ export function LandingCTA() {
           <span className="block mt-2 text-accent-light">votre élevage ?</span>
         </h2>
         <p className="mt-6 text-pretty text-lg text-white/80 md:text-xl max-w-2xl mx-auto">
-          Rejoignez les éleveurs qui utilisent PorkyFarm pour suivre leur cheptel, gérer les gestations et optimiser
-          l'alimentation.
+          Rejoignez les éleveurs qui utilisent PorkyFarm pour suivre leur
+          cheptel, gérer les gestations et optimiser l'alimentation.
         </p>
 
         {/* Benefits grid */}
@@ -52,7 +62,10 @@ export function LandingCTA() {
               key={i}
               className="flex items-center gap-2 text-white bg-white/10 rounded-full px-4 py-2 backdrop-blur-sm"
             >
-              <CheckCircle2 className="h-5 w-5 text-accent-light shrink-0" aria-hidden="true" />
+              <CheckCircle2
+                className="h-5 w-5 text-accent-light shrink-0"
+                aria-hidden="true"
+              />
               <span className="text-sm font-medium">{benefit}</span>
             </div>
           ))}
@@ -65,8 +78,11 @@ export function LandingCTA() {
               size="lg"
               className="group h-14 gap-3 rounded-full bg-white px-8 text-lg text-primary hover:bg-white/90 shadow-xl shadow-black/20"
             >
-              Créer mon élevage gratuitement
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+              Créer mon compte éleveur gratuitement
+              <ArrowRight
+                className="h-5 w-5 transition-transform group-hover:translate-x-1"
+                aria-hidden="true"
+              />
             </Button>
           </Link>
           <Link href="/auth/login">
@@ -81,5 +97,5 @@ export function LandingCTA() {
         </div>
       </div>
     </section>
-  )
+  );
 }

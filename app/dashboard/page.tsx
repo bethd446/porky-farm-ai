@@ -1,26 +1,31 @@
-"use client"
+"use client";
 
-import { DashboardStats } from "@/components/dashboard/dashboard-stats"
-import { DashboardWeather } from "@/components/dashboard/dashboard-weather"
-import { DashboardAlerts } from "@/components/dashboard/dashboard-alerts"
-import { DashboardQuickActions } from "@/components/dashboard/dashboard-quick-actions"
-import { DashboardRecentActivity } from "@/components/dashboard/dashboard-recent-activity"
-import { DashboardLivestockOverview } from "@/components/dashboard/dashboard-livestock-overview"
-import { useAuthContext } from "@/contexts/auth-context"
-import { useApp } from "@/contexts/app-context"
+import { DashboardStats } from "@/components/dashboard/dashboard-stats";
+import { DashboardWeather } from "@/components/dashboard/dashboard-weather";
+import { DashboardAlerts } from "@/components/dashboard/dashboard-alerts";
+import { DashboardQuickActions } from "@/components/dashboard/dashboard-quick-actions";
+import { DashboardRecentActivity } from "@/components/dashboard/dashboard-recent-activity";
+import { DashboardLivestockOverview } from "@/components/dashboard/dashboard-livestock-overview";
+import { DashboardOnboarding } from "@/components/dashboard/dashboard-onboarding";
+import { useAuthContext } from "@/contexts/auth-context";
+import { useApp } from "@/contexts/app-context";
 
 export default function DashboardPage() {
-  const { user, profile } = useAuthContext()
-  const { stats } = useApp()
+  const { user, profile } = useAuthContext();
+  const { stats } = useApp();
 
-  const firstName = profile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "Eleveur"
+  const firstName =
+    profile?.full_name?.split(" ")[0] ||
+    user?.email?.split("@")[0] ||
+    "Eleveur";
+  const isNewUser = stats.totalAnimals === 0;
 
   const getGreeting = () => {
-    const hour = new Date().getHours()
-    if (hour < 12) return "Bonjour"
-    if (hour < 18) return "Bon après-midi"
-    return "Bonsoir"
-  }
+    const hour = new Date().getHours();
+    if (hour < 12) return "Bonjour";
+    if (hour < 18) return "Bon après-midi";
+    return "Bonsoir";
+  };
 
   return (
     <div className="space-y-6">
@@ -31,28 +36,35 @@ export default function DashboardPage() {
             {getGreeting()}, {firstName} !
           </h1>
           <p className="text-muted-foreground">
-            {stats.total > 0
-              ? `Vous avez ${stats.total} animaux dans votre élevage`
+            {stats.totalAnimals > 0
+              ? `Vous avez ${stats.totalAnimals} animaux dans votre élevage`
               : "Bienvenue sur votre tableau de bord"}
           </p>
         </div>
-        <DashboardQuickActions />
+        {!isNewUser && <DashboardQuickActions />}
       </div>
 
-      {/* Stats Grid */}
-      <DashboardStats />
+      {/* Onboarding for new users */}
+      {isNewUser ? (
+        <DashboardOnboarding />
+      ) : (
+        <>
+          {/* Stats Grid */}
+          <DashboardStats />
 
-      {/* Main Content */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <DashboardLivestockOverview />
-          <DashboardRecentActivity />
-        </div>
-        <div className="space-y-6">
-          <DashboardWeather />
-          <DashboardAlerts />
-        </div>
-      </div>
+          {/* Main Content */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-6">
+              <DashboardLivestockOverview />
+              <DashboardRecentActivity />
+            </div>
+            <div className="space-y-6">
+              <DashboardWeather />
+              <DashboardAlerts />
+            </div>
+          </div>
+        </>
+      )}
     </div>
-  )
+  );
 }

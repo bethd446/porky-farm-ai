@@ -1,15 +1,24 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle, CheckCircle, Phone } from "lucide-react"
-import { supabase } from "@/lib/supabase/client"
-import { loginSchema } from "@/lib/validations/schemas"
+import type React from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  Phone,
+} from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
+import { loginSchema } from "@/lib/validations/schemas";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -31,7 +40,7 @@ function GoogleIcon({ className }: { className?: string }) {
         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
       />
     </svg>
-  )
+  );
 }
 
 function FacebookIcon({ className }: { className?: string }) {
@@ -39,121 +48,136 @@ function FacebookIcon({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 24 24" fill="#1877F2">
       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
     </svg>
-  )
+  );
 }
 
-type AuthMethod = "email" | "phone"
+type AuthMethod = "email" | "phone";
 
 export function LoginForm() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [socialLoading, setSocialLoading] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
-  const [authMethod, setAuthMethod] = useState<AuthMethod>("email")
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [authMethod, setAuthMethod] = useState<AuthMethod>("email");
   const [formData, setFormData] = useState({
     email: "",
     phone: "",
     password: "",
-  })
-  const router = useRouter()
+  });
+  const router = useRouter();
 
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setFieldErrors({})
-    setError(null)
-    setSuccess(false)
+    e.preventDefault();
+    setFieldErrors({});
+    setError(null);
+    setSuccess(false);
 
     const dataToValidate = {
-      email: authMethod === "email" ? formData.email : `${formData.phone}@phone.porkyfarm.app`,
+      email:
+        authMethod === "email"
+          ? formData.email
+          : `${formData.phone}@phone.porkyfarm.app`,
       password: formData.password,
-    }
+    };
 
-    const result = loginSchema.safeParse(dataToValidate)
+    const result = loginSchema.safeParse(dataToValidate);
     if (!result.success) {
-      const errors: Record<string, string> = {}
+      const errors: Record<string, string> = {};
       result.error.errors.forEach((err) => {
-        const field = err.path[0] as string
-        errors[field] = err.message
-      })
-      setFieldErrors(errors)
-      return
+        const field = err.path[0] as string;
+        errors[field] = err.message;
+      });
+      setFieldErrors(errors);
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: dataToValidate.email,
-        password: formData.password,
-      })
+      const { data, error: authError } = await supabase.auth.signInWithPassword(
+        {
+          email: dataToValidate.email,
+          password: formData.password,
+        }
+      );
 
       if (authError) {
+        let errorMessage = "Une erreur est survenue. Veuillez reessayer.";
+
         if (authError.message === "Invalid login credentials") {
-          setError("Email ou mot de passe incorrect")
+          errorMessage = "Email ou mot de passe incorrect";
         } else if (authError.message.includes("Email not confirmed")) {
-          setError("Veuillez confirmer votre email avant de vous connecter")
+          errorMessage =
+            "Veuillez confirmer votre email avant de vous connecter. Verifiez votre boite de reception.";
+        } else if (authError.message.includes("User not found")) {
+          errorMessage = "Aucun compte trouve avec cet email.";
+        } else if (authError.message.includes("Too many requests")) {
+          errorMessage =
+            "Trop de tentatives. Veuillez patienter quelques instants.";
         } else {
-          setError(authError.message)
+          errorMessage = authError.message;
         }
-        setIsLoading(false)
-        return
+
+        setError(errorMessage);
+        setIsLoading(false);
+        return;
       }
 
       if (data?.session) {
-        setSuccess(true)
+        setSuccess(true);
         setTimeout(() => {
-          router.push("/dashboard")
-          router.refresh()
-        }, 500)
+          router.push("/dashboard");
+          router.refresh();
+        }, 500);
       }
     } catch (err) {
-      setError("Une erreur est survenue. Veuillez reessayer.")
-      setIsLoading(false)
+      setError("Une erreur est survenue. Veuillez reessayer.");
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleGoogleLogin = async () => {
-    setSocialLoading("google")
-    setError(null)
+    setSocialLoading("google");
+    setError(null);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
-      })
+      });
       if (error) {
-        setError(error.message)
-        setSocialLoading(null)
+        setError(error.message);
+        setSocialLoading(null);
       }
     } catch {
-      setError("Erreur de connexion avec Google")
-      setSocialLoading(null)
+      setError("Erreur de connexion avec Google");
+      setSocialLoading(null);
     }
-  }
+  };
 
   const handleFacebookLogin = async () => {
-    setSocialLoading("facebook")
-    setError(null)
+    setSocialLoading("facebook");
+    setError(null);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "facebook",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
-      })
+      });
       if (error) {
-        setError(error.message)
-        setSocialLoading(null)
+        setError(error.message);
+        setSocialLoading(null);
       }
     } catch {
-      setError("Erreur de connexion avec Facebook")
-      setSocialLoading(null)
+      setError("Erreur de connexion avec Facebook");
+      setSocialLoading(null);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -252,8 +276,9 @@ export function LoginForm() {
                 className={`h-12 pl-10 ${fieldErrors.email ? "border-destructive" : ""}`}
                 value={formData.email}
                 onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value })
-                  if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: "" })
+                  setFormData({ ...formData, email: e.target.value });
+                  if (fieldErrors.email)
+                    setFieldErrors({ ...fieldErrors, email: "" });
                 }}
                 required
                 disabled={isLoading || success}
@@ -278,7 +303,9 @@ export function LoginForm() {
                 placeholder="+225 07 00 00 00 00"
                 className="h-12 pl-10"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 required
                 disabled={isLoading || success}
               />
@@ -289,7 +316,10 @@ export function LoginForm() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Mot de passe</Label>
-            <Link href="/auth/reset-password" className="text-sm text-primary hover:underline">
+            <Link
+              href="/auth/reset-password"
+              className="text-sm text-primary hover:underline"
+            >
               Mot de passe oublie ?
             </Link>
           </div>
@@ -302,8 +332,9 @@ export function LoginForm() {
               className={`h-12 pl-10 pr-10 ${fieldErrors.password ? "border-destructive" : ""}`}
               value={formData.password}
               onChange={(e) => {
-                setFormData({ ...formData, password: e.target.value })
-                if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: "" })
+                setFormData({ ...formData, password: e.target.value });
+                if (fieldErrors.password)
+                  setFieldErrors({ ...fieldErrors, password: "" });
               }}
               required
               disabled={isLoading || success}
@@ -314,7 +345,11 @@ export function LoginForm() {
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
             </button>
           </div>
           {fieldErrors.password && (
@@ -325,7 +360,11 @@ export function LoginForm() {
           )}
         </div>
 
-        <Button type="submit" className="h-12 w-full" disabled={isLoading || success}>
+        <Button
+          type="submit"
+          className="h-12 w-full"
+          disabled={isLoading || success}
+        >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -342,5 +381,5 @@ export function LoginForm() {
         </Button>
       </form>
     </div>
-  )
+  );
 }

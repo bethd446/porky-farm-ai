@@ -1,15 +1,29 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import Image from "next/image"
-import { useState, memo, useCallback, useMemo } from "react"
-import { useRouter } from "next/navigation"
-import { useApp } from "@/contexts/app-context"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { MoreVertical, Eye, Edit, Trash2, Heart, Weight, Loader2, DollarSign } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import Link from "next/link";
+import Image from "next/image";
+import { useState, memo, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useApp } from "@/contexts/app-context";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  MoreVertical,
+  Eye,
+  Edit,
+  Trash2,
+  Heart,
+  Weight,
+  Loader2,
+  DollarSign,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,25 +33,37 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import type { Animal } from "@/lib/storage/local-database"
-import { getStatusColor, getHealthScore, getCategoryLabel, getAge } from "@/lib/utils/animal-helpers"
+} from "@/components/ui/alert-dialog";
+import type { Animal } from "@/lib/storage/local-database";
+import {
+  getStatusColor,
+  getHealthScore,
+  getCategoryLabel,
+  getAge,
+} from "@/lib/utils/animal-helpers";
 
 interface AnimalCardProps {
-  animal: Animal
-  onDelete: (id: string) => void
-  onSell: (id: string) => void
+  animal: Animal;
+  onDelete: (id: string) => void;
+  onSell: (id: string) => void;
 }
 
-const AnimalCard = memo(function AnimalCard({ animal, onDelete, onSell }: AnimalCardProps) {
-  const router = useRouter()
-  const healthScore = getHealthScore(animal.healthStatus)
+const AnimalCard = memo(function AnimalCard({
+  animal,
+  onDelete,
+  onSell,
+}: AnimalCardProps) {
+  const router = useRouter();
+  const healthScore = getHealthScore(animal.healthStatus);
 
   return (
     <Card className="group overflow-hidden shadow-soft transition hover:shadow-lg">
       <div className="relative">
         <Image
-          src={animal.photo || "/placeholder.svg?height=192&width=256&query=pig farm"}
+          src={
+            animal.photo ||
+            "/placeholder.svg?height=192&width=256&query=pig farm"
+          }
           alt={animal.name}
           width={256}
           height={192}
@@ -55,16 +81,26 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete, onSell }: Animal
         <div className="absolute right-3 top-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full bg-white/90">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 rounded-full bg-white/90"
+              >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => router.push(`/dashboard/livestock/${animal.id}`)}>
+              <DropdownMenuItem
+                onClick={() => router.push(`/dashboard/livestock/${animal.id}`)}
+              >
                 <Eye className="mr-2 h-4 w-4" />
                 Voir details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push(`/dashboard/livestock/${animal.id}?edit=true`)}>
+              <DropdownMenuItem
+                onClick={() =>
+                  router.push(`/dashboard/livestock/${animal.id}?edit=true`)
+                }
+              >
                 <Edit className="mr-2 h-4 w-4" />
                 Modifier
               </DropdownMenuItem>
@@ -72,7 +108,10 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete, onSell }: Animal
                 <DollarSign className="mr-2 h-4 w-4" />
                 Marquer vendu
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive" onClick={() => onDelete(animal.id)}>
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => onDelete(animal.id)}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Supprimer
               </DropdownMenuItem>
@@ -108,7 +147,9 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete, onSell }: Animal
             <Weight className="h-4 w-4" />
             {animal.weight ? `${animal.weight} kg` : "Non renseigne"}
           </div>
-          <span className="text-xs text-muted-foreground">ID: {animal.identifier}</span>
+          <span className="text-xs text-muted-foreground">
+            ID: {animal.identifier}
+          </span>
         </div>
 
         <Link href={`/dashboard/livestock/${animal.id}`}>
@@ -118,90 +159,121 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete, onSell }: Animal
         </Link>
       </div>
     </Card>
-  )
-})
+  );
+});
 
-const ITEMS_PER_PAGE = 12
+const ITEMS_PER_PAGE = 12;
 
 export function LivestockList() {
-  const { animals, deleteAnimal, sellAnimal, isLoading } = useApp()
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [sellDialogOpen, setSellDialogOpen] = useState(false)
-  const [animalToDelete, setAnimalToDelete] = useState<string | null>(null)
-  const [animalToSell, setAnimalToSell] = useState<string | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [page, setPage] = useState(1)
+  const { animals, deleteAnimal, sellAnimal, isLoading } = useApp();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [sellDialogOpen, setSellDialogOpen] = useState(false);
+  const [animalToDelete, setAnimalToDelete] = useState<string | null>(null);
+  const [animalToSell, setAnimalToSell] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const activeAnimals = useMemo(() => animals.filter((a) => a.status === "actif" || a.status === "malade"), [animals])
+  const activeAnimals = useMemo(
+    () => animals.filter((a) => a.status === "actif" || a.status === "malade"),
+    [animals]
+  );
 
-  const totalPages = useMemo(() => Math.ceil(activeAnimals.length / ITEMS_PER_PAGE), [activeAnimals.length])
+  const totalPages = useMemo(
+    () => Math.ceil(activeAnimals.length / ITEMS_PER_PAGE),
+    [activeAnimals.length]
+  );
 
   const paginatedAnimals = useMemo(
-    () => activeAnimals.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE),
-    [activeAnimals, page],
-  )
+    () =>
+      activeAnimals.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE),
+    [activeAnimals, page]
+  );
 
   const handleDelete = useCallback((id: string) => {
-    setAnimalToDelete(id)
-    setDeleteDialogOpen(true)
-  }, [])
+    setAnimalToDelete(id);
+    setDeleteDialogOpen(true);
+  }, []);
 
   const handleSell = useCallback((id: string) => {
-    setAnimalToSell(id)
-    setSellDialogOpen(true)
-  }, [])
+    setAnimalToSell(id);
+    setSellDialogOpen(true);
+  }, []);
 
-  const confirmDelete = useCallback(() => {
+  const confirmDelete = useCallback(async () => {
     if (animalToDelete) {
-      setIsProcessing(true)
-      deleteAnimal(animalToDelete)
-      setIsProcessing(false)
-      setDeleteDialogOpen(false)
-      setAnimalToDelete(null)
+      setIsProcessing(true);
+      try {
+        await deleteAnimal(animalToDelete);
+        setDeleteDialogOpen(false);
+        setAnimalToDelete(null);
+      } catch (error) {
+        console.error("[LivestockList] Error deleting animal:", error);
+      } finally {
+        setIsProcessing(false);
+      }
     }
-  }, [animalToDelete, deleteAnimal])
+  }, [animalToDelete, deleteAnimal]);
 
-  const confirmSell = useCallback(() => {
+  const confirmSell = useCallback(async () => {
     if (animalToSell) {
-      setIsProcessing(true)
-      sellAnimal(animalToSell)
-      setIsProcessing(false)
-      setSellDialogOpen(false)
-      setAnimalToSell(null)
+      setIsProcessing(true);
+      try {
+        await sellAnimal(animalToSell);
+        setSellDialogOpen(false);
+        setAnimalToSell(null);
+      } catch (error) {
+        console.error("[LivestockList] Error selling animal:", error);
+      } finally {
+        setIsProcessing(false);
+      }
     }
-  }, [animalToSell, sellAnimal])
+  }, [animalToSell, sellAnimal]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-muted-foreground">Chargement du cheptel...</span>
+        <span className="ml-2 text-muted-foreground">
+          Chargement du cheptel...
+        </span>
       </div>
-    )
+    );
   }
 
   if (activeAnimals.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-muted-foreground">Aucun animal enregistre pour le moment.</p>
+        <p className="text-muted-foreground">
+          Aucun animal enregistre pour le moment.
+        </p>
         <Link href="/dashboard/livestock/add">
           <Button className="mt-4">Ajouter un animal</Button>
         </Link>
       </div>
-    )
+    );
   }
 
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {paginatedAnimals.map((animal) => (
-          <AnimalCard key={animal.id} animal={animal} onDelete={handleDelete} onSell={handleSell} />
+          <AnimalCard
+            key={animal.id}
+            animal={animal}
+            onDelete={handleDelete}
+            onSell={handleSell}
+          />
         ))}
       </div>
 
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
             Precedent
           </Button>
           <span className="text-sm text-muted-foreground">
@@ -224,11 +296,14 @@ export function LivestockList() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
             <AlertDialogDescription>
-              Etes-vous sur de vouloir supprimer cet animal ? Cette action est irreversible.
+              Etes-vous sur de vouloir supprimer cet animal ? Cette action est
+              irreversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessing}>Annuler</AlertDialogCancel>
+            <AlertDialogCancel disabled={isProcessing}>
+              Annuler
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               disabled={isProcessing}
@@ -253,11 +328,14 @@ export function LivestockList() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la vente</AlertDialogTitle>
             <AlertDialogDescription>
-              Voulez-vous marquer cet animal comme vendu ? Il ne sera plus visible dans la liste active.
+              Voulez-vous marquer cet animal comme vendu ? Il ne sera plus
+              visible dans la liste active.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessing}>Annuler</AlertDialogCancel>
+            <AlertDialogCancel disabled={isProcessing}>
+              Annuler
+            </AlertDialogCancel>
             <AlertDialogAction onClick={confirmSell} disabled={isProcessing}>
               {isProcessing ? (
                 <>
@@ -272,5 +350,5 @@ export function LivestockList() {
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
+  );
 }

@@ -1,14 +1,25 @@
+import * as React from "react";
+
+/**
+ * Password reset email template
+ * Follows Resend official documentation pattern for React email templates
+ */
 interface PasswordResetEmailProps {
-  userName: string
-  resetUrl: string
-  expiresIn?: string
+  userName: string;
+  resetUrl: string;
+  expiresIn?: string;
 }
 
-export function PasswordResetEmail({ userName, resetUrl, expiresIn = "1 heure" }: PasswordResetEmailProps) {
+export function PasswordResetEmail({
+  userName,
+  resetUrl,
+  expiresIn = "1 heure",
+}: PasswordResetEmailProps) {
   return (
     <div
       style={{
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         maxWidth: "600px",
         margin: "0 auto",
         padding: "40px 20px",
@@ -62,8 +73,8 @@ export function PasswordResetEmail({ userName, resetUrl, expiresIn = "1 heure" }
         >
           Bonjour {userName},<br />
           <br />
-          Vous avez demande la reinitialisation de votre mot de passe PorkyFarm. Cliquez sur le bouton ci-dessous pour
-          choisir un nouveau mot de passe.
+          Vous avez demande la reinitialisation de votre mot de passe PorkyFarm.
+          Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.
         </p>
 
         {/* Warning box */}
@@ -83,8 +94,8 @@ export function PasswordResetEmail({ userName, resetUrl, expiresIn = "1 heure" }
               color: "#92400e",
             }}
           >
-            Ce lien expire dans <strong>{expiresIn}</strong>. Si vous n&apos;avez pas demande cette reinitialisation,
-            ignorez cet email.
+            Ce lien expire dans <strong>{expiresIn}</strong>. Si vous
+            n&apos;avez pas demande cette reinitialisation, ignorez cet email.
           </p>
         </div>
 
@@ -114,8 +125,12 @@ export function PasswordResetEmail({ userName, resetUrl, expiresIn = "1 heure" }
             textAlign: "center",
           }}
         >
-          Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br />
-          <a href={resetUrl} style={{ color: "#16a34a", wordBreak: "break-all" }}>
+          Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :
+          <br />
+          <a
+            href={resetUrl}
+            style={{ color: "#16a34a", wordBreak: "break-all" }}
+          >
             {resetUrl}
           </a>
         </p>
@@ -130,7 +145,9 @@ export function PasswordResetEmail({ userName, resetUrl, expiresIn = "1 heure" }
           color: "#9ca3af",
         }}
       >
-        <p style={{ margin: "0 0 8px 0" }}>© 2025 PorkyFarm - Gestion d&apos;elevage porcin</p>
+        <p style={{ margin: "0 0 8px 0" }}>
+          © 2025 PorkyFarm - Gestion d&apos;elevage porcin
+        </p>
         <p style={{ margin: "0" }}>
           <a href="https://www.porkyfarm.app" style={{ color: "#16a34a" }}>
             www.porkyfarm.app
@@ -138,5 +155,5 @@ export function PasswordResetEmail({ userName, resetUrl, expiresIn = "1 heure" }
         </p>
       </div>
     </div>
-  )
+  );
 }

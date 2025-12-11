@@ -1,20 +1,26 @@
+import * as React from "react";
+
+/**
+ * Weekly report email template
+ * Follows Resend official documentation pattern for React email templates
+ */
 interface WeeklyReportEmailProps {
-  userName: string
-  farmName?: string
-  reportDate: string
+  userName: string;
+  farmName?: string;
+  reportDate: string;
   stats: {
-    totalAnimals: number
-    newBirths: number
-    gestationsInProgress: number
-    upcomingBirths: number
-    healthCases: number
-    resolvedCases: number
-  }
+    totalAnimals: number;
+    newBirths: number;
+    gestationsInProgress: number;
+    upcomingBirths: number;
+    healthCases: number;
+    resolvedCases: number;
+  };
   alerts: Array<{
-    type: string
-    message: string
-  }>
-  dashboardUrl?: string
+    type: string;
+    message: string;
+  }>;
+  dashboardUrl?: string;
 }
 
 export function WeeklyReportEmail({
@@ -28,7 +34,8 @@ export function WeeklyReportEmail({
   return (
     <div
       style={{
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         maxWidth: "600px",
         margin: "0 auto",
         padding: "40px 20px",
@@ -97,8 +104,16 @@ export function WeeklyReportEmail({
               textAlign: "center",
             }}
           >
-            <div style={{ fontSize: "28px", fontWeight: "bold", color: "#16a34a" }}>{stats.totalAnimals}</div>
-            <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>Total animaux</div>
+            <div
+              style={{ fontSize: "28px", fontWeight: "bold", color: "#16a34a" }}
+            >
+              {stats.totalAnimals}
+            </div>
+            <div
+              style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}
+            >
+              Total animaux
+            </div>
           </div>
           <div
             style={{
@@ -108,8 +123,16 @@ export function WeeklyReportEmail({
               textAlign: "center",
             }}
           >
-            <div style={{ fontSize: "28px", fontWeight: "bold", color: "#db2777" }}>{stats.newBirths}</div>
-            <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>Naissances</div>
+            <div
+              style={{ fontSize: "28px", fontWeight: "bold", color: "#db2777" }}
+            >
+              {stats.newBirths}
+            </div>
+            <div
+              style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}
+            >
+              Naissances
+            </div>
           </div>
           <div
             style={{
@@ -119,8 +142,16 @@ export function WeeklyReportEmail({
               textAlign: "center",
             }}
           >
-            <div style={{ fontSize: "28px", fontWeight: "bold", color: "#2563eb" }}>{stats.gestationsInProgress}</div>
-            <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>Gestations en cours</div>
+            <div
+              style={{ fontSize: "28px", fontWeight: "bold", color: "#2563eb" }}
+            >
+              {stats.gestationsInProgress}
+            </div>
+            <div
+              style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}
+            >
+              Gestations en cours
+            </div>
           </div>
           <div
             style={{
@@ -130,8 +161,16 @@ export function WeeklyReportEmail({
               textAlign: "center",
             }}
           >
-            <div style={{ fontSize: "28px", fontWeight: "bold", color: "#d97706" }}>{stats.upcomingBirths}</div>
-            <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>Mise-bas prévues</div>
+            <div
+              style={{ fontSize: "28px", fontWeight: "bold", color: "#d97706" }}
+            >
+              {stats.upcomingBirths}
+            </div>
+            <div
+              style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}
+            >
+              Mise-bas prévues
+            </div>
           </div>
         </div>
 
@@ -144,18 +183,47 @@ export function WeeklyReportEmail({
             marginBottom: "24px",
           }}
         >
-          <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "12px" }}>
+          <h3
+            style={{
+              fontSize: "14px",
+              fontWeight: "600",
+              color: "#374151",
+              marginBottom: "12px",
+            }}
+          >
             🏥 Suivi Sanitaire
           </h3>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: "14px",
+            }}
+          >
             <span style={{ color: "#6b7280" }}>Cas en cours :</span>
-            <span style={{ fontWeight: "600", color: stats.healthCases > 0 ? "#dc2626" : "#16a34a" }}>
+            <span
+              style={{
+                fontWeight: "600",
+                color: stats.healthCases > 0 ? "#dc2626" : "#16a34a",
+              }}
+            >
               {stats.healthCases}
             </span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px", marginTop: "8px" }}>
-            <span style={{ color: "#6b7280" }}>Cas résolus cette semaine :</span>
-            <span style={{ fontWeight: "600", color: "#16a34a" }}>{stats.resolvedCases}</span>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: "14px",
+              marginTop: "8px",
+            }}
+          >
+            <span style={{ color: "#6b7280" }}>
+              Cas résolus cette semaine :
+            </span>
+            <span style={{ fontWeight: "600", color: "#16a34a" }}>
+              {stats.resolvedCases}
+            </span>
           </div>
         </div>
 
@@ -170,10 +238,24 @@ export function WeeklyReportEmail({
               borderLeft: "4px solid #ef4444",
             }}
           >
-            <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#991b1b", marginBottom: "12px" }}>
+            <h3
+              style={{
+                fontSize: "14px",
+                fontWeight: "600",
+                color: "#991b1b",
+                marginBottom: "12px",
+              }}
+            >
               ⚠️ Alertes à traiter
             </h3>
-            <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "14px", color: "#7f1d1d" }}>
+            <ul
+              style={{
+                margin: 0,
+                paddingLeft: "20px",
+                fontSize: "14px",
+                color: "#7f1d1d",
+              }}
+            >
               {alerts.slice(0, 5).map((alert, i) => (
                 <li key={i} style={{ marginBottom: "8px" }}>
                   <strong>{alert.type}</strong>: {alert.message}
@@ -212,14 +294,20 @@ export function WeeklyReportEmail({
           color: "#9ca3af",
         }}
       >
-        <p style={{ margin: "0 0 8px 0" }}>Vous recevez ce rapport car vous avez activé les rapports hebdomadaires.</p>
+        <p style={{ margin: "0 0 8px 0" }}>
+          Vous recevez ce rapport car vous avez activé les rapports
+          hebdomadaires.
+        </p>
         <p style={{ margin: "0" }}>
           © 2025 PorkyFarm |{" "}
-          <a href="https://www.porkyfarm.app/dashboard/settings" style={{ color: "#16a34a" }}>
+          <a
+            href="https://www.porkyfarm.app/dashboard/settings"
+            style={{ color: "#16a34a" }}
+          >
             Gérer mes préférences
           </a>
         </p>
       </div>
     </div>
-  )
+  );
 }
