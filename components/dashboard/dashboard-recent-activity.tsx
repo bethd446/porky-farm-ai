@@ -41,15 +41,17 @@ export function DashboardRecentActivity() {
   return (
     <Card className="shadow-soft">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium">Activité récente</CardTitle>
+        <CardTitle className="text-base font-medium">Historique des actions</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {activities.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Camera className="h-12 w-12 text-muted-foreground/50 mb-2" />
-              <p className="text-sm text-muted-foreground">Aucune activité récente</p>
-              <p className="text-xs text-muted-foreground mt-1">Vos actions seront enregistrées ici</p>
+              <p className="text-sm font-medium text-foreground">Aucune activite enregistree</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
+                Vos actions (ajout d'animaux, soins, saillies) s'afficheront ici
+              </p>
             </div>
           ) : (
             activities.slice(0, 5).map((activity) => {

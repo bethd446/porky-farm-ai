@@ -200,8 +200,8 @@ export default function HealthPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Sante & Veterinaire</h1>
-          <p className="text-muted-foreground">Suivi sanitaire complet de votre elevage</p>
+          <h1 className="text-2xl font-bold text-foreground">Sante du cheptel</h1>
+          <p className="text-muted-foreground">Suivez l'etat sanitaire de vos animaux</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -218,7 +218,7 @@ export default function HealthPage() {
             title={!hasAnimals ? "Ajoutez d'abord un animal" : "Capturer rapidement un symptome"}
           >
             <Camera className="h-4 w-4" />
-            Capturer symptome
+            Photo symptome
           </Button>
           <Button
             className="gap-2 bg-primary text-white hover:bg-primary-dark"
@@ -230,10 +230,10 @@ export default function HealthPage() {
               }
             }}
             disabled={!hasAnimals}
-            title={!hasAnimals ? "Ajoutez d'abord un animal" : "Signaler un nouveau cas sanitaire"}
+            title={!hasAnimals ? "Ajoutez d'abord un animal" : "Declarer un probleme de sante"}
           >
             <Plus className="h-4 w-4" />
-            Signaler un cas
+            Declarer un probleme
           </Button>
         </div>
       </div>
@@ -242,14 +242,14 @@ export default function HealthPage() {
         <div className="flex items-start gap-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 p-4">
           <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Aucun animal dans le cheptel</p>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Cheptel vide</p>
             <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-              Pour signaler un cas sanitaire, vous devez d'abord ajouter des animaux a votre cheptel.
+              Enregistrez vos animaux pour pouvoir declarer des cas sanitaires.
             </p>
             <Link href="/dashboard/livestock/add">
               <Button variant="outline" size="sm" className="mt-2 bg-transparent border-amber-300">
                 <Plus className="h-4 w-4 mr-1" />
-                Ajouter un animal
+                Enregistrer un animal
               </Button>
             </Link>
           </div>
@@ -277,15 +277,15 @@ export default function HealthPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Camera className="h-5 w-5 text-primary" />
-              Capturer un symptome
+              Photo d'un symptome
             </DialogTitle>
-            <DialogDescription>Prenez une photo et decrivez rapidement le symptome observe.</DialogDescription>
+            <DialogDescription>Prenez une photo et decrivez le symptome observe.</DialogDescription>
           </DialogHeader>
 
           {symptomStatus === "success" && (
             <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
               <CheckCircle className="h-4 w-4" />
-              Symptome enregistre ! Un cas sanitaire a ete cree.
+              Symptome enregistre. Un cas sanitaire a ete cree automatiquement.
             </div>
           )}
 
@@ -383,12 +383,12 @@ export default function HealthPage() {
               {symptomStatus === "loading" ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enregistrement...
+                  Enregistrement en cours...
                 </>
               ) : symptomStatus === "success" ? (
                 <>
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  Enregistre !
+                  Enregistre
                 </>
               ) : (
                 <>
@@ -416,15 +416,15 @@ export default function HealthPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Stethoscope className="h-5 w-5 text-primary" />
-              Signaler un probleme de sante
+              Declarer un probleme de sante
             </DialogTitle>
-            <DialogDescription>Enregistrez un nouveau cas sanitaire pour un animal de votre cheptel.</DialogDescription>
+            <DialogDescription>Enregistrez un cas sanitaire pour suivre son evolution.</DialogDescription>
           </DialogHeader>
 
           {caseStatus === "success" && (
             <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
               <CheckCircle className="h-4 w-4" />
-              Cas enregistre ! Pensez a suivre l'evolution.
+              Cas enregistre. N'oubliez pas de le mettre a jour regulierement.
             </div>
           )}
 
@@ -449,7 +449,7 @@ export default function HealthPage() {
             />
 
             <FormTextarea
-              label="Description du symptome"
+              label="Description du probleme"
               name="issue"
               placeholder="Ex: Boiterie patte arriere droite, refus de s'alimenter depuis 2 jours..."
               value={newCase.issue}
@@ -459,7 +459,7 @@ export default function HealthPage() {
               disabled={caseStatus === "loading" || caseStatus === "success"}
             />
             <p className="text-xs text-muted-foreground -mt-2">
-              Minimum 10 caracteres. Soyez precis pour faciliter le suivi.
+              Soyez precis pour faciliter le diagnostic et le suivi.
             </p>
 
             <FormSelect
@@ -533,17 +533,17 @@ export default function HealthPage() {
               {caseStatus === "loading" ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enregistrement...
+                  Enregistrement en cours...
                 </>
               ) : caseStatus === "success" ? (
                 <>
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  Enregistre !
+                  Enregistre
                 </>
               ) : (
                 <>
                   <Stethoscope className="mr-2 h-4 w-4" />
-                  Enregistrer le cas
+                  Enregistrer le probleme
                 </>
               )}
             </Button>

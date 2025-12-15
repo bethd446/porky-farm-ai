@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import Link from "next/link"
 import Image from "next/image"
 import { useState, memo, useCallback, useMemo } from "react"
@@ -8,7 +10,7 @@ import { useApp } from "@/contexts/app-context"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MoreVertical, Eye, Edit, Trash2, Heart, Weight, Loader2, DollarSign } from "lucide-react"
+import { MoreVertical, Eye, Edit, Trash2, Heart, Weight, Loader2, DollarSign, Plus } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
@@ -33,8 +35,29 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete, onSell }: Animal
   const router = useRouter()
   const healthScore = getHealthScore(animal.healthStatus)
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    if (target.closest("[data-action-zone]")) {
+      e.stopPropagation()
+      return
+    }
+    router.push(`/dashboard/livestock/${animal.id}`)
+  }
+
   return (
-    <Card className="group overflow-hidden shadow-soft transition hover:shadow-lg">
+    <Card
+      className="group overflow-hidden shadow-soft card-clickable focus-ring"
+      onClick={handleCardClick}
+      tabIndex={0}
+      role="article"
+      aria-label={`Fiche de ${animal.name}`}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          router.push(`/dashboard/livestock/${animal.id}`)
+        }
+      }}
+    >
       <div className="relative">
         <Image
           src={animal.photo || "/placeholder.svg?height=192&width=256&query=pig farm"}
@@ -52,27 +75,35 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete, onSell }: Animal
             {getCategoryLabel(animal.category)}
           </Badge>
         </div>
-        <div className="absolute right-3 top-3">
+        <div className="absolute right-3 top-3" data-action-zone>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full bg-white/90">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-10 w-10 rounded-full bg-white/90 tap-target"
+                aria-label="Actions pour cet animal"
+              >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => router.push(`/dashboard/livestock/${animal.id}`)}>
+              <DropdownMenuItem onClick={() => router.push(`/dashboard/livestock/${animal.id}`)} className="tap-target">
                 <Eye className="mr-2 h-4 w-4" />
                 Voir details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push(`/dashboard/livestock/${animal.id}?edit=true`)}>
+              <DropdownMenuItem
+                onClick={() => router.push(`/dashboard/livestock/${animal.id}?edit=true`)}
+                className="tap-target"
+              >
                 <Edit className="mr-2 h-4 w-4" />
                 Modifier
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSell(animal.id)}>
+              <DropdownMenuItem onClick={() => onSell(animal.id)} className="tap-target">
                 <DollarSign className="mr-2 h-4 w-4" />
                 Marquer vendu
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive" onClick={() => onDelete(animal.id)}>
+              <DropdownMenuItem className="text-destructive tap-target" onClick={() => onDelete(animal.id)}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Supprimer
               </DropdownMenuItem>
@@ -90,13 +121,13 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete, onSell }: Animal
             </p>
           </div>
           <div
-            className={`flex items-center gap-1 rounded-full px-2 py-1 ${healthScore >= 80 ? "bg-green-50" : healthScore >= 60 ? "bg-amber-50" : "bg-red-50"}`}
+            className={`flex items-center gap-1 rounded-full px-2 py-1 ${healthScore >= 80 ? "bg-success-light" : healthScore >= 60 ? "bg-warning-light" : "bg-destructive-light"}`}
           >
             <Heart
-              className={`h-3 w-3 ${healthScore >= 80 ? "text-green-600" : healthScore >= 60 ? "text-amber-600" : "text-red-600"}`}
+              className={`h-3 w-3 ${healthScore >= 80 ? "text-success" : healthScore >= 60 ? "text-warning" : "text-destructive"}`}
             />
             <span
-              className={`text-xs font-medium ${healthScore >= 80 ? "text-green-600" : healthScore >= 60 ? "text-amber-600" : "text-red-600"}`}
+              className={`text-xs font-medium ${healthScore >= 80 ? "text-success" : healthScore >= 60 ? "text-warning" : "text-destructive"}`}
             >
               {healthScore}%
             </span>
@@ -111,11 +142,18 @@ const AnimalCard = memo(function AnimalCard({ animal, onDelete, onSell }: Animal
           <span className="text-xs text-muted-foreground">ID: {animal.identifier}</span>
         </div>
 
-        <Link href={`/dashboard/livestock/${animal.id}`}>
-          <Button variant="outline" className="mt-4 w-full bg-transparent">
-            Voir le profil
+        <div className="mt-4" data-action-zone>
+          <Button
+            variant="outline"
+            className="w-full bg-transparent tap-target"
+            onClick={(e) => {
+              e.stopPropagation()
+              router.push(`/dashboard/livestock/${animal.id}`)
+            }}
+          >
+            Voir le profil complet
           </Button>
-        </Link>
+        </div>
       </div>
     </Card>
   )
@@ -182,10 +220,16 @@ export function LivestockList() {
 
   if (activeAnimals.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-muted-foreground">Aucun animal enregistre pour le moment.</p>
+      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border py-12 text-center">
+        <p className="text-base font-medium text-foreground">Aucun animal enregistre</p>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md">
+          Commencez par enregistrer votre premier animal pour suivre son poids, sa sante et ses performances.
+        </p>
         <Link href="/dashboard/livestock/add">
-          <Button className="mt-4">Ajouter un animal</Button>
+          <Button className="mt-4 gap-2">
+            <Plus className="h-4 w-4" />
+            Enregistrer mon premier animal
+          </Button>
         </Link>
       </div>
     )
@@ -202,7 +246,7 @@ export function LivestockList() {
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-            Precedent
+            Page precedente
           </Button>
           <span className="text-sm text-muted-foreground">
             Page {page} sur {totalPages}
@@ -213,7 +257,7 @@ export function LivestockList() {
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
           >
-            Suivant
+            Page suivante
           </Button>
         </div>
       )}

@@ -22,22 +22,26 @@ export function DashboardLivestockOverview() {
     <Card className="shadow-soft">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-base font-medium">
-          Aperçu du cheptel
-          <span className="text-sm font-normal text-muted-foreground">Total: {totalAnimals} animaux</span>
+          Composition de votre cheptel
+          <span className="text-sm font-normal text-muted-foreground">
+            {totalAnimals === 0 ? "Aucun animal" : `${totalAnimals} animal${totalAnimals > 1 ? "aux" : ""}`}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="distribution" className="w-full">
           <TabsList className="mb-4">
-            <TabsTrigger value="distribution">Distribution</TabsTrigger>
-            <TabsTrigger value="evolution">Évolution</TabsTrigger>
+            <TabsTrigger value="distribution">Repartition</TabsTrigger>
+            <TabsTrigger value="evolution">Evolution</TabsTrigger>
           </TabsList>
 
           <TabsContent value="distribution">
             {totalAnimals === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-muted-foreground">Aucun animal enregistré</p>
-                <p className="text-sm text-muted-foreground mt-1">Ajoutez des animaux pour voir la distribution</p>
+                <p className="text-sm font-medium text-foreground">Commencez par ajouter vos animaux</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">
+                  Enregistrez vos truies, verrats et porcelets pour suivre votre elevage
+                </p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-4 md:flex-row">
@@ -80,9 +84,9 @@ export function DashboardLivestockOverview() {
           <TabsContent value="evolution">
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <TrendingUp className="h-12 w-12 text-muted-foreground/50 mb-2" />
-              <p className="text-muted-foreground">Statistiques d'évolution</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Les graphiques d'évolution seront disponibles après quelques mois d'utilisation
+              <p className="text-sm font-medium text-foreground">Graphiques a venir</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
+                Apres quelques semaines d'utilisation, vous verrez ici l'evolution de votre cheptel
               </p>
             </div>
           </TabsContent>

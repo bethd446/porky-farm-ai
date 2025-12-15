@@ -64,7 +64,7 @@ export function DashboardAlerts() {
     <Card className="shadow-soft">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-base font-medium">
-          Alertes & Rappels
+          Alertes importantes
           {alerts.length > 0 && (
             <span className="rounded-full bg-destructive px-2 py-0.5 text-xs text-white">{alerts.length}</span>
           )}
@@ -74,8 +74,10 @@ export function DashboardAlerts() {
         {alerts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Check className="h-12 w-12 text-green-500 mb-2" />
-            <p className="text-sm text-muted-foreground">Aucune alerte en cours</p>
-            <p className="text-xs text-muted-foreground mt-1">Tout va bien dans votre elevage!</p>
+            <p className="text-sm font-medium text-foreground">Tout est sous controle</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[220px]">
+              Aucune alerte pour le moment. Continuez votre bon travail !
+            </p>
           </div>
         ) : (
           alerts.slice(0, 5).map((alert, index) => {
@@ -84,45 +86,43 @@ export function DashboardAlerts() {
             const isEmailSent = emailSent.includes(index)
 
             return (
-              <div key={index} className={`flex items-start gap-3 rounded-xl ${style.bg} p-3 group`}>
-                <div className={`rounded-lg bg-white p-2 ${style.color}`}>
+              <button
+                key={index}
+                className={`flex items-start gap-3 rounded-lg ${style.bg} p-3 w-full text-left tap-target hover-highlight focus-ring`}
+                onClick={() => router.push(alert.link)}
+                aria-label={`${alert.title}: ${alert.description}`}
+              >
+                <div className={`rounded-lg bg-white dark:bg-card p-2 ${style.color} shrink-0`}>
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{alert.title}</p>
                   <p className="text-xs text-muted-foreground">{alert.description}</p>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                   {(alert.priority === "critical" || alert.priority === "high") &&
                     areEmailNotificationsEnabled() &&
                     getUserEmail() && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`h-7 w-7 ${isEmailSent ? "text-green-500" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+                        className={`h-8 w-8 ${isEmailSent ? "text-success" : ""}`}
                         onClick={() => handleSendAlertEmail(alert, index)}
                         disabled={sendingEmail === index || isEmailSent}
                         title={isEmailSent ? "Email envoye" : "Envoyer par email"}
                       >
                         {sendingEmail === index ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : isEmailSent ? (
-                          <Check className="h-3.5 w-3.5" />
+                          <Check className="h-4 w-4" />
                         ) : (
-                          <Mail className="h-3.5 w-3.5" />
+                          <Mail className="h-4 w-4" />
                         )}
                       </Button>
                     )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => router.push(alert.link)}
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                  </Button>
+                  <Eye className="h-4 w-4 text-muted-foreground" />
                 </div>
-              </div>
+              </button>
             )
           })
         )}

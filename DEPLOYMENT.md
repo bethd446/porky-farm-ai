@@ -52,7 +52,7 @@ Executez les scripts SQL dans l'ordre :
 
 ### Option C : Via CLI
 
-\`\`\`bash
+```bash
 # Installer Vercel CLI
 npm i -g vercel
 
@@ -64,7 +64,7 @@ vercel
 
 # Deployer en production
 vercel --prod
-\`\`\`
+```
 
 ---
 

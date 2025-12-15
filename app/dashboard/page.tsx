@@ -19,13 +19,12 @@ export default function DashboardPage() {
   const getGreeting = () => {
     const hour = new Date().getHours()
     if (hour < 12) return "Bonjour"
-    if (hour < 18) return "Bon après-midi"
+    if (hour < 18) return "Bon apres-midi"
     return "Bonsoir"
   }
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground md:text-3xl">
@@ -33,26 +32,34 @@ export default function DashboardPage() {
           </h1>
           <p className="text-muted-foreground">
             {stats.totalAnimals > 0
-              ? `Vous avez ${stats.totalAnimals} animaux dans votre élevage`
-              : "Bienvenue sur votre tableau de bord"}
+              ? `Votre elevage compte ${stats.totalAnimals} animal${stats.totalAnimals > 1 ? "aux" : ""}`
+              : "Commencez par ajouter vos animaux pour suivre votre elevage"}
           </p>
         </div>
         <DashboardQuickActions />
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Vue d'ensemble chiffree */}
       <DashboardStats />
 
-      {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
+          {/* Apercu du cheptel - Repartition des animaux */}
           <DashboardLivestockOverview />
+
+          {/* Planning intelligent - Taches automatiques */}
           <DashboardPlanning />
+
+          {/* Activite recente - Historique */}
           <DashboardRecentActivity />
         </div>
+
         <div className="space-y-6">
-          <DashboardWeather />
+          {/* Alertes & Rappels - Priorite haute */}
           <DashboardAlerts />
+
+          {/* Meteo - Information contextuelle */}
+          <DashboardWeather />
         </div>
       </div>
     </div>

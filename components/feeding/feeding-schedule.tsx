@@ -111,20 +111,20 @@ export function FeedingSchedule() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base font-medium">
             <Clock className="h-5 w-5 text-primary" />
-            Planning du jour
+            Planning quotidien
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <PiggyBank className="h-12 w-12 text-muted-foreground/50 mb-3" />
-            <p className="text-sm font-medium text-foreground">Aucun animal enregistre</p>
+            <p className="text-sm font-medium text-foreground">Cheptel vide</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
-              Ajoutez des animaux pour creer un planning d'alimentation
+              Enregistrez des animaux pour organiser vos taches d'alimentation
             </p>
             <Link href="/dashboard/livestock/add">
               <Button size="sm" className="mt-4">
                 <Plus className="h-4 w-4 mr-1" />
-                Ajouter un animal
+                Enregistrer un animal
               </Button>
             </Link>
           </div>
@@ -140,11 +140,11 @@ export function FeedingSchedule() {
           <div>
             <CardTitle className="flex items-center gap-2 text-base font-medium">
               <Clock className="h-5 w-5 text-primary" />
-              Planning du jour
+              Planning quotidien
             </CardTitle>
             {schedule.length > 0 && (
               <p className="text-sm text-muted-foreground mt-1">
-                {completedCount}/{schedule.length} taches completees ({progress}%)
+                {completedCount}/{schedule.length} taches ({progress}%)
               </p>
             )}
           </div>
@@ -152,12 +152,12 @@ export function FeedingSchedule() {
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="gap-1 bg-transparent">
                 <Plus className="h-4 w-4" />
-                Ajouter
+                Ajouter une tache
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Ajouter une tache</DialogTitle>
+                <DialogTitle>Nouvelle tache d'alimentation</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -169,31 +169,31 @@ export function FeedingSchedule() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Tache</Label>
+                  <Label>Type de distribution</Label>
                   <Select value={newTask.task} onValueChange={(v) => setNewTask((t) => ({ ...t, task: v }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Type de distribution" />
+                      <SelectValue placeholder="Selectionner un type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Distribution truies gestantes">Distribution truies gestantes</SelectItem>
-                      <SelectItem value="Distribution truies allaitantes">Distribution truies allaitantes</SelectItem>
-                      <SelectItem value="Alimentation porcelets">Alimentation porcelets</SelectItem>
-                      <SelectItem value="Ration verrats">Ration verrats</SelectItem>
-                      <SelectItem value="Ration engraissement">Ration engraissement</SelectItem>
+                      <SelectItem value="Distribution truies gestantes">Truies gestantes</SelectItem>
+                      <SelectItem value="Distribution truies allaitantes">Truies allaitantes</SelectItem>
+                      <SelectItem value="Alimentation porcelets">Porcelets</SelectItem>
+                      <SelectItem value="Ration verrats">Verrats</SelectItem>
+                      <SelectItem value="Ration engraissement">Porcs en engraissement</SelectItem>
                       <SelectItem value="Distribution generale">Distribution generale</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Lieu</Label>
+                  <Label>Lieu (optionnel)</Label>
                   <Input
                     value={newTask.location}
                     onChange={(e) => setNewTask((t) => ({ ...t, location: e.target.value }))}
-                    placeholder="Ex: Batiment A"
+                    placeholder="Ex: Batiment A, Parc 3..."
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Quantite (kg)</Label>
+                  <Label>Quantite en kg (optionnel)</Label>
                   <Input
                     type="number"
                     value={newTask.quantity}
@@ -206,7 +206,7 @@ export function FeedingSchedule() {
                 <DialogClose asChild>
                   <Button variant="outline">Annuler</Button>
                 </DialogClose>
-                <Button onClick={addTask}>Ajouter</Button>
+                <Button onClick={addTask}>Ajouter cette tache</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -257,11 +257,11 @@ export function FeedingSchedule() {
           {schedule.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p className="font-medium">Aucune tache planifiee</p>
-              <p className="text-xs mt-1">Creez votre planning d'alimentation quotidien</p>
-              <Button variant="link" onClick={() => setShowAdd(true)}>
+              <p className="font-medium">Aucune tache prevue aujourd'hui</p>
+              <p className="text-xs mt-1">Planifiez vos distributions d'alimentation quotidiennes</p>
+              <Button variant="link" onClick={() => setShowAdd(true)} className="mt-2">
                 <Plus className="h-4 w-4 mr-1" />
-                Ajouter une tache
+                Planifier une distribution
               </Button>
             </div>
           )}

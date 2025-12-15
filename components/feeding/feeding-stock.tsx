@@ -280,14 +280,14 @@ export function FeedingStock() {
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <PiggyBank className="h-12 w-12 text-muted-foreground/50 mb-3" />
-            <p className="text-sm font-medium text-foreground">Aucun animal enregistre</p>
+            <p className="text-sm font-medium text-foreground">Cheptel vide</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
-              Ajoutez des animaux pour commencer a gerer votre stock d'aliments
+              Enregistrez des animaux pour commencer a gerer vos stocks d'aliments
             </p>
             <Link href="/dashboard/livestock/add">
               <Button size="sm" className="mt-4">
                 <Plus className="h-4 w-4 mr-1" />
-                Ajouter un animal
+                Enregistrer un animal
               </Button>
             </Link>
           </div>
@@ -635,11 +635,11 @@ export function FeedingStock() {
           {stock.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p className="font-medium">Aucun aliment en stock</p>
-              <p className="text-xs mt-1">Commencez par ajouter vos matieres premieres</p>
-              <Button variant="link" onClick={() => setShowAddStock(true)}>
+              <p className="font-medium">Stock vide</p>
+              <p className="text-xs mt-1">Ajoutez vos matieres premieres pour suivre vos quantites</p>
+              <Button variant="link" onClick={() => setShowAddStock(true)} className="mt-2">
                 <Plus className="h-4 w-4 mr-1" />
-                Ajouter un aliment
+                Ajouter un aliment au stock
               </Button>
             </div>
           )}

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Plus, Stethoscope, FileText, Baby, Brain } from "lucide-react"
+import { Plus, Stethoscope, Baby, Calculator, Sparkles } from "lucide-react"
 
 export function DashboardQuickActions() {
   return (
@@ -13,27 +13,27 @@ export function DashboardQuickActions() {
           Ajouter animal
         </Button>
       </Link>
-      <Link href="/dashboard/health">
-        <Button variant="outline" className="gap-2 bg-transparent">
-          <Stethoscope className="h-4 w-4" />
-          Signaler maladie
-        </Button>
-      </Link>
       <Link href="/dashboard/reproduction">
         <Button variant="outline" className="gap-2 bg-transparent">
           <Baby className="h-4 w-4" />
-          Suivi gestation
+          Enregistrer saillie
+        </Button>
+      </Link>
+      <Link href="/dashboard/health">
+        <Button variant="outline" className="gap-2 bg-transparent">
+          <Stethoscope className="h-4 w-4" />
+          Signaler un probleme
         </Button>
       </Link>
       <Link href="/dashboard/feeding">
         <Button variant="outline" className="gap-2 bg-transparent">
-          <FileText className="h-4 w-4" />
+          <Calculator className="h-4 w-4" />
           Calculer rations
         </Button>
       </Link>
       <Link href="/dashboard/ai-assistant">
         <Button variant="outline" className="gap-2 bg-transparent">
-          <Brain className="h-4 w-4" />
+          <Sparkles className="h-4 w-4" />
           Assistant IA
         </Button>
       </Link>

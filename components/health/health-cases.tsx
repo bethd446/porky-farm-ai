@@ -526,7 +526,7 @@ export function HealthCases() {
                     {newCase.photo && (
                       <div className="relative h-16 w-16">
                         <img
-                          src={newCase.photo || "/placeholder.svg"}
+                          src={newCase.photo || "/placeholder.svg?height=80&width=80&query=sick pig"}
                           alt="Apercu"
                           className="h-full w-full rounded-lg object-cover"
                         />
@@ -575,29 +575,32 @@ export function HealthCases() {
         {activeCases.length === 0 ? (
           <div className="text-center py-8">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
-            <p className="text-muted-foreground">Aucun cas sanitaire actif.</p>
-            <p className="text-sm text-muted-foreground">Tous vos animaux sont en bonne sante !</p>
+            <p className="text-base font-medium text-foreground">Aucun probleme en cours</p>
+            <p className="text-sm text-muted-foreground mt-1">Tous vos animaux sont en bonne sante</p>
           </div>
         ) : (
           activeCases.map((caseItem) => (
             <div
               key={caseItem.id}
-              className="flex gap-4 rounded-xl border border-border p-4 transition hover:bg-muted/50"
+              className="flex gap-4 rounded-lg border border-border p-4 list-item-clickable focus-ring"
+              role="article"
+              tabIndex={0}
+              aria-label={`Cas sanitaire: ${caseItem.animalName}`}
             >
-              <div className="relative">
+              <div className="relative shrink-0">
                 <img
                   src={caseItem.photo || "/placeholder.svg?height=80&width=80&query=sick pig"}
                   alt={caseItem.animalName}
-                  className="h-20 w-20 rounded-xl object-cover"
+                  className="h-20 w-20 rounded-lg object-cover"
                 />
               </div>
-              <div className="flex-1">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-semibold text-foreground">{caseItem.animalName}</h4>
-                    <p className="text-sm text-muted-foreground">{caseItem.issue}</p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-foreground truncate">{caseItem.animalName}</h4>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{caseItem.issue}</p>
                   </div>
-                  <Badge className={`${getPriorityColor(caseItem.priority)} text-white`}>
+                  <Badge className={`${getPriorityColor(caseItem.priority)} text-white shrink-0`}>
                     {getPriorityLabel(caseItem.priority)}
                   </Badge>
                 </div>
@@ -611,11 +614,16 @@ export function HealthCases() {
                   </Badge>
                 </div>
                 {caseItem.treatment && (
-                  <p className="mt-2 text-xs text-muted-foreground">Traitement: {caseItem.treatment}</p>
+                  <p className="mt-2 text-xs text-muted-foreground line-clamp-1">Traitement: {caseItem.treatment}</p>
                 )}
-                <div className="mt-2 flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleResolveCase(caseItem.id)}>
-                    <CheckCircle className="h-3 w-3 mr-1" />
+                <div className="mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleResolveCase(caseItem.id)}
+                    className="tap-target bg-transparent"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
                     Marquer resolu
                   </Button>
                 </div>

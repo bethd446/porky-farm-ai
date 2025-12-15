@@ -155,21 +155,21 @@ export function DashboardPlanning() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base font-medium">
             <Calendar className="h-5 w-5 text-primary" />
-            Planning intelligent
+            Vos taches a venir
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Calendar className="h-12 w-12 text-muted-foreground/50 mb-3" />
             <p className="text-sm font-medium text-foreground">Aucune tache planifiee</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-[220px]">
-              Ajoutez des animaux pour que le systeme genere automatiquement des taches
+            <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
+              Ajoutez vos premiers animaux pour que PorkyFarm genere automatiquement vos taches quotidiennes
             </p>
             <div className="flex flex-col sm:flex-row gap-2 mt-4">
               <Link href="/dashboard/livestock/add">
                 <Button size="sm" className="gap-1">
                   <Plus className="h-4 w-4" />
-                  Ajouter un animal
+                  Ajouter mon premier animal
                 </Button>
               </Link>
             </div>
@@ -184,29 +184,36 @@ export function DashboardPlanning() {
     return (
       <Card className="shadow-soft">
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base font-medium">
-            <Calendar className="h-5 w-5 text-primary" />
-            Planning intelligent
+          <CardTitle className="flex items-center justify-between text-base font-medium">
+            <span className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Vos taches a venir
+            </span>
+            {smartTasks.length > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {smartTasks.length} tache(s)
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <CheckCircle2 className="h-12 w-12 text-green-500 mb-3" />
-            <p className="text-sm font-medium text-foreground">Tout est en ordre !</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-[220px]">
-              Aucune tache urgente a effectuer. Continuez comme ca !
+            <p className="text-sm font-medium text-foreground">Felicitations !</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
+              Aucune tache urgente. Votre elevage est bien gere. Vous pouvez planifier de nouvelles actions.
             </p>
             <div className="flex flex-col sm:flex-row gap-2 mt-4">
               <Link href="/dashboard/reproduction">
                 <Button size="sm" variant="outline" className="gap-1 bg-transparent">
                   <Baby className="h-4 w-4" />
-                  Nouvelle saillie
+                  Enregistrer une saillie
                 </Button>
               </Link>
               <Link href="/dashboard/health">
                 <Button size="sm" variant="outline" className="gap-1 bg-transparent">
                   <Stethoscope className="h-4 w-4" />
-                  Signaler un cas
+                  Faire un check-up
                 </Button>
               </Link>
             </div>
@@ -222,7 +229,7 @@ export function DashboardPlanning() {
         <CardTitle className="flex items-center justify-between text-base font-medium">
           <span className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
-            Planning intelligent
+            Vos taches a venir
           </span>
           {smartTasks.length > 0 && (
             <Badge variant="secondary" className="text-xs">
@@ -237,11 +244,13 @@ export function DashboardPlanning() {
           const style = getPriorityStyle(task.priority)
 
           return (
-            <div
+            <button
               key={task.id}
-              className="flex items-start gap-3 rounded-xl border border-border p-3 hover:bg-muted/50 transition-colors group"
+              className="flex items-start gap-3 rounded-lg border border-border p-3 hover-highlight focus-ring w-full text-left tap-target"
+              onClick={() => router.push(task.link)}
+              aria-label={`${task.title}: ${task.description}`}
             >
-              <div className={`rounded-lg bg-muted p-2 ${style.icon}`}>
+              <div className={`rounded-lg bg-muted p-2 ${style.icon} shrink-0`}>
                 <Icon className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">
@@ -259,16 +268,8 @@ export function DashboardPlanning() {
                   </p>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                onClick={() => router.push(task.link)}
-              >
-                {task.actionLabel}
-                <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
-            </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+            </button>
           )
         })}
 

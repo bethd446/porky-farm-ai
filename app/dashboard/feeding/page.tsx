@@ -6,8 +6,8 @@ export default function FeedingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Alimentation & Rations</h1>
-        <p className="text-muted-foreground">Calculez et gérez les rations alimentaires</p>
+        <h1 className="text-2xl font-bold text-foreground">Alimentation</h1>
+        <p className="text-muted-foreground">Calculez les rations et gerez votre stock</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

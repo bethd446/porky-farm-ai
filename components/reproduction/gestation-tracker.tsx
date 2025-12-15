@@ -224,7 +224,8 @@ export function GestationTracker() {
           {activeGestations.length === 0 ? (
             <div className="text-center py-8">
               <Baby className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
-              <p className="text-muted-foreground">Aucune gestation en cours.</p>
+              <p className="text-base font-medium text-foreground">Aucune gestation en cours</p>
+              <p className="text-sm text-muted-foreground mt-1">Enregistrez une saillie pour commencer le suivi</p>
               {canAddGestation && (
                 <Button variant="outline" className="mt-4 bg-transparent" onClick={() => setIsAddOpen(true)}>
                   <Plus className="h-4 w-4 mr-1" />
@@ -238,18 +239,24 @@ export function GestationTracker() {
               const statusStyle = getStatusStyle(gest)
 
               return (
-                <div key={gest.id} className="rounded-xl border border-border p-4 transition hover:bg-muted/50">
+                <div
+                  key={gest.id}
+                  className="rounded-lg border border-border p-4 list-item-clickable focus-ring"
+                  role="article"
+                  tabIndex={0}
+                  aria-label={`Gestation de ${gest.sowName}`}
+                >
                   <div className="flex items-start gap-4">
-                    <div className="h-14 w-14 rounded-xl bg-pink-100 flex items-center justify-center">
+                    <div className="h-14 w-14 rounded-lg bg-pink-100 dark:bg-pink-950/30 flex items-center justify-center shrink-0">
                       <Baby className="h-7 w-7 text-pink-500" />
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-semibold text-foreground">{gest.sowName}</h4>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-foreground truncate">{gest.sowName}</h4>
                           <p className="text-sm text-muted-foreground">Pere: {gest.boarName || "Inconnu"}</p>
                         </div>
-                        <Badge className={`${statusStyle.color} text-white`}>{statusStyle.status}</Badge>
+                        <Badge className={`${statusStyle.color} text-white shrink-0`}>{statusStyle.status}</Badge>
                       </div>
 
                       <div className="mt-3">
@@ -264,7 +271,7 @@ export function GestationTracker() {
                         <Progress value={progress.percent} className="h-2" />
                       </div>
 
-                      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           Saillie: {new Date(gest.breedingDate).toLocaleDateString("fr-FR")}
@@ -275,9 +282,15 @@ export function GestationTracker() {
                         </span>
                       </div>
 
-                      {gest.notes && <p className="mt-2 text-xs text-muted-foreground">{gest.notes}</p>}
+                      {gest.notes && <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{gest.notes}</p>}
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => handleView(gest)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleView(gest)}
+                      className="tap-target shrink-0"
+                      aria-label="Voir les details"
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>
@@ -297,7 +310,7 @@ export function GestationTracker() {
           {selectedGestation && (
             <div className="space-y-4 py-4">
               <div className="flex items-center gap-4">
-                <div className="h-16 w-16 rounded-xl bg-pink-100 flex items-center justify-center">
+                <div className="h-16 w-16 rounded-lg bg-pink-100 dark:bg-pink-950/30 flex items-center justify-center shrink-0">
                   <Baby className="h-8 w-8 text-pink-500" />
                 </div>
                 <div>

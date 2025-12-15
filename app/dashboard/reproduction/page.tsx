@@ -5,7 +5,7 @@ import { ReproductionStats } from "@/components/reproduction/reproduction-stats"
 import { GestationTracker } from "@/components/reproduction/gestation-tracker"
 import { BreedingCalendar } from "@/components/reproduction/breeding-calendar"
 import { Button } from "@/components/ui/button"
-import { Plus, Calendar, Baby, CheckCircle, Loader2, AlertCircle, Info } from "lucide-react"
+import { Plus, Calendar, Baby, CheckCircle, Loader2, Info } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -109,8 +109,8 @@ export default function ReproductionPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Reproduction & Gestation</h1>
-          <p className="text-muted-foreground">Suivi complet du cycle reproductif</p>
+          <h1 className="text-2xl font-bold text-foreground">Reproduction</h1>
+          <p className="text-muted-foreground">Suivez les saillies et gestations</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -122,7 +122,7 @@ export default function ReproductionPage() {
             }}
           >
             <Calendar className="h-4 w-4" />
-            Calendrier
+            Voir le calendrier
           </Button>
           <Button
             className="gap-2 bg-primary text-white hover:bg-primary-dark"
@@ -134,10 +134,10 @@ export default function ReproductionPage() {
               }
             }}
             disabled={!canAddGestation}
-            title={!canAddGestation ? "Ajoutez d'abord une truie" : "Enregistrer une nouvelle saillie"}
+            title={!canAddGestation ? "Ajoutez d'abord une truie" : "Enregistrer une saillie"}
           >
             <Plus className="h-4 w-4" />
-            Nouvelle saillie
+            Enregistrer une saillie
           </Button>
         </div>
       </div>
@@ -148,12 +148,12 @@ export default function ReproductionPage() {
           <div>
             <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Aucune truie disponible</p>
             <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-              Pour enregistrer une saillie, vous devez d'abord ajouter au moins une truie a votre cheptel.
+              Enregistrez au moins une truie pour commencer a suivre les gestations.
             </p>
             <Link href="/dashboard/livestock/add">
               <Button variant="outline" size="sm" className="mt-2 bg-transparent border-amber-300">
                 <Plus className="h-4 w-4 mr-1" />
-                Ajouter une truie
+                Enregistrer une truie
               </Button>
             </Link>
           </div>
@@ -180,24 +180,17 @@ export default function ReproductionPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Baby className="h-5 w-5 text-pink-500" />
-              Enregistrer une saillie
+              Nouvelle saillie
             </DialogTitle>
             <DialogDescription>
-              Enregistrez une nouvelle gestation pour suivre le terme prevu (114 jours).
+              Enregistrez une saillie pour suivre la gestation (duree moyenne: 114 jours).
             </DialogDescription>
           </DialogHeader>
 
           {status === "success" && (
             <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">
               <CheckCircle className="h-4 w-4" />
-              Gestation enregistree ! Terme prevu dans 114 jours.
-            </div>
-          )}
-
-          {status === "error" && (
-            <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              {errorMessage || "Une erreur est survenue"}
+              Saillie enregistree. Mise-bas prevue dans 114 jours.
             </div>
           )}
 
@@ -224,7 +217,7 @@ export default function ReproductionPage() {
               disabled={status === "loading" || status === "success"}
             />
             <FormInput
-              label="Date de saillie"
+              label="Date de la saillie"
               name="breedingDate"
               type="date"
               value={newGestation.breedingDate}
@@ -234,11 +227,11 @@ export default function ReproductionPage() {
               disabled={status === "loading" || status === "success"}
             />
             <FormTextarea
-              label="Notes (optionnel)"
+              label="Remarques (optionnel)"
               name="notes"
               value={newGestation.notes}
               onChange={(e) => updateField("notes", e.target.value)}
-              placeholder="Observations, remarques..."
+              placeholder="Ex: Premiere saillie, comportement observe..."
               error={errors.notes}
               disabled={status === "loading" || status === "success"}
             />
@@ -251,15 +244,15 @@ export default function ReproductionPage() {
               {status === "loading" ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enregistrement...
+                  Enregistrement en cours...
                 </>
               ) : status === "success" ? (
                 <>
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  Enregistre !
+                  Enregistree
                 </>
               ) : (
-                "Enregistrer la saillie"
+                "Enregistrer cette saillie"
               )}
             </Button>
           </DialogFooter>
