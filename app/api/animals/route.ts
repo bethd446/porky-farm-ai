@@ -1,14 +1,33 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getAuthenticatedUser } from "@/lib/api/auth-helpers"
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
 import { createAnimalSchema, formatZodErrors } from "@/lib/api/validation"
+
+async function getSupabaseServerClient() {
+  const cookieStore = await cookies()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+  return createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+    },
+  })
+}
 
 // GET /api/animals - Recuperer tous les animaux de l'utilisateur
 export async function GET(request: NextRequest) {
   try {
-    const { user, supabase, error: authError } = await getAuthenticatedUser(request)
+    const supabase = await getSupabaseServerClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
-    if (authError || !user || !supabase) {
-      return NextResponse.json({ error: authError || "Non authentifie" }, { status: 401 })
+    if (authError || !user) {
+      return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
     }
 
     const { data, error } = await supabase
@@ -30,10 +49,14 @@ export async function GET(request: NextRequest) {
 // POST /api/animals - Creer un nouvel animal
 export async function POST(request: NextRequest) {
   try {
-    const { user, supabase, error: authError } = await getAuthenticatedUser(request)
+    const supabase = await getSupabaseServerClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
-    if (authError || !user || !supabase) {
-      return NextResponse.json({ error: authError || "Non authentifie" }, { status: 401 })
+    if (authError || !user) {
+      return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
     }
 
     const body = await request.json()
