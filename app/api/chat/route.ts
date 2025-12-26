@@ -1,9 +1,38 @@
 import { generateText } from "ai"
 import { createOpenAI } from "@ai-sdk/openai"
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
+import { chatRequestSchema, formatZodErrors } from "@/lib/api/validation"
+import { checkRateLimit, CHAT_RATE_LIMIT } from "@/lib/api/rate-limit"
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
+
+async function getUserId(): Promise<string | null> {
+  try {
+    const cookieStore = await cookies()
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseKey) return null
+
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    })
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    return user?.id || null
+  } catch {
+    return null
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -16,11 +45,41 @@ export async function POST(req: Request) {
       )
     }
 
-    const { messages, livestockContext, hasImage } = await req.json()
+    const userId = await getUserId()
+    const rateLimitKey = userId || "anonymous"
+    const rateLimitResult = checkRateLimit(`chat:${rateLimitKey}`, CHAT_RATE_LIMIT)
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return Response.json({ content: "Veuillez poser une question." }, { status: 200 })
+    if (!rateLimitResult.success) {
+      return Response.json(
+        {
+          content: `Vous avez atteint la limite de requetes. Veuillez reessayer dans ${rateLimitResult.retryAfter} secondes.`,
+          rateLimited: true,
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimitResult.retryAfter),
+            "X-RateLimit-Remaining": String(rateLimitResult.remaining),
+            "X-RateLimit-Reset": String(rateLimitResult.resetTime),
+          },
+        },
+      )
     }
+
+    const body = await req.json()
+    const validation = chatRequestSchema.safeParse(body)
+
+    if (!validation.success) {
+      return Response.json(
+        {
+          content: `Requete invalide: ${formatZodErrors(validation.error)}`,
+        },
+        { status: 400 },
+      )
+    }
+
+    const { messages, livestockContext, hasImage } = validation.data
 
     const systemPrompt = `Tu es PorkyAssistant, un assistant IA expert en elevage porcin, specialement concu pour aider les eleveurs ivoiriens. 
 
@@ -92,7 +151,15 @@ REGLES DE REPONSE:
       messages: formattedMessages,
     })
 
-    return Response.json({ content: text })
+    return Response.json(
+      { content: text },
+      {
+        headers: {
+          "X-RateLimit-Remaining": String(rateLimitResult.remaining),
+          "X-RateLimit-Reset": String(rateLimitResult.resetTime),
+        },
+      },
+    )
   } catch (error: unknown) {
     const err = error as Error
 

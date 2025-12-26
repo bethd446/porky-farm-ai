@@ -45,7 +45,7 @@ Ajoutez aussi un enregistrement DMARC pour ameliorer la delivrabilite :
 
 Une fois configure, testez l'envoi d'email avec :
 
-```bash
+\`\`\`bash
 curl -X POST https://www.porkyfarm.app/api/email/send \
   -H "Content-Type: application/json" \
   -d '{
@@ -55,12 +55,12 @@ curl -X POST https://www.porkyfarm.app/api/email/send \
       "userName": "Test User"
     }
   }'
-```
+\`\`\`
 
 ## 5. Types d'emails disponibles
 
 ### Email de bienvenue
-```json
+\`\`\`json
 {
   "type": "welcome",
   "to": "user@example.com",
@@ -68,10 +68,10 @@ curl -X POST https://www.porkyfarm.app/api/email/send \
     "userName": "Jean Kouame"
   }
 }
-```
+\`\`\`
 
 ### Reinitialisation de mot de passe
-```json
+\`\`\`json
 {
   "type": "password-reset",
   "to": "user@example.com",
@@ -80,10 +80,10 @@ curl -X POST https://www.porkyfarm.app/api/email/send \
     "resetUrl": "https://www.porkyfarm.app/auth/reset?token=xxx"
   }
 }
-```
+\`\`\`
 
 ### Alerte (vaccination, gestation, sante)
-```json
+\`\`\`json
 {
   "type": "alert",
   "to": "user@example.com",
@@ -95,7 +95,7 @@ curl -X POST https://www.porkyfarm.app/api/email/send \
     "animalName": "Bella"
   }
 }
-```
+\`\`\`
 
 ## 6. Securite
 

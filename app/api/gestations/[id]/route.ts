@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { uuidSchema, updateGestationSchema, formatZodErrors } from "@/lib/api/validation"
 
 async function getSupabaseServerClient() {
   const cookieStore = await cookies()
@@ -16,10 +17,16 @@ async function getSupabaseServerClient() {
   })
 }
 
-// GET /api/gestations/[id] - Récupérer une gestation spécifique
+// GET /api/gestations/[id] - Recuperer une gestation specifique
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+
+    const idValidation = uuidSchema.safeParse(id)
+    if (!idValidation.success) {
+      return NextResponse.json({ error: "ID invalide" }, { status: 400 })
+    }
+
     const supabase = await getSupabaseServerClient()
     const {
       data: { user },
@@ -27,7 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
+      return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
     }
 
     const { data, error } = await supabase.from("gestations").select("*").eq("id", id).eq("user_id", user.id).single()
@@ -42,10 +49,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// PUT /api/gestations/[id] - Mettre à jour une gestation
+// PUT /api/gestations/[id] - Mettre a jour une gestation
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+
+    const idValidation = uuidSchema.safeParse(id)
+    if (!idValidation.success) {
+      return NextResponse.json({ error: "ID invalide" }, { status: 400 })
+    }
+
     const supabase = await getSupabaseServerClient()
     const {
       data: { user },
@@ -53,21 +66,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
+      return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
     }
 
     const body = await request.json()
+    const validation = updateGestationSchema.safeParse(body)
+
+    if (!validation.success) {
+      return NextResponse.json({ error: formatZodErrors(validation.error) }, { status: 400 })
+    }
 
     const { data, error } = await supabase
       .from("gestations")
-      .update({ ...body, updated_at: new Date().toISOString() })
+      .update({ ...validation.data, updated_at: new Date().toISOString() })
       .eq("id", id)
       .eq("user_id", user.id)
       .select()
       .single()
 
     if (error) {
-      return NextResponse.json({ error: "Erreur lors de la mise à jour" }, { status: 500 })
+      return NextResponse.json({ error: "Erreur lors de la mise a jour" }, { status: 500 })
     }
 
     return NextResponse.json({ data }, { status: 200 })
@@ -80,6 +98,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
+
+    const idValidation = uuidSchema.safeParse(id)
+    if (!idValidation.success) {
+      return NextResponse.json({ error: "ID invalide" }, { status: 400 })
+    }
+
     const supabase = await getSupabaseServerClient()
     const {
       data: { user },
@@ -87,7 +111,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
+      return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
     }
 
     const { error } = await supabase.from("gestations").delete().eq("id", id).eq("user_id", user.id)
@@ -96,7 +120,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: "Erreur lors de la suppression" }, { status: 500 })
     }
 
-    return NextResponse.json({ message: "Gestation supprimée avec succès" }, { status: 200 })
+    return NextResponse.json({ message: "Gestation supprimee avec succes" }, { status: 200 })
   } catch (error) {
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }

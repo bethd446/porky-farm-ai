@@ -31,6 +31,12 @@ const GoogleIcon = ({ className }: { className?: string }) => (
   </svg>
 )
 
+const AppleIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+  </svg>
+)
+
 interface FormErrors {
   name?: string
   email?: string
@@ -45,6 +51,7 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [appleLoading, setAppleLoading] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [success, setSuccess] = useState(false)
   const [formData, setFormData] = useState({
@@ -150,6 +157,30 @@ export function RegisterForm() {
     }
   }
 
+  const handleAppleSignup = async () => {
+    setAppleLoading(true)
+    setErrors({})
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "apple",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) {
+        setErrors({ general: "Erreur de connexion avec Apple" })
+        setAppleLoading(false)
+      }
+    } catch {
+      setErrors({ general: "Erreur de connexion avec Apple" })
+      setAppleLoading(false)
+    }
+  }
+
+  const isAnyLoading = isLoading || googleLoading || appleLoading
+
   if (success) {
     return (
       <div className="space-y-4 text-center" role="status" aria-live="polite">
@@ -170,22 +201,40 @@ export function RegisterForm() {
 
   return (
     <div className="space-y-6">
-      {/* Google OAuth */}
-      <Button
-        type="button"
-        variant="outline"
-        className="h-12 w-full gap-3 bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
-        onClick={handleGoogleSignup}
-        disabled={isLoading || googleLoading}
-        aria-label="Continuer avec Google"
-      >
-        {googleLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-        ) : (
-          <GoogleIcon className="h-5 w-5" />
-        )}
-        <span>Continuer avec Google</span>
-      </Button>
+      <div className="space-y-3">
+        {/* Google OAuth */}
+        <Button
+          type="button"
+          variant="outline"
+          className="h-12 w-full gap-3 bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
+          onClick={handleGoogleSignup}
+          disabled={isAnyLoading}
+          aria-label="Continuer avec Google"
+        >
+          {googleLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+          ) : (
+            <GoogleIcon className="h-5 w-5" />
+          )}
+          <span>Continuer avec Google</span>
+        </Button>
+
+        {/* Apple OAuth - Black button per Apple HIG */}
+        <Button
+          type="button"
+          className="h-12 w-full gap-3 bg-black hover:bg-gray-900 text-white border-0"
+          onClick={handleAppleSignup}
+          disabled={isAnyLoading}
+          aria-label="Continuer avec Apple"
+        >
+          {appleLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+          ) : (
+            <AppleIcon className="h-5 w-5" />
+          )}
+          <span>Continuer avec Apple</span>
+        </Button>
+      </div>
 
       {/* Separator */}
       <div className="relative" role="separator">
@@ -230,7 +279,7 @@ export function RegisterForm() {
               }}
               required
               autoComplete="name"
-              disabled={isLoading}
+              disabled={isAnyLoading}
             />
           </div>
           {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
@@ -256,7 +305,7 @@ export function RegisterForm() {
               }}
               required
               autoComplete="email"
-              disabled={isLoading}
+              disabled={isAnyLoading}
             />
           </div>
           {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
@@ -283,7 +332,7 @@ export function RegisterForm() {
               required
               autoComplete="new-password"
               minLength={6}
-              disabled={isLoading}
+              disabled={isAnyLoading}
             />
             <button
               type="button"
@@ -298,7 +347,7 @@ export function RegisterForm() {
         </div>
 
         {/* Submit Button */}
-        <Button type="submit" className="h-12 w-full" disabled={isLoading}>
+        <Button type="submit" className="h-12 w-full" disabled={isAnyLoading}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />

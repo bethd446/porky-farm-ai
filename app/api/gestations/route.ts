@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { createGestationSchema, formatZodErrors } from "@/lib/api/validation"
 
 async function getSupabaseServerClient() {
   const cookieStore = await cookies()
@@ -16,7 +17,7 @@ async function getSupabaseServerClient() {
   })
 }
 
-// GET /api/gestations - Récupérer toutes les gestations
+// GET /api/gestations - Recuperer toutes les gestations
 export async function GET(request: NextRequest) {
   try {
     const supabase = await getSupabaseServerClient()
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
+      return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
     }
 
     const { data, error } = await supabase
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/gestations - Créer une nouvelle gestation
+// POST /api/gestations - Creer une nouvelle gestation
 export async function POST(request: NextRequest) {
   try {
     const supabase = await getSupabaseServerClient()
@@ -55,18 +56,20 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
+      return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
     }
 
     const body = await request.json()
-    const { sow_id, sow_name, boar_id, boar_name, breeding_date, notes } = body
+    const validation = createGestationSchema.safeParse(body)
 
-    if (!sow_id || !sow_name || !breeding_date) {
-      return NextResponse.json({ error: "Champs obligatoires manquants" }, { status: 400 })
+    if (!validation.success) {
+      return NextResponse.json({ error: formatZodErrors(validation.error) }, { status: 400 })
     }
 
-    // Calcul de la date prévue (114 jours pour les porcs)
-    const breedingDate = new Date(breeding_date)
+    const validatedData = validation.data
+
+    // Calcul de la date prevue (114 jours pour les porcs)
+    const breedingDate = new Date(validatedData.breeding_date)
     const expectedDueDate = new Date(breedingDate)
     expectedDueDate.setDate(expectedDueDate.getDate() + 114)
 
@@ -74,20 +77,20 @@ export async function POST(request: NextRequest) {
       .from("gestations")
       .insert({
         user_id: user.id,
-        sow_id,
-        sow_name,
-        boar_id,
-        boar_name,
-        breeding_date,
+        sow_id: validatedData.sow_id,
+        sow_name: validatedData.sow_name,
+        boar_id: validatedData.boar_id,
+        boar_name: validatedData.boar_name,
+        breeding_date: validatedData.breeding_date,
         expected_due_date: expectedDueDate.toISOString().split("T")[0],
         status: "active",
-        notes,
+        notes: validatedData.notes,
       })
       .select()
       .single()
 
     if (error) {
-      return NextResponse.json({ error: "Erreur lors de la création de la gestation" }, { status: 500 })
+      return NextResponse.json({ error: "Erreur lors de la creation de la gestation" }, { status: 500 })
     }
 
     return NextResponse.json({ data }, { status: 201 })

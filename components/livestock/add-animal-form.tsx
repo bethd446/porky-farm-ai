@@ -248,9 +248,9 @@ export function AddAnimalForm() {
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <FormInput
-                label="Nom ou numéro de l'animal"
+                label="Nom de l'animal"
                 name="name"
-                placeholder="Ex: Truie #32"
+                placeholder="Ex: Bella, Truie #32"
                 value={formData.name}
                 onChange={(e) => updateField("name", e.target.value)}
                 error={errors.name}
@@ -259,16 +259,16 @@ export function AddAnimalForm() {
               />
               <div className="space-y-2">
                 <FormInput
-                  label="Numéro de boucle"
+                  label="Numero de boucle"
                   name="tagNumber"
                   placeholder="Ex: CI-2024-0032"
                   value={formData.tagNumber}
                   onChange={(e) => updateField("tagNumber", e.target.value)}
                   error={errors.tagNumber}
-                  required
+                  required={false}
                   disabled={status === "loading"}
                 />
-                <p className="text-xs text-muted-foreground">Numéro officiel d'identification de l'animal</p>
+                <p className="text-xs text-muted-foreground">Numero officiel d'identification (optionnel)</p>
               </div>
             </div>
 

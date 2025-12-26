@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,8 +27,11 @@ import {
   Trash2,
   CheckCircle,
   PiggyBank,
+  Loader2,
 } from "lucide-react"
 import { useApp } from "@/contexts/app-context"
+import { useAuthContext } from "@/contexts/auth-context"
+import { db, isSupabaseConfigured } from "@/lib/supabase/client"
 import Link from "next/link"
 
 interface FeedStock {
@@ -62,6 +65,7 @@ interface DailyConsumption {
 
 export function FeedingStock() {
   const { animals, stats } = useApp()
+  const { user } = useAuthContext()
   const [stock, setStock] = useState<FeedStock[]>([])
   const [productions, setProductions] = useState<FeedProduction[]>([])
   const [consumptions, setConsumptions] = useState<DailyConsumption[]>([])
@@ -70,6 +74,8 @@ export function FeedingStock() {
   const [showConsumption, setShowConsumption] = useState(false)
   const [editingStock, setEditingStock] = useState<FeedStock | null>(null)
   const [successMessage, setSuccessMessage] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   const [newStock, setNewStock] = useState({
     name: "",
@@ -91,154 +97,181 @@ export function FeedingStock() {
     animalCount: "",
   })
 
-  useEffect(() => {
-    const savedStock = localStorage.getItem("porkyfarm_feedstock")
-    const savedProductions = localStorage.getItem("porkyfarm_feedproductions")
-    const savedConsumptions = localStorage.getItem("porkyfarm_feedconsumptions")
-
-    if (savedStock) {
-      setStock(JSON.parse(savedStock))
+  const loadData = useCallback(async () => {
+    if (!user?.id) {
+      setStock([])
+      setLoading(false)
+      return
     }
-    // Sinon reste vide
 
-    if (savedProductions) setProductions(JSON.parse(savedProductions))
-    if (savedConsumptions) setConsumptions(JSON.parse(savedConsumptions))
-  }, [])
+    setLoading(true)
+    try {
+      if (isSupabaseConfigured()) {
+        const { data, error } = await db.getFeedStock(user.id)
+        if (error) throw error
 
-  const saveStock = (newStockData: FeedStock[]) => {
-    setStock(newStockData)
-    localStorage.setItem("porkyfarm_feedstock", JSON.stringify(newStockData))
-  }
+        const mappedStock: FeedStock[] = (data || []).map((item: any) => ({
+          id: item.id,
+          name: item.name || item.feed_type || "Aliment",
+          currentQty: Number(item.current_qty || item.quantity_kg || 0),
+          maxQty: Number(item.max_qty || 1000),
+          unit: "kg",
+          costPerUnit: Number(item.cost_per_unit || item.unit_price || 0),
+          lastRestocked: item.last_restocked || item.purchase_date,
+        }))
+        setStock(mappedStock)
+      }
+    } catch (err) {
+      console.error("[FeedingStock] loadData error:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const showSuccess = (message: string) => {
     setSuccessMessage(message)
     setTimeout(() => setSuccessMessage(""), 3000)
   }
 
-  const handleSaveStock = () => {
-    if (!newStock.name || !newStock.currentQty || !newStock.maxQty) return
+  const handleSaveStock = async () => {
+    if (!newStock.name || !newStock.currentQty || !newStock.maxQty || !user?.id) return
 
-    if (editingStock) {
-      const updated = stock.map((s) =>
-        s.id === editingStock.id
-          ? {
-              ...s,
-              name: newStock.name,
-              currentQty: Number(newStock.currentQty),
-              maxQty: Number(newStock.maxQty),
-              costPerUnit: Number(newStock.costPerUnit) || 0,
-              lastRestocked: new Date().toISOString(),
-            }
-          : s,
-      )
-      saveStock(updated)
-      showSuccess("Stock mis a jour")
-    } else {
-      const newItem: FeedStock = {
-        id: Date.now().toString(),
-        name: newStock.name,
-        currentQty: Number(newStock.currentQty),
-        maxQty: Number(newStock.maxQty),
-        unit: "kg",
-        costPerUnit: Number(newStock.costPerUnit) || 0,
-        lastRestocked: new Date().toISOString(),
+    setSaving(true)
+    try {
+      if (editingStock) {
+        // Update existing
+        const { error } = await db.updateFeedStock(editingStock.id, {
+          name: newStock.name,
+          feed_type: newStock.name,
+          current_qty: Number(newStock.currentQty),
+          quantity_kg: Number(newStock.currentQty),
+          max_qty: Number(newStock.maxQty),
+          cost_per_unit: Number(newStock.costPerUnit) || 0,
+          unit_price: Number(newStock.costPerUnit) || 0,
+          last_restocked: new Date().toISOString(),
+        })
+        if (error) throw error
+        showSuccess("Stock mis a jour")
+      } else {
+        // Insert new
+        const { error } = await db.addFeedStock({
+          user_id: user.id,
+          name: newStock.name,
+          feed_type: newStock.name,
+          current_qty: Number(newStock.currentQty),
+          quantity_kg: Number(newStock.currentQty),
+          max_qty: Number(newStock.maxQty),
+          cost_per_unit: Number(newStock.costPerUnit) || 0,
+          unit_price: Number(newStock.costPerUnit) || 0,
+          last_restocked: new Date().toISOString(),
+        })
+        if (error) throw error
+        showSuccess("Nouvel aliment ajoute")
       }
-      saveStock([...stock, newItem])
-      showSuccess("Nouvel aliment ajoute")
-    }
 
-    setNewStock({ name: "", currentQty: "", maxQty: "", costPerUnit: "" })
-    setEditingStock(null)
-    setShowAddStock(false)
+      await loadData()
+      setNewStock({ name: "", currentQty: "", maxQty: "", costPerUnit: "" })
+      setEditingStock(null)
+      setShowAddStock(false)
+    } catch (err) {
+      console.error("[FeedingStock] handleSaveStock error:", err)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleProduction = () => {
-    if (!productionForm.totalProduced) return
+  const handleProduction = async () => {
+    if (!productionForm.totalProduced || !user?.id) return
 
-    const validIngredients = productionForm.ingredients.filter((i) => i.name && i.qty)
-    let totalCost = 0
+    setSaving(true)
+    try {
+      const validIngredients = productionForm.ingredients.filter((i) => i.name && i.qty)
+      let totalCost = 0
 
-    const updatedStock = stock.map((s) => {
-      const ingredient = validIngredients.find((i) => i.name === s.id)
-      if (ingredient) {
-        totalCost += s.costPerUnit * Number(ingredient.qty)
-        return { ...s, currentQty: Math.max(0, s.currentQty - Number(ingredient.qty)) }
+      // Mettre a jour les stocks utilises
+      for (const ingredient of validIngredients) {
+        const stockItem = stock.find((s) => s.id === ingredient.name)
+        if (stockItem) {
+          totalCost += stockItem.costPerUnit * Number(ingredient.qty)
+          await db.updateFeedStock(stockItem.id, {
+            current_qty: Math.max(0, stockItem.currentQty - Number(ingredient.qty)),
+            quantity_kg: Math.max(0, stockItem.currentQty - Number(ingredient.qty)),
+          })
+        }
       }
-      return s
-    })
 
-    const production: FeedProduction = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      ingredients: validIngredients.map((i) => ({
-        name: stock.find((s) => s.id === i.name)?.name || i.name,
-        qty: Number(i.qty),
-      })),
-      totalProduced: Number(productionForm.totalProduced),
-      costTotal: totalCost,
-      notes: productionForm.notes,
+      // Ajouter ou mettre a jour l'aliment compose
+      const composedStock = stock.find((s) => s.name.toLowerCase().includes("compose"))
+      if (composedStock) {
+        await db.updateFeedStock(composedStock.id, {
+          current_qty: composedStock.currentQty + Number(productionForm.totalProduced),
+          quantity_kg: composedStock.currentQty + Number(productionForm.totalProduced),
+        })
+      } else {
+        await db.addFeedStock({
+          user_id: user.id,
+          name: "Aliment compose",
+          feed_type: "Aliment compose",
+          current_qty: Number(productionForm.totalProduced),
+          quantity_kg: Number(productionForm.totalProduced),
+          max_qty: 500,
+          cost_per_unit: totalCost > 0 ? Math.round(totalCost / Number(productionForm.totalProduced)) : 0,
+          unit_price: totalCost > 0 ? Math.round(totalCost / Number(productionForm.totalProduced)) : 0,
+        })
+      }
+
+      await loadData()
+      setProductionForm({ totalProduced: "", ingredients: [{ name: "", qty: "" }], notes: "" })
+      setShowProduction(false)
+      showSuccess(`${productionForm.totalProduced} kg d'aliment produit`)
+    } catch (err) {
+      console.error("[FeedingStock] handleProduction error:", err)
+    } finally {
+      setSaving(false)
     }
+  }
 
-    const composedIndex = updatedStock.findIndex((s) => s.name.toLowerCase().includes("compose"))
-    if (composedIndex >= 0) {
-      updatedStock[composedIndex].currentQty += Number(productionForm.totalProduced)
-    } else {
-      updatedStock.push({
-        id: Date.now().toString(),
-        name: "Aliment compose",
-        currentQty: Number(productionForm.totalProduced),
-        maxQty: 500,
-        unit: "kg",
-        costPerUnit: Math.round(totalCost / Number(productionForm.totalProduced)),
+  const handleConsumption = async () => {
+    if (!consumptionForm.stockId || !consumptionForm.quantity || !user?.id) return
+
+    setSaving(true)
+    try {
+      const stockItem = stock.find((s) => s.id === consumptionForm.stockId)
+      if (!stockItem) return
+
+      await db.updateFeedStock(consumptionForm.stockId, {
+        current_qty: Math.max(0, stockItem.currentQty - Number(consumptionForm.quantity)),
+        quantity_kg: Math.max(0, stockItem.currentQty - Number(consumptionForm.quantity)),
       })
+
+      await loadData()
+      setConsumptionForm({ stockId: "", quantity: "", animalCategory: "", animalCount: "" })
+      setShowConsumption(false)
+      showSuccess(`${consumptionForm.quantity} kg consommes`)
+    } catch (err) {
+      console.error("[FeedingStock] handleConsumption error:", err)
+    } finally {
+      setSaving(false)
     }
-
-    saveStock(updatedStock)
-    const newProductions = [...productions, production]
-    setProductions(newProductions)
-    localStorage.setItem("porkyfarm_feedproductions", JSON.stringify(newProductions))
-
-    setProductionForm({ totalProduced: "", ingredients: [{ name: "", qty: "" }], notes: "" })
-    setShowProduction(false)
-    showSuccess(`${productionForm.totalProduced} kg d'aliment produit`)
   }
 
-  const handleConsumption = () => {
-    if (!consumptionForm.stockId || !consumptionForm.quantity) return
+  const handleDeleteStock = async (id: string) => {
+    if (!user?.id) return
 
-    const stockItem = stock.find((s) => s.id === consumptionForm.stockId)
-    if (!stockItem) return
-
-    const updatedStock = stock.map((s) =>
-      s.id === consumptionForm.stockId
-        ? { ...s, currentQty: Math.max(0, s.currentQty - Number(consumptionForm.quantity)) }
-        : s,
-    )
-    saveStock(updatedStock)
-
-    const consumption: DailyConsumption = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      stockId: consumptionForm.stockId,
-      stockName: stockItem.name,
-      quantity: Number(consumptionForm.quantity),
-      animalCategory: consumptionForm.animalCategory,
-      animalCount: Number(consumptionForm.animalCount) || 0,
+    setSaving(true)
+    try {
+      await db.deleteFeedStock(id)
+      await loadData()
+      showSuccess("Aliment supprime")
+    } catch (err) {
+      console.error("[FeedingStock] handleDeleteStock error:", err)
+    } finally {
+      setSaving(false)
     }
-
-    const newConsumptions = [...consumptions, consumption]
-    setConsumptions(newConsumptions)
-    localStorage.setItem("porkyfarm_feedconsumptions", JSON.stringify(newConsumptions))
-
-    setConsumptionForm({ stockId: "", quantity: "", animalCategory: "", animalCount: "" })
-    setShowConsumption(false)
-    showSuccess(`${consumptionForm.quantity} kg consommes`)
-  }
-
-  const handleDeleteStock = (id: string) => {
-    const updated = stock.filter((s) => s.id !== id)
-    saveStock(updated)
-    showSuccess("Aliment supprime")
   }
 
   const openEditStock = (item: FeedStock) => {
@@ -262,11 +295,17 @@ export function FeedingStock() {
     return daily > 0 ? Math.floor(totalStock / daily) : 0
   }
 
-  const todayConsumption = consumptions
-    .filter((c) => new Date(c.date).toDateString() === new Date().toDateString())
-    .reduce((acc, c) => acc + c.quantity, 0)
-
   const lowStockItems = stock.filter((s) => s.currentQty / s.maxQty < 0.2)
+
+  if (loading) {
+    return (
+      <Card className="shadow-soft">
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (animals.length === 0) {
     return (
@@ -391,8 +430,9 @@ export function FeedingStock() {
                       <DialogClose asChild>
                         <Button variant="outline">Annuler</Button>
                       </DialogClose>
-                      <Button onClick={handleProduction} className="gap-1">
-                        <Factory className="h-4 w-4" /> Enregistrer
+                      <Button onClick={handleProduction} disabled={saving} className="gap-1">
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Factory className="h-4 w-4" />}
+                        Enregistrer
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -469,8 +509,9 @@ export function FeedingStock() {
                       <DialogClose asChild>
                         <Button variant="outline">Annuler</Button>
                       </DialogClose>
-                      <Button onClick={handleConsumption} className="gap-1">
-                        <TrendingDown className="h-4 w-4" /> Enregistrer
+                      <Button onClick={handleConsumption} disabled={saving} className="gap-1">
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <TrendingDown className="h-4 w-4" />}
+                        Enregistrer
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -528,12 +569,12 @@ export function FeedingStock() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Prix par kg (FCFA)</Label>
+                    <Label>Cout par kg (FCFA)</Label>
                     <Input
                       type="number"
                       value={newStock.costPerUnit}
                       onChange={(e) => setNewStock((s) => ({ ...s, costPerUnit: e.target.value }))}
-                      placeholder="Ex: 150"
+                      placeholder="Ex: 250"
                     />
                   </div>
                 </div>
@@ -541,93 +582,90 @@ export function FeedingStock() {
                   <DialogClose asChild>
                     <Button variant="outline">Annuler</Button>
                   </DialogClose>
-                  <Button onClick={handleSaveStock}>{editingStock ? "Mettre a jour" : "Ajouter"}</Button>
+                  <Button onClick={handleSaveStock} disabled={saving}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    {editingStock ? "Mettre a jour" : "Ajouter"}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Success message */}
+      <CardContent>
         {successMessage && (
-          <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-green-700">
+          <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2 text-green-700">
             <CheckCircle className="h-4 w-4" />
-            <span className="text-sm">{successMessage}</span>
+            {successMessage}
           </div>
         )}
 
-        {/* Summary stats - only show if there's stock */}
         {stock.length > 0 && (
-          <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-xl bg-muted/50 p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{stock.reduce((acc, s) => acc + s.currentQty, 0)}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <p className="text-2xl font-bold text-foreground">
+                {stock.reduce((acc, s) => acc + s.currentQty, 0).toLocaleString()}
+              </p>
               <p className="text-xs text-muted-foreground">kg total</p>
             </div>
-            <div className="rounded-xl bg-muted/50 p-3 text-center">
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
               <p className="text-2xl font-bold text-foreground">{daysRemaining()}</p>
-              <p className="text-xs text-muted-foreground">jours de stock</p>
+              <p className="text-xs text-muted-foreground">jours restants</p>
             </div>
-            <div className="rounded-xl bg-muted/50 p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{todayConsumption}</p>
-              <p className="text-xs text-muted-foreground">kg aujourd'hui</p>
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <p className="text-2xl font-bold text-foreground">{Math.round(estimatedDailyConsumption())}</p>
+              <p className="text-xs text-muted-foreground">kg/jour estime</p>
+            </div>
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <p className="text-2xl font-bold text-foreground">
+                {stock.reduce((acc, s) => acc + s.currentQty * s.costPerUnit, 0).toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground">FCFA valeur</p>
             </div>
           </div>
         )}
 
-        {/* Low stock warning */}
         {lowStockItems.length > 0 && (
-          <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-amber-700">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
-            <span className="text-sm">Stock bas: {lowStockItems.map((s) => s.name).join(", ")}</span>
+          <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-center gap-2 text-amber-700">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="text-sm">Stock faible: {lowStockItems.map((s) => s.name).join(", ")}</span>
           </div>
         )}
 
-        {/* Stock list */}
         <div className="space-y-3">
           {stock.map((item) => {
             const percentage = Math.round((item.currentQty / item.maxQty) * 100)
             const isLow = percentage < 20
 
             return (
-              <div
-                key={item.id}
-                className={`rounded-xl border p-4 ${isLow ? "border-amber-200 bg-amber-50/50" : "border-border"}`}
-              >
+              <div key={item.id} className="p-4 border border-border rounded-xl bg-background">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-primary" />
                     <span className="font-medium">{item.name}</span>
-                    {isLow && (
-                      <Badge variant="outline" className="text-amber-600 border-amber-300">
-                        Stock bas
-                      </Badge>
-                    )}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditStock(item)}>
-                      <Edit2 className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-2">
+                    <Badge variant={isLow ? "destructive" : "secondary"}>
+                      {item.currentQty} / {item.maxQty} {item.unit}
+                    </Badge>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditStock(item)}>
+                      <Edit2 className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-destructive"
+                      className="h-8 w-8 text-destructive"
                       onClick={() => handleDeleteStock(item.id)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <Progress value={percentage} className={`flex-1 h-2 ${isLow ? "[&>div]:bg-amber-500" : ""}`} />
-                  <span className="text-sm text-muted-foreground min-w-[80px] text-right">
-                    {item.currentQty}/{item.maxQty} {item.unit}
-                  </span>
+                <Progress value={percentage} className={`h-2 ${isLow ? "[&>div]:bg-destructive" : ""}`} />
+                <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                  <span>{percentage}% rempli</span>
+                  <span>{item.costPerUnit} FCFA/kg</span>
                 </div>
-                {item.costPerUnit > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {item.costPerUnit} FCFA/kg - Valeur: {(item.currentQty * item.costPerUnit).toLocaleString()} FCFA
-                  </p>
-                )}
               </div>
             )
           })}
@@ -635,11 +673,11 @@ export function FeedingStock() {
           {stock.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p className="font-medium">Stock vide</p>
-              <p className="text-xs mt-1">Ajoutez vos matieres premieres pour suivre vos quantites</p>
+              <p className="font-medium">Aucun aliment en stock</p>
+              <p className="text-xs mt-1">Ajoutez vos premiers aliments pour commencer le suivi</p>
               <Button variant="link" onClick={() => setShowAddStock(true)} className="mt-2">
                 <Plus className="h-4 w-4 mr-1" />
-                Ajouter un aliment au stock
+                Ajouter un aliment
               </Button>
             </div>
           )}

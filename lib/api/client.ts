@@ -1,5 +1,44 @@
-// Client API pour l'app mobile et web
-// Centralise tous les appels API
+/**
+ * =====================================================
+ * PorkyFarm API Client
+ * =====================================================
+ *
+ * Client unifie pour les apps Web et Mobile (React Native / Expo)
+ *
+ * MODULES P0 EXPOSES :
+ * - /api/animals      : CRUD cheptel (pigs)
+ * - /api/health-cases : CRUD cas de sante (veterinary_cases)
+ * - /api/gestations   : CRUD reproduction
+ * - /api/auth/session : Verification session utilisateur
+ * - /api/chat         : Assistant IA (GPT-4o)
+ *
+ * SECURITE :
+ * - Authentification via cookies Supabase (credentials: include)
+ * - Isolation stricte par user_id (RLS Supabase)
+ * - Validation Zod sur tous les inputs
+ * - Rate limiting sur /api/chat (20 req/min)
+ *
+ * LIMITATIONS ACTUELLES (P1) :
+ * - Pas de mode offline / cache local
+ * - Pas de notifications push
+ * - Pas de synchronisation differee
+ * - Module Alimentation: feed_stock et feeding_schedule disponibles
+ *
+ * USAGE EXPO/REACT NATIVE :
+ * \`\`\`typescript
+ * import { animalsApi, healthCasesApi, gestationsApi } from '@/lib/api/client'
+ *
+ * // Recuperer tous les animaux
+ * const { data, error } = await animalsApi.getAll()
+ *
+ * // Creer un animal
+ * const { data, error } = await animalsApi.create({
+ *   identifier: 'TRUIE-001',
+ *   category: 'sow',
+ *   breed: 'Large White'
+ * })
+ * \`\`\`
+ */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || ""
 
@@ -99,4 +138,13 @@ export const gestationsApi = {
 // API Auth
 export const authApi = {
   getSession: () => fetchWithAuth("/api/auth/session"),
+}
+
+// API Chat
+export const chatApi = {
+  getResponse: (message: string) =>
+    fetchWithAuth("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    }),
 }

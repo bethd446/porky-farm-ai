@@ -31,10 +31,17 @@ const GoogleIcon = ({ className }: { className?: string }) => (
   </svg>
 )
 
+const AppleIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+  </svg>
+)
+
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [appleLoading, setAppleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [formData, setFormData] = useState({ email: "", password: "" })
@@ -100,19 +107,54 @@ export function LoginForm() {
     }
   }
 
+  const handleAppleLogin = async () => {
+    setAppleLoading(true)
+    setError(null)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "apple",
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      })
+      if (error) {
+        setError("Erreur de connexion avec Apple")
+        setAppleLoading(false)
+      }
+    } catch {
+      setError("Erreur de connexion avec Apple")
+      setAppleLoading(false)
+    }
+  }
+
+  const isAnyLoading = isLoading || googleLoading || appleLoading || success
+
   return (
     <div className="space-y-6">
-      {/* Google OAuth */}
-      <Button
-        type="button"
-        variant="outline"
-        className="h-12 w-full gap-3 bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
-        onClick={handleGoogleLogin}
-        disabled={isLoading || success || googleLoading}
-      >
-        {googleLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <GoogleIcon className="h-5 w-5" />}
-        Continuer avec Google
-      </Button>
+      <div className="space-y-3">
+        {/* Google OAuth */}
+        <Button
+          type="button"
+          variant="outline"
+          className="h-12 w-full gap-3 bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
+          onClick={handleGoogleLogin}
+          disabled={isAnyLoading}
+          aria-label="Continuer avec Google"
+        >
+          {googleLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <GoogleIcon className="h-5 w-5" />}
+          Continuer avec Google
+        </Button>
+
+        {/* Apple OAuth - Black button per Apple HIG */}
+        <Button
+          type="button"
+          className="h-12 w-full gap-3 bg-black hover:bg-gray-900 text-white border-0"
+          onClick={handleAppleLogin}
+          disabled={isAnyLoading}
+          aria-label="Continuer avec Apple"
+        >
+          {appleLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <AppleIcon className="h-5 w-5" />}
+          Continuer avec Apple
+        </Button>
+      </div>
 
       {/* Separator */}
       <div className="relative">
@@ -156,7 +198,7 @@ export function LoginForm() {
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
-              disabled={isLoading || success}
+              disabled={isAnyLoading}
             />
           </div>
         </div>
@@ -179,7 +221,7 @@ export function LoginForm() {
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
-              disabled={isLoading || success}
+              disabled={isAnyLoading}
             />
             <button
               type="button"
@@ -192,7 +234,7 @@ export function LoginForm() {
         </div>
 
         {/* Submit */}
-        <Button type="submit" className="h-12 w-full" disabled={isLoading || success}>
+        <Button type="submit" className="h-12 w-full" disabled={isAnyLoading}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />

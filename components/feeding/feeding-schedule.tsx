@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Clock, CheckCircle2, AlertCircle, Plus, PiggyBank } from "lucide-react"
+import { Clock, CheckCircle2, AlertCircle, Plus, PiggyBank, Loader2, Trash2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useApp } from "@/contexts/app-context"
+import { useAuthContext } from "@/contexts/auth-context"
+import { db, isSupabaseConfigured } from "@/lib/supabase/client"
 import Link from "next/link"
 
 interface ScheduleItem {
@@ -31,8 +33,11 @@ interface ScheduleItem {
 
 export function FeedingSchedule() {
   const { animals, stats } = useApp()
+  const { user } = useAuthContext()
   const [schedule, setSchedule] = useState<ScheduleItem[]>([])
   const [showAdd, setShowAdd] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [newTask, setNewTask] = useState({
     time: "",
     task: "",
@@ -40,70 +45,108 @@ export function FeedingSchedule() {
     quantity: "",
   })
 
-  useEffect(() => {
-    if (animals.length === 0) {
-      // Si pas d'animaux, pas de planning
+  const loadData = useCallback(async () => {
+    if (!user?.id || animals.length === 0) {
       setSchedule([])
+      setLoading(false)
       return
     }
 
-    const saved = localStorage.getItem("porkyfarm_feedschedule")
-    const savedDate = localStorage.getItem("porkyfarm_feedschedule_date")
-    const today = new Date().toDateString()
+    setLoading(true)
+    try {
+      if (isSupabaseConfigured()) {
+        const today = new Date().toISOString().split("T")[0]
+        const { data, error } = await db.getFeedingSchedule(user.id, today)
+        if (error) throw error
 
-    if (saved && savedDate === today) {
-      setSchedule(JSON.parse(saved))
-    } else if (saved) {
-      // Reset status pour nouveau jour mais garde les taches de l'utilisateur
-      const parsed = JSON.parse(saved) as ScheduleItem[]
-      const resetSchedule = parsed.map((s) => ({ ...s, status: "pending" as const }))
-      setSchedule(resetSchedule)
-      localStorage.setItem("porkyfarm_feedschedule", JSON.stringify(resetSchedule))
-      localStorage.setItem("porkyfarm_feedschedule_date", today)
-    } else {
-      // Premiere utilisation: vide
-      setSchedule([])
+        const mappedSchedule: ScheduleItem[] = (data || []).map((item: any) => ({
+          id: item.id,
+          time: item.time,
+          task: item.task,
+          location: item.location || "Non specifie",
+          quantity: item.quantity || "Variable",
+          status: item.status as "done" | "pending",
+        }))
+        setSchedule(mappedSchedule)
+      }
+    } catch (err) {
+      console.error("[FeedingSchedule] loadData error:", err)
+    } finally {
+      setLoading(false)
     }
-  }, [animals.length])
+  }, [user?.id, animals.length])
 
-  const saveSchedule = (newSchedule: ScheduleItem[]) => {
-    setSchedule(newSchedule)
-    localStorage.setItem("porkyfarm_feedschedule", JSON.stringify(newSchedule))
-    localStorage.setItem("porkyfarm_feedschedule_date", new Date().toDateString())
-  }
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
-  const toggleStatus = (id: string) => {
-    const updated = schedule.map((s) =>
-      s.id === id ? { ...s, status: s.status === "done" ? ("pending" as const) : ("done" as const) } : s,
-    )
-    saveSchedule(updated)
-  }
+  const toggleStatus = async (id: string) => {
+    const item = schedule.find((s) => s.id === id)
+    if (!item) return
 
-  const addTask = () => {
-    if (!newTask.time || !newTask.task) return
+    const newStatus = item.status === "done" ? "pending" : "done"
 
-    const task: ScheduleItem = {
-      id: Date.now().toString(),
-      time: newTask.time,
-      task: newTask.task,
-      location: newTask.location || "Non specifie",
-      quantity: newTask.quantity ? `${newTask.quantity} kg` : "Variable",
-      status: "pending",
+    // Update local state immediately for responsiveness
+    setSchedule((prev) => prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s)))
+
+    try {
+      await db.updateFeedingScheduleItem(id, { status: newStatus })
+    } catch (err) {
+      console.error("[FeedingSchedule] toggleStatus error:", err)
+      // Revert on error
+      setSchedule((prev) => prev.map((s) => (s.id === id ? { ...s, status: item.status } : s)))
     }
-
-    const updated = [...schedule, task].sort((a, b) => a.time.localeCompare(b.time))
-    saveSchedule(updated)
-    setNewTask({ time: "", task: "", location: "", quantity: "" })
-    setShowAdd(false)
   }
 
-  const deleteTask = (id: string) => {
-    const updated = schedule.filter((s) => s.id !== id)
-    saveSchedule(updated)
+  const addTask = async () => {
+    if (!newTask.time || !newTask.task || !user?.id) return
+
+    setSaving(true)
+    try {
+      const today = new Date().toISOString().split("T")[0]
+      const { error } = await db.addFeedingScheduleItem({
+        user_id: user.id,
+        time: newTask.time,
+        task: newTask.task,
+        location: newTask.location || "Non specifie",
+        quantity: newTask.quantity ? `${newTask.quantity} kg` : "Variable",
+        status: "pending",
+        schedule_date: today,
+      })
+
+      if (error) throw error
+
+      await loadData()
+      setNewTask({ time: "", task: "", location: "", quantity: "" })
+      setShowAdd(false)
+    } catch (err) {
+      console.error("[FeedingSchedule] addTask error:", err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteTask = async (id: string) => {
+    try {
+      await db.deleteFeedingScheduleItem(id)
+      setSchedule((prev) => prev.filter((s) => s.id !== id))
+    } catch (err) {
+      console.error("[FeedingSchedule] deleteTask error:", err)
+    }
   }
 
   const completedCount = schedule.filter((s) => s.status === "done").length
   const progress = schedule.length > 0 ? Math.round((completedCount / schedule.length) * 100) : 0
+
+  if (loading) {
+    return (
+      <Card className="shadow-soft">
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (animals.length === 0) {
     return (
@@ -206,7 +249,10 @@ export function FeedingSchedule() {
                 <DialogClose asChild>
                   <Button variant="outline">Annuler</Button>
                 </DialogClose>
-                <Button onClick={addTask}>Ajouter cette tache</Button>
+                <Button onClick={addTask} disabled={saving}>
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Ajouter cette tache
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -221,37 +267,46 @@ export function FeedingSchedule() {
 
         <div className="space-y-3">
           {schedule.map((item) => (
-            <button
+            <div
               key={item.id}
-              onClick={() => toggleStatus(item.id)}
               className={`w-full flex items-center gap-4 rounded-xl border border-border p-4 text-left transition-all hover:shadow-md ${
                 item.status === "done"
                   ? "bg-green-50 dark:bg-green-950/20 border-green-200"
                   : "bg-background hover:bg-muted/50"
               }`}
             >
-              <div className="text-center min-w-[50px]">
-                <p className={`text-lg font-bold ${item.status === "done" ? "text-green-600" : "text-foreground"}`}>
-                  {item.time}
-                </p>
-              </div>
-              <div className="flex-1">
-                <p
-                  className={`font-medium ${item.status === "done" ? "text-green-700 line-through" : "text-foreground"}`}
-                >
-                  {item.task}
-                </p>
-                <p className="text-sm text-muted-foreground">{item.location}</p>
-              </div>
-              <Badge variant="outline" className={item.status === "done" ? "border-green-300 text-green-600" : ""}>
-                {item.quantity}
-              </Badge>
-              {item.status === "done" ? (
-                <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-              )}
-            </button>
+              <button onClick={() => toggleStatus(item.id)} className="flex-1 flex items-center gap-4 text-left">
+                <div className="text-center min-w-[50px]">
+                  <p className={`text-lg font-bold ${item.status === "done" ? "text-green-600" : "text-foreground"}`}>
+                    {item.time}
+                  </p>
+                </div>
+                <div className="flex-1">
+                  <p
+                    className={`font-medium ${item.status === "done" ? "text-green-700 line-through" : "text-foreground"}`}
+                  >
+                    {item.task}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{item.location}</p>
+                </div>
+                <Badge variant="outline" className={item.status === "done" ? "border-green-300 text-green-600" : ""}>
+                  {item.quantity}
+                </Badge>
+                {item.status === "done" ? (
+                  <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                )}
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive shrink-0"
+                onClick={() => deleteTask(item.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           ))}
 
           {schedule.length === 0 && (

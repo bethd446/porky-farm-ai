@@ -345,6 +345,111 @@ export const db = {
       return { error: { message: "Erreur suppression cas veterinaire" } as any }
     }
   },
+
+  async getFeedStock(userId: string) {
+    try {
+      return await supabase
+        .from("feed_stock")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+    } catch (err) {
+      console.error("[DB] getFeedStock exception:", err)
+      return { data: null, error: { message: "Erreur chargement stock" } as any }
+    }
+  },
+
+  async addFeedStock(stock: Record<string, unknown>) {
+    try {
+      return await supabase.from("feed_stock").insert(stock).select().single()
+    } catch (err) {
+      console.error("[DB] addFeedStock exception:", err)
+      return { data: null, error: { message: "Erreur ajout stock" } as any }
+    }
+  },
+
+  async updateFeedStock(stockId: string, updates: Record<string, unknown>) {
+    try {
+      return await supabase
+        .from("feed_stock")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", stockId)
+        .select()
+        .single()
+    } catch (err) {
+      console.error("[DB] updateFeedStock exception:", err)
+      return { data: null, error: { message: "Erreur mise a jour stock" } as any }
+    }
+  },
+
+  async deleteFeedStock(stockId: string) {
+    try {
+      return await supabase.from("feed_stock").delete().eq("id", stockId)
+    } catch (err) {
+      console.error("[DB] deleteFeedStock exception:", err)
+      return { error: { message: "Erreur suppression stock" } as any }
+    }
+  },
+
+  async getFeedingSchedule(userId: string, date?: string) {
+    try {
+      const targetDate = date || new Date().toISOString().split("T")[0]
+      return await supabase
+        .from("feeding_schedule")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("schedule_date", targetDate)
+        .order("time", { ascending: true })
+    } catch (err) {
+      console.error("[DB] getFeedingSchedule exception:", err)
+      return { data: null, error: { message: "Erreur chargement planning" } as any }
+    }
+  },
+
+  async addFeedingScheduleItem(item: Record<string, unknown>) {
+    try {
+      return await supabase.from("feeding_schedule").insert(item).select().single()
+    } catch (err) {
+      console.error("[DB] addFeedingScheduleItem exception:", err)
+      return { data: null, error: { message: "Erreur ajout tache" } as any }
+    }
+  },
+
+  async updateFeedingScheduleItem(itemId: string, updates: Record<string, unknown>) {
+    try {
+      return await supabase
+        .from("feeding_schedule")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", itemId)
+        .select()
+        .single()
+    } catch (err) {
+      console.error("[DB] updateFeedingScheduleItem exception:", err)
+      return { data: null, error: { message: "Erreur mise a jour tache" } as any }
+    }
+  },
+
+  async deleteFeedingScheduleItem(itemId: string) {
+    try {
+      return await supabase.from("feeding_schedule").delete().eq("id", itemId)
+    } catch (err) {
+      console.error("[DB] deleteFeedingScheduleItem exception:", err)
+      return { error: { message: "Erreur suppression tache" } as any }
+    }
+  },
+
+  async resetFeedingScheduleStatus(userId: string, date: string) {
+    try {
+      return await supabase
+        .from("feeding_schedule")
+        .update({ status: "pending", updated_at: new Date().toISOString() })
+        .eq("user_id", userId)
+        .eq("schedule_date", date)
+    } catch (err) {
+      console.error("[DB] resetFeedingScheduleStatus exception:", err)
+      return { error: { message: "Erreur reset planning" } as any }
+    }
+  },
 }
 
 export default supabase
