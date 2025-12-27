@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { useApp } from "@/contexts/app-context"
 import { FormInput, FormTextarea, FormSelect } from "@/components/common/form-field"
-import { healthCaseSchema } from "@/lib/validations/schemas"
+import { healthCaseSchema, symptomSchema } from "@/lib/validations/schemas"
 
 const priorityOptions = [
   { value: "Basse", label: "Basse - Surveillance" },
@@ -88,7 +88,7 @@ export function HealthCases() {
     }
   }
 
-  const handleAddCase = () => {
+  const handleAddCase = async () => {
     setErrors({})
     setErrorMessage("")
 
@@ -139,16 +139,17 @@ export function HealthCases() {
     }
   }
 
-  const handleCaptureSymptom = () => {
+  const handleCaptureSymptom = async () => {
     setSymptomErrors({})
 
-    if (!symptomData.animal) {
-      setSymptomErrors({ animal: "Selectionnez un animal" })
-      return
-    }
-
-    if (!symptomData.symptom || symptomData.symptom.length < 5) {
-      setSymptomErrors({ symptom: "Decrivez le symptome (minimum 5 caracteres)" })
+    const result = symptomSchema.safeParse(symptomData)
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {}
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as string
+        fieldErrors[field] = err.message
+      })
+      setSymptomErrors(fieldErrors)
       return
     }
 
@@ -163,8 +164,7 @@ export function HealthCases() {
         return
       }
 
-      // Create a health case from the symptom
-      addHealthCase({
+      const newHealthCase = await addHealthCase({
         animalId: symptomData.animal,
         animalName: selectedAnimal.name || "Animal inconnu",
         issue: symptomData.symptom,
@@ -174,6 +174,10 @@ export function HealthCases() {
         photo: symptomData.photo || undefined,
         startDate: new Date().toISOString().split("T")[0],
       })
+
+      if (!newHealthCase) {
+        throw new Error("Echec de l'enregistrement du symptome")
+      }
 
       setSymptomStatus("success")
 

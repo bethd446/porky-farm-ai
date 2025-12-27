@@ -64,7 +64,7 @@ export function GestationTracker() {
     setIsViewOpen(false)
   }
 
-  const handleAddGestation = () => {
+  const handleAddGestation = async () => {
     setErrors({})
     setErrorMessage("")
 
