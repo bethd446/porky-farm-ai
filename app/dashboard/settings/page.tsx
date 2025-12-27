@@ -103,12 +103,27 @@ export default function SettingsPage() {
 
     setPasswordLoading(true)
     setPasswordError(null)
+    setPasswordSuccess(false)
 
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setPasswordSuccess(true)
-    setPasswordForm({ current: "", new: "", confirm: "" })
-    setTimeout(() => setPasswordSuccess(false), 3000)
-    setPasswordLoading(false)
+    try {
+      const { supabaseAuth } = await import("@/lib/supabase/client")
+      const { error } = await supabaseAuth.updateUser({ password: passwordForm.new })
+
+      if (error) {
+        setPasswordError(error.message || "Erreur lors de la mise a jour du mot de passe")
+        setPasswordLoading(false)
+        return
+      }
+
+      setPasswordSuccess(true)
+      setPasswordForm({ current: "", new: "", confirm: "" })
+      setTimeout(() => setPasswordSuccess(false), 3000)
+    } catch (err) {
+      setPasswordError("Une erreur est survenue. Veuillez reessayer.")
+      console.error("[Settings] handlePasswordUpdate error:", err)
+    } finally {
+      setPasswordLoading(false)
+    }
   }
 
   const handleExport = async () => {
@@ -125,11 +140,11 @@ export default function SettingsPage() {
       activities: activities.slice(0, 100),
       statistics: {
         totalAnimals: animals.length,
-        truies: animals.filter((a) => a.category === "Truie").length,
-        verrats: animals.filter((a) => a.category === "Verrat").length,
-        porcelets: animals.filter((a) => a.category === "Porcelet").length,
+        truies: animals.filter((a) => a.category === "truie").length,
+        verrats: animals.filter((a) => a.category === "verrat").length,
+        porcelets: animals.filter((a) => a.category === "porcelet").length,
         activeGestations: gestations.filter((g) => g.status === "active").length,
-        activeHealthCases: healthCases.filter((hc) => hc.status === "active").length,
+        activeHealthCases: healthCases.filter((hc) => hc.status === "open" || hc.status === "active").length,
       },
     }
 

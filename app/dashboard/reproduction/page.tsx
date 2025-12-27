@@ -82,7 +82,7 @@ export default function ReproductionPage() {
         return
       }
 
-      addGestation({
+      await addGestation({
         sowId: newGestation.sow,
         sowName: sow.name,
         boarId: newGestation.boar || undefined,

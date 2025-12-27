@@ -161,3 +161,86 @@ export function formatWeight(weight: number | undefined): string {
   if (!weight) return "Non renseigné"
   return `${weight} kg`
 }
+
+// ============ MAPPING FRONTEND ↔ DATABASE ============
+// Ces fonctions permettent de convertir entre les valeurs françaises utilisées
+// dans le frontend et les valeurs anglaises attendues par la base de données
+
+/**
+ * Convertit une catégorie frontend (français) vers la valeur DB (anglais)
+ */
+export function mapCategoryToDb(category: AnimalCategory | string): "sow" | "boar" | "piglet" | "fattening" {
+  const mapping: Record<string, "sow" | "boar" | "piglet" | "fattening"> = {
+    truie: "sow",
+    verrat: "boar",
+    porcelet: "piglet",
+    porc: "fattening",
+    porc_engraissement: "fattening",
+  }
+  return mapping[category] || "fattening"
+}
+
+/**
+ * Convertit une catégorie DB (anglais) vers la valeur frontend (français)
+ */
+export function mapCategoryFromDb(category: string): AnimalCategory {
+  const mapping: Record<string, AnimalCategory> = {
+    sow: "truie",
+    boar: "verrat",
+    piglet: "porcelet",
+    fattening: "porc",
+  }
+  return mapping[category] || "porc"
+}
+
+/**
+ * Convertit un statut frontend (français) vers la valeur DB (anglais)
+ */
+export function mapStatusToDb(status: AnimalStatus | string): "active" | "sold" | "deceased" | "sick" {
+  const mapping: Record<string, "active" | "sold" | "deceased" | "sick"> = {
+    actif: "active",
+    vendu: "sold",
+    mort: "deceased",
+    malade: "sick",
+  }
+  return mapping[status] || "active"
+}
+
+/**
+ * Convertit un statut DB (anglais) vers la valeur frontend (français)
+ */
+export function mapStatusFromDb(status: string): AnimalStatus {
+  const mapping: Record<string, AnimalStatus> = {
+    active: "actif",
+    sold: "vendu",
+    deceased: "mort",
+    sick: "malade",
+    pregnant: "actif", // Les truies enceintes sont considérées comme actives
+    nursing: "actif", // Les truies allaitantes sont considérées comme actives
+  }
+  return mapping[status] || "actif"
+}
+
+/**
+ * Convertit un health_status frontend (français) vers la valeur DB (anglais)
+ */
+export function mapHealthStatusToDb(healthStatus: HealthStatus | string): "healthy" | "sick" | "quarantine" {
+  const mapping: Record<string, "healthy" | "sick" | "quarantine"> = {
+    bon: "healthy",
+    moyen: "sick",
+    mauvais: "quarantine",
+  }
+  return mapping[healthStatus] || "healthy"
+}
+
+/**
+ * Convertit un health_status DB (anglais) vers la valeur frontend (français)
+ */
+export function mapHealthStatusFromDb(healthStatus: string): HealthStatus {
+  const mapping: Record<string, HealthStatus> = {
+    healthy: "bon",
+    sick: "moyen",
+    quarantine: "mauvais",
+  }
+  return mapping[healthStatus] || "bon"
+}

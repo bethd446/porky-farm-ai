@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { chatRequestSchema, formatZodErrors } from "@/lib/api/validation"
 import { checkRateLimit, CHAT_RATE_LIMIT } from "@/lib/api/rate-limit"
+import { trackEvent, AnalyticsEvents } from "@/lib/services/analytics"
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -151,6 +152,12 @@ REGLES DE REPONSE:
       messages: formattedMessages,
     })
 
+    // Tracker l'utilisation de l'IA
+    await trackEvent(userId, AnalyticsEvents.AI_CHAT_USED, {
+      hasImage,
+      messageCount: messages.length,
+    })
+
     return Response.json(
       { content: text },
       {
@@ -162,6 +169,12 @@ REGLES DE REPONSE:
     )
   } catch (error: unknown) {
     const err = error as Error
+
+    // Tracker l'erreur
+    const userId = await getUserId()
+    await trackEvent(userId, AnalyticsEvents.AI_CHAT_ERROR, {
+      error: err.message,
+    })
 
     // Determine error type for appropriate user message
     let errorMessage = "Desole, je rencontre des difficultes techniques. Veuillez reessayer."

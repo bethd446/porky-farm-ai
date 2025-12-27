@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { createAnimalSchema, formatZodErrors } from "@/lib/api/validation"
+import { trackEvent, AnalyticsEvents } from "@/lib/services/analytics"
 
 async function getSupabaseServerClient() {
   const cookieStore = await cookies()
@@ -91,6 +92,12 @@ export async function POST(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: "Erreur lors de la creation de l'animal" }, { status: 500 })
     }
+
+    // Tracker l'événement analytics
+    await trackEvent(user.id, AnalyticsEvents.ANIMAL_CREATED, {
+      category: validatedData.category,
+      hasPhoto: !!validatedData.photo,
+    })
 
     return NextResponse.json({ data }, { status: 201 })
   } catch (error) {

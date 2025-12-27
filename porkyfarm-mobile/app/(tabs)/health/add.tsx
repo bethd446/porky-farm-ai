@@ -1,0 +1,291 @@
+import { useState, useEffect } from 'react'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native'
+import { useRouter } from 'expo-router'
+import { healthCasesService, type HealthCaseInsert } from '../../../services/healthCases'
+import { animalsService, type Animal } from '../../../services/animals'
+
+export default function AddHealthCaseScreen() {
+  const [formData, setFormData] = useState<HealthCaseInsert>({
+    animal_id: '',
+    animal_name: null,
+    issue: '',
+    description: '',
+    priority: 'medium',
+    status: 'active',
+    start_date: new Date().toISOString().split('T')[0],
+  })
+  const [animals, setAnimals] = useState<Animal[]>([])
+  const [loading, setLoading] = useState(false)
+  const [loadingAnimals, setLoadingAnimals] = useState(true)
+  const router = useRouter()
+
+  useEffect(() => {
+    loadAnimals()
+  }, [])
+
+  const loadAnimals = async () => {
+    setLoadingAnimals(true)
+    const { data } = await animalsService.getAll()
+    setAnimals(data || [])
+    setLoadingAnimals(false)
+  }
+
+  const handleSubmit = async () => {
+    if (!formData.animal_id || !formData.issue || !formData.description) {
+      Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires')
+      return
+    }
+
+    // Récupérer le nom de l'animal sélectionné
+    const selectedAnimal = animals.find((a) => a.id === formData.animal_id)
+    const animalName = selectedAnimal?.name || selectedAnimal?.identifier || null
+
+    setLoading(true)
+    try {
+      const { error } = await healthCasesService.create({
+        ...formData,
+        animal_name: animalName,
+      })
+      if (error) {
+        Alert.alert('Erreur', error.message || 'Erreur lors de la création')
+      } else {
+        Alert.alert('Succès', 'Cas de santé créé avec succès', [
+          { text: 'OK', onPress: () => router.back() },
+        ])
+      }
+    } catch (err) {
+      Alert.alert('Erreur', 'Une erreur est survenue')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loadingAnimals) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#2d6a4f" />
+      </View>
+    )
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Nouveau cas de santé</Text>
+      </View>
+
+      <View style={styles.form}>
+        <Text style={styles.label}>Animal *</Text>
+        <View style={styles.animalSelector}>
+          {animals.length === 0 ? (
+            <Text style={styles.emptyAnimalsText}>Aucun animal disponible. Ajoutez d'abord un animal.</Text>
+          ) : (
+            animals.map((animal) => (
+              <TouchableOpacity
+                key={animal.id}
+                style={[styles.animalOption, formData.animal_id === animal.id && styles.animalOptionSelected]}
+                onPress={() => setFormData({ ...formData, animal_id: animal.id })}
+              >
+                <Text style={[styles.animalOptionText, formData.animal_id === animal.id && styles.animalOptionTextSelected]}>
+                  {animal.name || animal.identifier}
+                </Text>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
+
+        <Text style={styles.label}>Problème *</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.issue}
+          onChangeText={(text) => setFormData({ ...formData, issue: text })}
+          placeholder="Ex: Fièvre, Toux..."
+        />
+
+        <Text style={styles.label}>Description *</Text>
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          value={formData.description || ''}
+          onChangeText={(text) => setFormData({ ...formData, description: text })}
+          placeholder="Détails du cas..."
+          multiline
+          numberOfLines={4}
+        />
+
+        <Text style={styles.label}>Priorité</Text>
+        <View style={styles.priorityContainer}>
+          {(['low', 'medium', 'high'] as const).map((priority) => (
+            <TouchableOpacity
+              key={priority}
+              style={[styles.priorityButton, formData.priority === priority && styles.priorityButtonActive]}
+              onPress={() => setFormData({ ...formData, priority })}
+            >
+              <Text
+                style={[
+                  styles.priorityButtonText,
+                  formData.priority === priority && styles.priorityButtonTextActive,
+                ]}
+              >
+                {priority === 'low' ? 'Faible' : priority === 'medium' ? 'Moyenne' : 'Haute'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.label}>Date de début</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.start_date || ''}
+          onChangeText={(text) => setFormData({ ...formData, start_date: text })}
+          placeholder="YYYY-MM-DD"
+        />
+
+        <Text style={styles.label}>Traitement (optionnel)</Text>
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          value={formData.treatment || ''}
+          onChangeText={(text) => setFormData({ ...formData, treatment: text })}
+          placeholder="Détails du traitement..."
+          multiline
+          numberOfLines={3}
+        />
+
+        <Text style={styles.label}>Vétérinaire (optionnel)</Text>
+        <TextInput
+          style={styles.input}
+          value={formData.veterinarian || ''}
+          onChangeText={(text) => setFormData({ ...formData, veterinarian: text })}
+          placeholder="Nom du vétérinaire"
+        />
+
+        <TouchableOpacity
+          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          <Text style={styles.submitButtonText}>{loading ? 'Enregistrement...' : 'Enregistrer'}</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: '#f9fafb',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  form: {
+    padding: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+  textArea: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  animalSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  emptyAnimalsText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    padding: 12,
+  },
+  animalOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#fff',
+  },
+  animalOptionSelected: {
+    backgroundColor: '#2d6a4f',
+    borderColor: '#2d6a4f',
+  },
+  animalOptionText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  animalOptionTextSelected: {
+    color: '#fff',
+  },
+  priorityContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  priorityButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#fff',
+  },
+  priorityButtonActive: {
+    backgroundColor: '#2d6a4f',
+    borderColor: '#2d6a4f',
+  },
+  priorityButtonText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  priorityButtonTextActive: {
+    color: '#fff',
+  },
+  submitButton: {
+    backgroundColor: '#2d6a4f',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+})

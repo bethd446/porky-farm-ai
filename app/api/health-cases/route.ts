@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { createHealthCaseSchema, formatZodErrors } from "@/lib/api/validation"
+import { trackEvent, AnalyticsEvents } from "@/lib/services/analytics"
+import { sendAlertSms, formatPhoneNumber } from "@/lib/services/sms"
 
 async function getSupabaseServerClient() {
   const cookieStore = await cookies()
@@ -89,6 +91,43 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       return NextResponse.json({ error: "Erreur lors de la creation du cas de sante" }, { status: 500 })
+    }
+
+    // Tracker l'événement analytics
+    const isCritical = validatedData.priority === 'high' || validatedData.priority === 'critical'
+    await trackEvent(
+      user.id,
+      isCritical ? AnalyticsEvents.HEALTH_CASE_CRITICAL : AnalyticsEvents.HEALTH_CASE_CREATED,
+      {
+        priority: validatedData.priority,
+        animalId: validatedData.animal_id,
+      },
+    )
+
+    // Envoyer SMS si cas critique et numéro disponible
+    if (isCritical) {
+      try {
+        // Récupérer le profil utilisateur pour le numéro de téléphone
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('phone')
+          .eq('id', user.id)
+          .single()
+
+        if (profile?.phone) {
+          const formattedPhone = formatPhoneNumber(profile.phone)
+          if (formattedPhone) {
+            const smsMessage = `🚨 Alerte PorkyFarm: Cas santé critique - ${validatedData.issue} - ${validatedData.animal_name || 'Animal'}. Détails: ${validatedData.description?.substring(0, 100) || ''}`
+            await sendAlertSms(formattedPhone, smsMessage)
+            await trackEvent(user.id, AnalyticsEvents.SMS_SENT, {
+              alertType: 'health_critical',
+            })
+          }
+        }
+      } catch (smsError) {
+        // Ne pas bloquer la création si SMS échoue
+        console.error('[API Health Cases] SMS error:', smsError)
+      }
     }
 
     return NextResponse.json({ data }, { status: 201 })

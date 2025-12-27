@@ -17,6 +17,7 @@ const categoryOptions = [
   { value: "verrat", label: "Verrat" },
   { value: "porcelet", label: "Porcelet" },
   { value: "porc", label: "Porc d'engraissement" },
+  // Note: "porc" est mappé vers "fattening" dans la DB
 ]
 
 const breedOptions = [

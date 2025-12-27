@@ -14,22 +14,9 @@ import {
   RefreshCw,
   Loader2,
   CloudFog,
+  AlertTriangle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-
-function getWeatherInfo(code: number) {
-  if (code === 0) return { icon: Sun, description: "Ensoleille", color: "from-amber-400 to-orange-500" }
-  if (code <= 3) return { icon: Cloud, description: "Nuageux", color: "from-gray-400 to-gray-500" }
-  if (code <= 49) return { icon: CloudFog, description: "Brouillard", color: "from-gray-300 to-gray-400" }
-  if (code <= 69) return { icon: CloudRain, description: "Pluie", color: "from-blue-400 to-blue-600" }
-  if (code <= 79) return { icon: CloudSnow, description: "Neige", color: "from-blue-200 to-blue-300" }
-  if (code <= 99) return { icon: CloudLightning, description: "Orage", color: "from-purple-500 to-purple-700" }
-  return { icon: Sun, description: "Ensoleille", color: "from-amber-400 to-orange-500" }
-}
-
-function getWeatherIcon(code: number) {
-  return getWeatherInfo(code).icon
-}
 
 const DEFAULT_LOCATION = { lat: 5.359952, lon: -4.008256, name: "Abidjan, Cote d'Ivoire" }
 
@@ -37,49 +24,67 @@ interface WeatherData {
   temperature: number
   humidity: number
   windSpeed: number
-  weatherCode: number
-  hourly: { time: string; temp: number; weatherCode: number }[]
-  location: string
+  condition: string
+  icon: string
+  alerts?: Array<{
+    event: string
+    description: string
+    severity: 'minor' | 'moderate' | 'severe' | 'extreme'
+  }>
+  location?: string
+}
+
+function getWeatherInfo(condition: string) {
+  const lower = condition.toLowerCase()
+  if (lower.includes('soleil') || lower.includes('clear')) {
+    return { icon: Sun, description: "Ensoleillé", color: "from-amber-400 to-orange-500" }
+  }
+  if (lower.includes('nuage') || lower.includes('cloud')) {
+    return { icon: Cloud, description: "Nuageux", color: "from-gray-400 to-gray-500" }
+  }
+  if (lower.includes('brouillard') || lower.includes('fog')) {
+    return { icon: CloudFog, description: "Brouillard", color: "from-gray-300 to-gray-400" }
+  }
+  if (lower.includes('pluie') || lower.includes('rain')) {
+    return { icon: CloudRain, description: "Pluie", color: "from-blue-400 to-blue-600" }
+  }
+  if (lower.includes('neige') || lower.includes('snow')) {
+    return { icon: CloudSnow, description: "Neige", color: "from-blue-200 to-blue-300" }
+  }
+  if (lower.includes('orage') || lower.includes('thunder')) {
+    return { icon: CloudLightning, description: "Orage", color: "from-purple-500 to-purple-700" }
+  }
+  return { icon: Sun, description: "Ensoleillé", color: "from-amber-400 to-orange-500" }
 }
 
 export const DashboardWeather = memo(function DashboardWeather() {
   const [weather, setWeather] = useState<WeatherData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [location, setLocation] = useState(DEFAULT_LOCATION)
 
   const fetchWeather = useCallback(async (latitude: number, longitude: number, locationName: string) => {
     try {
       setLoading(true)
 
-      const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=1`,
-      )
+      // Appel au backend au lieu d'OpenWeather directement
+      const response = await fetch(`/api/weather?lat=${latitude}&lon=${longitude}`)
 
-      if (!response.ok) throw new Error("Erreur API meteo")
+      if (!response.ok) {
+        throw new Error("Erreur API meteo")
+      }
 
-      const data = await response.json()
+      const result = await response.json()
 
-      const currentHour = new Date().getHours()
-      const hourlyData = []
-      for (let i = 0; i < 5; i++) {
-        const hourIndex = currentHour + i * 3
-        if (hourIndex < 24) {
-          hourlyData.push({
-            time: `${hourIndex.toString().padStart(2, "0")}h`,
-            temp: Math.round(data.hourly.temperature_2m[hourIndex]),
-            weatherCode: data.hourly.weather_code[hourIndex],
-          })
-        }
+      if (result.error) {
+        throw new Error(result.error)
       }
 
       setWeather({
-        temperature: Math.round(data.current.temperature_2m),
-        humidity: data.current.relative_humidity_2m,
-        windSpeed: Math.round(data.current.wind_speed_10m),
-        weatherCode: data.current.weather_code,
-        hourly: hourlyData,
+        ...result.data,
         location: locationName,
       })
     } catch (err) {
+      console.error('[Weather] Error:', err)
       // Fallback to default location on error
       if (locationName !== DEFAULT_LOCATION.name) {
         fetchWeather(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon, DEFAULT_LOCATION.name)
@@ -99,17 +104,26 @@ export const DashboardWeather = memo(function DashboardWeather() {
       async (position) => {
         let locationName = "Votre position"
         try {
-          const geoResponse = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json&accept-language=fr`,
-          )
+          // Utiliser le backend pour le géocodage inverse
+          const geoResponse = await fetch('/api/geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lat: position.coords.latitude,
+              lon: position.coords.longitude,
+            }),
+          })
+
           if (geoResponse.ok) {
-            const geoData = await geoResponse.json()
-            locationName =
-              geoData.address?.city || geoData.address?.town || geoData.address?.village || "Votre position"
+            const geoResult = await geoResponse.json()
+            if (geoResult.data) {
+              locationName = geoResult.data.address || locationName
+            }
           }
         } catch {
           // Ignore geocoding error
         }
+        setLocation({ lat: position.coords.latitude, lon: position.coords.longitude, name: locationName })
         fetchWeather(position.coords.latitude, position.coords.longitude, locationName)
       },
       () => {
@@ -121,11 +135,11 @@ export const DashboardWeather = memo(function DashboardWeather() {
 
   useEffect(() => {
     requestLocation()
-    const interval = setInterval(requestLocation, 60 * 60 * 1000)
+    const interval = setInterval(requestLocation, 60 * 60 * 1000) // Refresh every hour
     return () => clearInterval(interval)
   }, [requestLocation])
 
-  const weatherInfo = weather ? getWeatherInfo(weather.weatherCode) : null
+  const weatherInfo = weather ? getWeatherInfo(weather.condition) : null
   const WeatherIcon = weatherInfo?.icon || Sun
 
   if (loading && !weather) {
@@ -184,18 +198,28 @@ export const DashboardWeather = memo(function DashboardWeather() {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-between">
-              {weather.hourly.map((hour, i) => {
-                const HourIcon = getWeatherIcon(hour.weatherCode)
-                return (
-                  <div key={i} className="flex flex-col items-center gap-1">
-                    <span className="text-xs text-muted-foreground">{hour.time}</span>
-                    <HourIcon className="h-5 w-5 text-amber-500" />
-                    <span className="text-sm font-medium">{hour.temp}°</span>
+            {weather.alerts && weather.alerts.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {weather.alerts.map((alert, i) => (
+                  <div
+                    key={i}
+                    className={`rounded-lg p-3 text-sm ${
+                      alert.severity === 'extreme' || alert.severity === 'severe'
+                        ? 'bg-red-50 text-red-700'
+                        : 'bg-yellow-50 text-yellow-700'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <strong>{alert.event}:</strong> {alert.description.substring(0, 150)}
+                        {alert.description.length > 150 && '...'}
+                      </div>
+                    </div>
                   </div>
-                )
-              })}
-            </div>
+                ))}
+              </div>
+            )}
 
             {weather.temperature > 35 && (
               <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">

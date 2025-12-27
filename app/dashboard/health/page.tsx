@@ -107,7 +107,7 @@ export default function HealthPage() {
         return
       }
 
-      addHealthCase({
+      await addHealthCase({
         animalId: newCase.animal,
         animalName: selectedAnimal.name || "Animal inconnu",
         issue: newCase.issue,

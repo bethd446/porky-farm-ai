@@ -14,6 +14,14 @@ import {
 } from "@/lib/storage/local-database"
 import { useAuthContext } from "@/contexts/auth-context"
 import { db as supabaseDb, isSupabaseConfigured } from "@/lib/supabase/client"
+import {
+  mapCategoryToDb,
+  mapCategoryFromDb,
+  mapStatusToDb,
+  mapStatusFromDb,
+  mapHealthStatusToDb,
+  mapHealthStatusFromDb,
+} from "@/lib/utils/animal-helpers"
 
 interface AppContextType {
   // Animals
@@ -106,12 +114,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           id: pig.id,
           identifier: pig.identifier || pig.tag_number || "",
           name: pig.name || "",
-          category: pig.category || "porc",
+          category: mapCategoryFromDb(pig.category || "fattening"),
           breed: pig.breed || "",
           birthDate: pig.birth_date || pig.birthDate || "",
           weight: pig.weight || 0,
-          status: pig.status || "actif",
-          healthStatus: pig.health_status || "bon",
+          status: mapStatusFromDb(pig.status || "active"),
+          healthStatus: mapHealthStatusFromDb(pig.health_status || "healthy"),
           photo: pig.photo || "",
           motherId: pig.mother_id || "",
           fatherId: pig.father_id || "",
@@ -125,22 +133,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const { data: gests, error: gestsError } = await supabaseDb.getGestations(userId)
       if (!gestsError && gests) {
-        const mappedGestations: Gestation[] = gests.map((g: any) => ({
-          id: g.id,
-          sowId: g.sow_id || "",
-          sowName: g.sow_name || "",
-          boarId: g.boar_id || "",
-          boarName: g.boar_name || "",
-          breedingDate: g.breeding_date || "",
-          expectedDueDate: g.expected_due_date || "",
-          actualDueDate: g.actual_due_date || "",
-          status: g.status || "active",
-          pigletCount: g.piglet_count || 0,
-          pigletsSurvived: g.piglets_survived || 0,
-          notes: g.notes || "",
-          createdAt: g.created_at || new Date().toISOString(),
-          userId: g.user_id,
-        }))
+        const mappedGestations: Gestation[] = gests.map((g: any) => {
+          // Mapper le statut DB vers le statut frontend
+          // DB utilise: 'pregnant', 'farrowed', 'weaning', 'completed', 'aborted'
+          // Frontend utilise: 'active', 'completed', 'failed'
+          let frontendStatus: "active" | "completed" | "failed" = "active"
+          if (g.status === "completed") frontendStatus = "completed"
+          else if (g.status === "aborted") frontendStatus = "failed"
+          else if (g.status === "pregnant" || g.status === "farrowed" || g.status === "weaning")
+            frontendStatus = "active"
+
+          return {
+            id: g.id,
+            sowId: g.sow_id || "",
+            sowName: g.sow_name || "",
+            boarId: g.boar_id || "",
+            boarName: g.boar_name || "",
+            breedingDate: g.breeding_date || g.mating_date || "",
+            expectedDueDate: g.expected_due_date || "",
+            actualDueDate: g.actual_due_date || "",
+            status: frontendStatus,
+            pigletCount: g.piglet_count || g.piglets_born_alive || 0,
+            pigletsSurvived: g.piglets_survived || g.piglets_weaned || 0,
+            notes: g.notes || "",
+            createdAt: g.created_at || new Date().toISOString(),
+            userId: g.user_id,
+          }
+        })
         setGestations(mappedGestations)
       }
 
@@ -166,16 +185,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setHealthCases(mappedCases)
       }
 
-      const activeAnimals = (pigs || []).filter((a: any) => a.status === "actif")
-      const activeGestations = (gests || []).filter((g: any) => g.status === "active")
+      // Filtrer les animaux actifs en utilisant les valeurs DB (anglais)
+      const activeAnimals = (pigs || []).filter(
+        (a: any) => a.status === "active" || a.status === "sick" || a.status === "pregnant" || a.status === "nursing",
+      )
+      // Filtrer les gestations actives : pregnant, farrowed, weaning (mais pas completed ni aborted)
+      const activeGestations = (gests || []).filter(
+        (g: any) => g.status === "pregnant" || g.status === "farrowed" || g.status === "weaning",
+      )
       const activeCases = (cases || []).filter((c: any) => c.status !== "resolved")
 
       setStats({
         totalAnimals: activeAnimals.length,
-        truies: activeAnimals.filter((a: any) => a.category === "truie").length,
-        verrats: activeAnimals.filter((a: any) => a.category === "verrat").length,
-        porcelets: activeAnimals.filter((a: any) => a.category === "porcelet").length,
-        porcs: activeAnimals.filter((a: any) => a.category === "porc").length,
+        // Utiliser les valeurs DB pour le filtrage
+        truies: activeAnimals.filter((a: any) => a.category === "sow").length,
+        verrats: activeAnimals.filter((a: any) => a.category === "boar").length,
+        porcelets: activeAnimals.filter((a: any) => a.category === "piglet").length,
+        porcs: activeAnimals.filter((a: any) => a.category === "fattening").length,
         gestationsActives: activeGestations.length,
         cassSanteActifs: activeCases.length,
         coutAlimentationMois: 0,
@@ -272,24 +298,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addAnimal = useCallback(
     async (animal: Omit<Animal, "id" | "createdAt" | "updatedAt">) => {
       if (user?.id && useSupabase) {
+        // Mapper les valeurs françaises vers les valeurs anglaises attendues par la DB
         const { data, error } = await supabaseDb.addPig({
           user_id: user.id,
           identifier: animal.identifier,
           name: animal.name,
-          category: animal.category,
+          category: mapCategoryToDb(animal.category),
           breed: animal.breed,
           birth_date: animal.birthDate,
           weight: animal.weight,
-          status: animal.status,
-          health_status: animal.healthStatus,
+          status: mapStatusToDb(animal.status),
+          health_status: mapHealthStatusToDb(animal.healthStatus),
           photo: animal.photo,
           mother_id: animal.motherId,
           father_id: animal.fatherId,
           notes: animal.notes,
         })
 
-        if (!error && data) {
+        if (error) {
+          console.error("[AppContext] Error adding animal to Supabase:", error)
+          throw new Error(error.message || "Erreur lors de l'ajout de l'animal")
+        }
+
+        if (data) {
+          // Recharger les données depuis Supabase pour garantir la synchronisation
           await refreshData()
+          // Retourner l'animal mappé depuis la réponse DB
           return {
             ...animal,
             id: data.id,
@@ -297,8 +331,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             updatedAt: data.updated_at,
           } as Animal
         }
+
+        throw new Error("Aucune donnée retournée après l'ajout")
       }
 
+      // Fallback vers localStorage si Supabase n'est pas configuré
       const db = getDatabase(user?.id)
       const newAnimal = db.addAnimal(animal)
       await refreshData()
@@ -313,20 +350,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const supabaseUpdates: Record<string, unknown> = {}
         if (updates.identifier !== undefined) supabaseUpdates.identifier = updates.identifier
         if (updates.name !== undefined) supabaseUpdates.name = updates.name
-        if (updates.category !== undefined) supabaseUpdates.category = updates.category
+        if (updates.category !== undefined) supabaseUpdates.category = mapCategoryToDb(updates.category)
         if (updates.breed !== undefined) supabaseUpdates.breed = updates.breed
         if (updates.birthDate !== undefined) supabaseUpdates.birth_date = updates.birthDate
         if (updates.weight !== undefined) supabaseUpdates.weight = updates.weight
-        if (updates.status !== undefined) supabaseUpdates.status = updates.status
-        if (updates.healthStatus !== undefined) supabaseUpdates.health_status = updates.healthStatus
+        if (updates.status !== undefined) supabaseUpdates.status = mapStatusToDb(updates.status)
+        if (updates.healthStatus !== undefined) supabaseUpdates.health_status = mapHealthStatusToDb(updates.healthStatus)
         if (updates.photo !== undefined) supabaseUpdates.photo = updates.photo
         if (updates.notes !== undefined) supabaseUpdates.notes = updates.notes
 
         const { data, error } = await supabaseDb.updatePig(id, supabaseUpdates)
-        if (!error) {
+        if (error) {
+          console.error("[AppContext] Error updating animal in Supabase:", error)
+          throw new Error(error.message || "Erreur lors de la mise à jour de l'animal")
+        }
+
+        if (data) {
           await refreshData()
           return data as Animal | null
         }
+
+        throw new Error("Aucune donnée retournée après la mise à jour")
       }
 
       const db = getDatabase(user?.id)
@@ -401,7 +445,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           start_date: healthCase.startDate,
         })
 
-        if (!error && data) {
+        if (error) {
+          console.error("[AppContext] Error adding health case to Supabase:", error)
+          throw new Error(error.message || "Erreur lors de l'ajout du cas de santé")
+        }
+
+        if (data) {
+          // Recharger les données depuis Supabase pour garantir la synchronisation
           await refreshData()
           return {
             ...healthCase,
@@ -409,8 +459,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             createdAt: data.created_at,
           } as HealthCase
         }
+
+        throw new Error("Aucune donnée retournée après l'ajout du cas de santé")
       }
 
+      // Fallback vers localStorage si Supabase n'est pas configuré
       const db = getDatabase(user?.id)
       const newCase = db.addHealthCase(healthCase)
       await refreshData()
@@ -475,6 +528,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       expectedDueDate.setDate(expectedDueDate.getDate() + 114)
 
       if (user?.id && useSupabase) {
+        // La base de données attend "pregnant" comme statut par défaut selon le schéma SQL
+        // Le frontend utilise "active" mais on doit mapper vers "pregnant" pour la DB
+        const dbStatus = gestation.status === "active" ? "pregnant" : gestation.status || "pregnant"
+
         const { data, error } = await supabaseDb.addGestation({
           user_id: user.id,
           sow_id: gestation.sowId,
@@ -483,11 +540,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           boar_name: gestation.boarName,
           breeding_date: gestation.breedingDate,
           expected_due_date: expectedDueDate.toISOString().split("T")[0],
-          status: gestation.status || "active",
+          status: dbStatus,
           notes: gestation.notes,
         })
 
-        if (!error && data) {
+        if (error) {
+          console.error("[AppContext] Error adding gestation to Supabase:", error)
+          throw new Error(error.message || "Erreur lors de l'ajout de la gestation")
+        }
+
+        if (data) {
+          // Recharger les données depuis Supabase pour garantir la synchronisation
           await refreshData()
           return {
             ...gestation,
@@ -496,8 +559,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             createdAt: data.created_at,
           } as Gestation
         }
+
+        throw new Error("Aucune donnée retournée après l'ajout de la gestation")
       }
 
+      // Fallback vers localStorage si Supabase n'est pas configuré
       const db = getDatabase(user?.id)
       const newGestation = db.addGestation(gestation)
       await refreshData()
@@ -581,7 +647,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addVaccination = useCallback(
     (vaccination: Omit<Vaccination, "id" | "createdAt" | "status">) => {
       const db = getDatabase(user?.id)
-      const newVaccination = db.addVaccination(vaccination)
+      // La base de données locale attend Omit<Vaccination, "id" | "createdAt" | "userId">
+      // mais on reçoit Omit<Vaccination, "id" | "createdAt" | "status">
+      // On doit ajouter le status par défaut
+      const vaccinationWithStatus = { ...vaccination, status: "pending" as const }
+      const newVaccination = db.addVaccination(vaccinationWithStatus as Omit<Vaccination, "id" | "createdAt" | "userId">)
       refreshData()
       return newVaccination
     },

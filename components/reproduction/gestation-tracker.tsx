@@ -98,7 +98,7 @@ export function GestationTracker() {
         return
       }
 
-      addGestation({
+      await addGestation({
         sowId: newGestation.sow,
         sowName: sow.name,
         boarId: newGestation.boar || undefined,
