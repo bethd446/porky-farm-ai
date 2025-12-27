@@ -64,7 +64,7 @@ export function GestationTracker() {
     setIsViewOpen(false)
   }
 
-  const handleAddGestation = () => {
+  const handleAddGestation = async () => {
     setErrors({})
     setErrorMessage("")
 
@@ -98,7 +98,7 @@ export function GestationTracker() {
         return
       }
 
-      addGestation({
+      const newGest = await addGestation({
         sowId: newGestation.sow,
         sowName: sow.name,
         boarId: newGestation.boar || undefined,
@@ -107,6 +107,10 @@ export function GestationTracker() {
         status: "active",
         notes: newGestation.notes || undefined,
       })
+
+      if (!newGest) {
+        throw new Error("Echec de l'enregistrement de la gestation")
+      }
 
       setStatus("success")
 
