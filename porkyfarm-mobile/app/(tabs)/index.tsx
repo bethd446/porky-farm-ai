@@ -204,7 +204,7 @@ export default function DashboardScreen() {
           onPress={() => router.push('/(tabs)/livestock')}
         >
           <View style={styles.statHeader}>
-            <Text style={styles.statIcon}>🐷</Text>
+            <PiggyBank size={20} color={colors.primary} />
             <Text style={styles.statPlus}>+12</Text>
           </View>
           <Text style={dashboardStyles.statValue}>{stats.totalAnimals}</Text>
@@ -216,7 +216,7 @@ export default function DashboardScreen() {
           onPress={() => router.push('/(tabs)/livestock')}
         >
           <View style={styles.statHeader}>
-            <Text style={styles.statIcon}>❤️</Text>
+            <Heart size={20} color={colors.success} />
             <Text style={styles.statPercentage}>{healthyPercentage}%</Text>
           </View>
           <Text style={dashboardStyles.statValue}>{stats.healthyCount}</Text>
@@ -228,7 +228,7 @@ export default function DashboardScreen() {
           onPress={() => router.push('/(tabs)/health')}
         >
           <View style={styles.statHeader}>
-            <Text style={styles.statIcon}>⚠️</Text>
+            <AlertTriangle size={20} color={colors.warning} />
             <Text style={styles.statAlert}>Alerte</Text>
           </View>
           <Text style={dashboardStyles.statValue}>{stats.careRequired}</Text>
@@ -240,7 +240,7 @@ export default function DashboardScreen() {
           onPress={() => router.push('/(tabs)/livestock')}
         >
           <View style={styles.statHeader}>
-            <Text style={styles.statIcon}>👶</Text>
+            <Baby size={20} color={colors.info} />
             <Text style={styles.statNew}>Nouveau</Text>
           </View>
           <Text style={dashboardStyles.statValue}>{stats.piglets}</Text>
@@ -256,7 +256,7 @@ export default function DashboardScreen() {
             style={[dashboardStyles.quickActionButton, dashboardStyles.quickActionButtonPrimary]}
             onPress={() => router.push('/(tabs)/livestock/add')}
           >
-            <Text style={styles.quickActionIconEmoji}>➕</Text>
+            <Plus size={24} color="#ffffff" style={dashboardStyles.quickActionIcon} />
             <Text style={[dashboardStyles.quickActionText, dashboardStyles.quickActionTextPrimary]}>
               Ajouter
             </Text>
@@ -265,21 +265,21 @@ export default function DashboardScreen() {
             style={dashboardStyles.quickActionButton}
             onPress={() => router.push('/(tabs)/health')}
           >
-            <Text style={styles.quickActionIconEmoji}>💉</Text>
+            <Syringe size={24} color={colors.foreground} style={dashboardStyles.quickActionIcon} />
             <Text style={dashboardStyles.quickActionText}>Vaccin</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={dashboardStyles.quickActionButton}
             onPress={() => router.push('/(tabs)/feeding')}
           >
-            <Text style={styles.quickActionIconEmoji}>📦</Text>
+            <Package size={24} color={colors.foreground} style={dashboardStyles.quickActionIcon} />
             <Text style={dashboardStyles.quickActionText}>Stock</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={dashboardStyles.quickActionButton}
             onPress={() => router.push('/(tabs)/costs')}
           >
-            <Text style={styles.quickActionIconEmoji}>📋</Text>
+            <FileText size={24} color={colors.foreground} style={dashboardStyles.quickActionIcon} />
             <Text style={dashboardStyles.quickActionText}>Registres</Text>
           </TouchableOpacity>
         </View>
@@ -380,12 +380,5 @@ const styles = StyleSheet.create({
   emptyAlertsText: {
     fontSize: typography.fontSize.bodySmall,
     color: colors.mutedForeground,
-  },
-  statIcon: {
-    fontSize: 20,
-  },
-  quickActionIconEmoji: {
-    fontSize: 24,
-    marginBottom: spacing.xs,
   },
 })
