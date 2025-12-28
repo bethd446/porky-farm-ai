@@ -6,6 +6,8 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
+  error: Error | null
+  retryAuth: () => Promise<void>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
@@ -17,16 +19,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
-  useEffect(() => {
-    // Check initial session
-    authService.getSession().then(({ data, error }) => {
+  const loadSession = async () => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      // Timeout de 10 secondes pour le chargement de la session
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout: La connexion prend trop de temps')), 10000)
+      })
+
+      const sessionPromise = authService.getSession()
+      
+      const { data, error: sessionError } = await Promise.race([sessionPromise, timeoutPromise]) as any
+
+      if (sessionError) {
+        console.error('[AuthContext] Error loading session:', sessionError)
+        setError(sessionError as Error)
+        setLoading(false)
+        return
+      }
+
       if (data?.session) {
         setSession(data.session)
         setUser(data.session.user)
       }
       setLoading(false)
-    })
+    } catch (err: any) {
+      console.error('[AuthContext] Exception loading session:', err)
+      setError(err instanceof Error ? err : new Error('Erreur lors du chargement de la session'))
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadSession()
 
     // Listen for auth changes
     const {
@@ -35,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
+      setError(null) // Réinitialiser l'erreur si la session change
     })
 
     return () => {
@@ -59,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, error, retryAuth: loadSession, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   )
