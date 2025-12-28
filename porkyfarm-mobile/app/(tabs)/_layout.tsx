@@ -107,12 +107,6 @@ export default function TabsLayout() {
       />
       {/* Masquer les routes dynamiques et add de la tab bar */}
       <Tabs.Screen
-        name="livestock/[id]"
-        options={{
-          href: null, // Masquer de la tab bar
-        }}
-      />
-      <Tabs.Screen
         name="health/add"
         options={{
           href: null, // Masquer de la tab bar
