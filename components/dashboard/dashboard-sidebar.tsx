@@ -59,6 +59,11 @@ const menuItems = [
     href: "/dashboard/ai-assistant",
   },
   {
+    label: "Coûts & Finances",
+    icon: Calculator,
+    href: "/dashboard/costs",
+  },
+  {
     label: "Profil",
     icon: User,
     href: "/dashboard/profile",

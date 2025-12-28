@@ -7,6 +7,7 @@ import { DashboardQuickActions } from "@/components/dashboard/dashboard-quick-ac
 import { DashboardRecentActivity } from "@/components/dashboard/dashboard-recent-activity"
 import { DashboardLivestockOverview } from "@/components/dashboard/dashboard-livestock-overview"
 import { DashboardPlanning } from "@/components/dashboard/dashboard-planning"
+import { CostsWidget } from "@/components/dashboard/CostsWidget"
 import { useAuthContext } from "@/contexts/auth-context"
 import { useApp } from "@/contexts/app-context"
 
@@ -57,6 +58,9 @@ export default function DashboardPage() {
         <div className="space-y-6">
           {/* Alertes & Rappels - Priorite haute */}
           <DashboardAlerts />
+
+          {/* Coûts & Finances - Synthèse financière */}
+          <CostsWidget />
 
           {/* Meteo - Information contextuelle */}
           <DashboardWeather />
