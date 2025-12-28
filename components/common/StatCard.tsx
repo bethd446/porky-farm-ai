@@ -1,6 +1,6 @@
 /**
- * Composant StatCard réutilisable
- * Carte de statistique avec design system
+ * Composant StatCard réutilisable avec variante premium
+ * Carte de statistique avec design system + ultra design (gradients, ombres, animations)
  */
 
 "use client"
@@ -8,7 +8,9 @@
 import { Card } from "@/components/ui/card"
 import { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { colors, spacing, shadows, typography } from "@/lib/design-tokens"
+import { colors, spacing, shadows, typography, radius } from "@/lib/design-tokens"
+import { premiumGradients, premiumShadows, premiumAnimations } from "@/lib/premium-styles"
+import { useState } from "react"
 
 interface StatCardProps {
   label: string
@@ -19,6 +21,8 @@ interface StatCardProps {
   colorClass?: string
   onClick?: () => void
   className?: string
+  premium?: boolean
+  variant?: "primary" | "success" | "warning" | "info"
 }
 
 export function StatCard({
@@ -30,16 +34,42 @@ export function StatCard({
   colorClass,
   onClick,
   className,
+  premium = true,
+  variant = "primary",
 }: StatCardProps) {
+  const [isHovered, setIsHovered] = useState(false)
+
+  const getGradient = () => {
+    switch (variant) {
+      case "success":
+        return premiumGradients.success.icon
+      case "warning":
+        return premiumGradients.warning.icon
+      case "info":
+        return premiumGradients.info.icon
+      default:
+        return premiumGradients.primary.medium
+    }
+  }
+
   return (
     <Card
       className={cn(
         "p-4 sm:p-6 border border-border",
-        shadows.md,
-        onClick && "cursor-pointer hover:shadow-lg transition-shadow",
+        premium ? "transition-all duration-200" : shadows.md,
+        onClick && "cursor-pointer",
+        premium && isHovered && "-translate-y-0.5",
         className
       )}
+      style={{
+        ...(premium && {
+          boxShadow: isHovered ? premiumShadows.card.medium : premiumShadows.card.soft,
+          borderRadius: radius.lg,
+        }),
+      }}
       onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -60,14 +90,29 @@ export function StatCard({
             </p>
           )}
         </div>
-        <div
-          className={cn(
-            "rounded-xl p-2.5 sm:p-3",
-            colorClass || "bg-primary/10 text-primary"
-          )}
-        >
-          <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
-        </div>
+        {premium ? (
+          <div
+            className={cn(
+              "rounded-xl p-2.5 sm:p-3 transition-transform duration-200",
+              isHovered && "scale-110"
+            )}
+            style={{
+              background: getGradient(),
+              boxShadow: premiumShadows.icon.soft,
+            }}
+          >
+            <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "rounded-xl p-2.5 sm:p-3",
+              colorClass || "bg-primary/10 text-primary"
+            )}
+          >
+            <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+          </div>
+        )}
       </div>
     </Card>
   )

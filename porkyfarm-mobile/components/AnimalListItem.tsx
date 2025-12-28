@@ -1,15 +1,18 @@
 /**
- * Item de liste animal (style UX Pilot)
- * Photo à gauche, infos au centre, badge statut à droite
+ * Item de liste animal premium (style UX Pilot + Ultra Design)
+ * Photo avec ombre, badge avec gradient, alignements pixel perfect
  */
 
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native'
-import { colors, spacing, typography, radius, shadows } from '../lib/designTokens'
+import { LinearGradient } from 'expo-linear-gradient'
+import { colors, spacing, typography, radius } from '../lib/designTokens'
+import { premiumGradients, premiumShadows, premiumStyles } from '../lib/premiumStyles'
 import type { Animal } from '../services/animals'
 
 interface AnimalListItemProps {
   animal: Animal
   onPress?: () => void
+  premium?: boolean
 }
 
 const getStatusBadge = (status: string, category: string) => {
@@ -61,19 +64,33 @@ const calculateAge = (birthDate: string | null): string => {
   return `${years} an${years > 1 ? 's' : ''} ${remainingMonths} mois`
 }
 
-export function AnimalListItem({ animal, onPress }: AnimalListItemProps) {
+export function AnimalListItem({ animal, onPress, premium = true }: AnimalListItemProps) {
   const badge = getStatusBadge(animal.status, animal.category)
   const age = calculateAge(animal.birth_date)
   const identifier = animal.identifier || `Porc #${animal.id.slice(0, 6)}`
 
+  const getBadgeGradient = (): readonly [string, string, ...string[]] => {
+    if (badge.color === colors.success) return premiumGradients.success.icon
+    if (badge.color === colors.warning) return premiumGradients.warning.icon
+    if (badge.color === colors.info) return premiumGradients.info.icon
+    if (badge.color === colors.error) return premiumGradients.error.icon
+    return [badge.bgColor, badge.bgColor] as const
+  }
+
   return (
     <TouchableOpacity
-      style={styles.container}
+      style={[
+        styles.container,
+        premium && premiumShadows.card.soft,
+      ]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
-      {/* Photo */}
-      <View style={styles.photoContainer}>
+      {/* Photo avec ombre premium */}
+      <View style={[
+        styles.photoContainer,
+        premium && premiumShadows.icon.soft,
+      ]}>
         {animal.photo ? (
           <Image source={{ uri: animal.photo }} style={styles.photo} />
         ) : (
@@ -97,10 +114,21 @@ export function AnimalListItem({ animal, onPress }: AnimalListItemProps) {
         </View>
       </View>
 
-      {/* Badge statut */}
-      <View style={[styles.badge, { backgroundColor: badge.bgColor }]}>
-        <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
-      </View>
+      {/* Badge statut avec gradient premium */}
+      {premium ? (
+        <LinearGradient
+          colors={getBadgeGradient()}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.badge, premiumStyles.badge]}
+        >
+          <Text style={[styles.badgeText, { color: '#ffffff' }]}>{badge.label}</Text>
+        </LinearGradient>
+      ) : (
+        <View style={[styles.badge, { backgroundColor: badge.bgColor }]}>
+          <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
+        </View>
+      )}
 
       {/* Chevron */}
       <Text style={styles.chevron}>›</Text>
@@ -118,7 +146,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    ...shadows.sm,
   },
   photoContainer: {
     width: 72,

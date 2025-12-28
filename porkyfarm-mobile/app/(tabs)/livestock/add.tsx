@@ -24,9 +24,9 @@ export default function AddAnimalScreen() {
   const router = useRouter()
 
   const handlePickImage = async () => {
-    const permission = await requestMediaLibraryPermission()
+    const permission = await requestMediaLibraryPermissions()
     if (!permission.granted) {
-      // Le message d'erreur est déjà affiché dans requestMediaLibraryPermission
+      // Le message d'erreur est déjà affiché dans requestMediaLibraryPermissions
       return
     }
 
@@ -61,9 +61,9 @@ export default function AddAnimalScreen() {
   }
 
   const handleTakePhoto = async () => {
-    const permission = await requestCameraPermission()
+    const permission = await requestCameraPermissions()
     if (!permission.granted) {
-      // Le message d'erreur est déjà affiché dans requestCameraPermission
+      // Le message d'erreur est déjà affiché dans requestCameraPermissions
       return
     }
 

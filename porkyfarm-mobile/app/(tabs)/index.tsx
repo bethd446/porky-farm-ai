@@ -113,7 +113,7 @@ export default function DashboardScreen() {
       
       // Alertes température (cas de santé récents avec priorité haute)
       const recentHealthCases = casesList
-        .filter((c) => c.priority === 'high' || c.priority === 'critical')
+        .filter((c) => c.priority === 'high' || c.priority === 'medium')
         .sort((a, b) => new Date(b.start_date || b.created_at).getTime() - new Date(a.start_date || a.created_at).getTime())
         .slice(0, 2)
 
@@ -121,7 +121,7 @@ export default function DashboardScreen() {
         alerts.push({
           type: 'temperature',
           title: 'Alerte Température',
-          description: `${c.pig_name || c.animal_name || 'Animal'} montre des symptômes de fièvre`,
+          description: `${(c as any).pig_name || (c as any).animal_name || 'Animal'} montre des symptômes de fièvre`,
           timeAgo: formatTimeAgo(c.start_date || c.created_at),
           link: '/(tabs)/health',
         })

@@ -1,34 +1,67 @@
 /**
- * Bannière Assistant IA avec gradient violet
- * Style UX Pilot
+ * Bannière Assistant IA avec gradient violet premium
+ * Style UX Pilot + Ultra Design (glass, ombres, animations)
  */
 
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Brain, ChevronRight } from 'lucide-react-native'
-import { colors, spacing, typography, radius, shadows } from '../lib/designTokens'
+import { colors, spacing, typography, radius } from '../lib/designTokens'
+import { premiumGradients, premiumShadows, premiumGlass, premiumStyles } from '../lib/premiumStyles'
+import { useEffect, useRef } from 'react'
 
 interface AiAssistantBannerProps {
   onPress?: () => void
+  premium?: boolean
 }
 
-export function AiAssistantBanner({ onPress }: AiAssistantBannerProps) {
+export function AiAssistantBanner({ onPress, premium = true }: AiAssistantBannerProps) {
+  const pulseAnim = useRef(new Animated.Value(1)).current
+
+  useEffect(() => {
+    if (premium) {
+      // Animation pulse subtile sur l'icône
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ])
+      )
+      pulse.start()
+      return () => pulse.stop()
+    }
+  }, [premium, pulseAnim])
+
   return (
     <TouchableOpacity
-      style={styles.container}
+      style={[styles.container, premium && styles.containerPremium]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
     >
       <LinearGradient
-        colors={['#8b5cf6', '#a78bfa', '#c4b5fd']} // Violet gradient (UX Pilot style)
+        colors={premiumGradients.ai.purple}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.gradient}
       >
         <View style={styles.content}>
-          <View style={styles.iconContainer}>
+          <Animated.View
+            style={[
+              styles.iconContainer,
+              premium && styles.iconContainerPremium,
+              premium && { transform: [{ scale: pulseAnim }] },
+            ]}
+          >
             <Brain size={24} color="#ffffff" />
-          </View>
+          </Animated.View>
           <View style={styles.textContainer}>
             <Text style={styles.title}>Assistant IA</Text>
             <Text style={styles.subtitle}>Posez vos questions</Text>
@@ -45,7 +78,9 @@ const styles = StyleSheet.create({
     marginVertical: spacing.base,
     borderRadius: radius.lg,
     overflow: 'hidden',
-    ...shadows.md,
+  },
+  containerPremium: {
+    ...premiumShadows.card.medium,
   },
   gradient: {
     padding: spacing.base,
@@ -63,6 +98,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.base,
+  },
+  iconContainerPremium: {
+    ...premiumGlass.light,
+    ...premiumShadows.icon.soft,
   },
   textContainer: {
     flex: 1,
