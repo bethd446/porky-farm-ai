@@ -48,7 +48,7 @@ export default function AddAnimalScreen() {
         reader.onloadend = () => {
           const base64 = reader.result as string
           setPhoto(base64)
-          setFormData({ ...formData, photo: base64 })
+          setFormData({ ...formData, image_url: base64 })
           setUploadingPhoto(false)
         }
         reader.readAsDataURL(blob)
@@ -83,7 +83,7 @@ export default function AddAnimalScreen() {
         reader.onloadend = () => {
           const base64 = reader.result as string
           setPhoto(base64)
-          setFormData({ ...formData, photo: base64 })
+          setFormData({ ...formData, image_url: base64 })
           setUploadingPhoto(false)
         }
         reader.readAsDataURL(blob)
