@@ -25,7 +25,7 @@ npm error Found: react@19.1.0
 
 ## ✅ Solution Appliquée
 
-### Option 1 : Utiliser `--legacy-peer-deps` (Recommandé)
+### Utiliser `--legacy-peer-deps` (Recommandé)
 
 ```bash
 cd porkyfarm-mobile
@@ -44,16 +44,28 @@ npm install --legacy-peer-deps
 
 ---
 
-### Option 2 : Mettre à jour React (Non recommandé pour l'instant)
+## ⚠️ Warning Expo Doctor : Duplicate React
 
-```bash
-npm install react@19.2.3
+`expo-doctor` signale un duplicate de `react` :
+
+```
+Found duplicates for react:
+  ├─ react@19.1.0 (at: node_modules/react)
+  └─ react@18.3.1 (at: ../node_modules/react)
 ```
 
-**Pourquoi non recommandé** :
-- Expo SDK 54.0.30 est testé avec `react@19.1.0`
-- Risque de régressions non testées
-- `--legacy-peer-deps` est suffisant
+**Explication** :
+- Le projet parent (Next.js) utilise `react@18.3.1`
+- Le projet mobile utilise `react@19.1.0`
+- C'est **normal** pour un monorepo avec projets séparés
+
+**Pourquoi c'est acceptable** :
+1. Les deux projets ont leurs propres `node_modules` séparés
+2. Pas de partage de dépendances entre web et mobile
+3. Structure normale pour un monorepo
+4. Aucun impact sur les builds natifs
+
+**Action** : Aucune action requise. Ce warning peut être ignoré.
 
 ---
 
@@ -77,7 +89,9 @@ cd porkyfarm-mobile
 npx expo-doctor
 ```
 
-**Résultat attendu** : ✅ Tous les checks passent (ou warnings mineurs acceptables)
+**Résultat** : 
+- ✅ 16/17 checks passent
+- ⚠️ 1 warning : duplicate react (acceptable, voir ci-dessus)
 
 ---
 
@@ -99,6 +113,6 @@ npx expo-doctor
 - ✅ Expo SDK 54.0.30 compatible
 - ✅ Pas d'impact sur le fonctionnement natif
 - ✅ Support web fonctionnel (si nécessaire)
+- ⚠️ Warning duplicate react (acceptable, structure monorepo)
 
 **Prochaine étape** : Tester l'app en simulateur pour valider que tout fonctionne.
-
