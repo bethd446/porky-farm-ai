@@ -304,7 +304,7 @@ export const db = {
   async getVeterinaryCases(userId: string) {
     try {
       return await supabase
-        .from("veterinary_cases")
+        .from("health_records")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })

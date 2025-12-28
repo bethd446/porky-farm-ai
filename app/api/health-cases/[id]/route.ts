@@ -38,7 +38,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { data, error } = await supabase
-      .from("veterinary_cases")
+      .from("health_records")
       .select("*")
       .eq("id", id)
       .eq("user_id", user.id)
@@ -81,9 +81,30 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: formatZodErrors(validation.error) }, { status: 400 })
     }
 
+    // Mapper les champs si nécessaire (animal_id → pig_id, issue → title, priority → severity, photo → image_url)
+    const updateData: any = { ...validation.data, updated_at: new Date().toISOString() }
+    if (updateData.animal_id) {
+      updateData.pig_id = updateData.animal_id
+      delete updateData.animal_id
+    }
+    if (updateData.issue) {
+      updateData.title = updateData.issue
+      delete updateData.issue
+    }
+    if (updateData.priority) {
+      updateData.severity = updateData.priority === 'high' || updateData.priority === 'critical' 
+        ? (updateData.priority === 'critical' ? 'critical' : 'high')
+        : (updateData.priority === 'low' ? 'low' : 'medium')
+      delete updateData.priority
+    }
+    if (updateData.photo) {
+      updateData.image_url = updateData.photo
+      delete updateData.photo
+    }
+    
     const { data, error } = await supabase
-      .from("veterinary_cases")
-      .update({ ...validation.data, updated_at: new Date().toISOString() })
+      .from("health_records")
+      .update(updateData)
       .eq("id", id)
       .eq("user_id", user.id)
       .select()
@@ -119,7 +140,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
     }
 
-    const { error } = await supabase.from("veterinary_cases").delete().eq("id", id).eq("user_id", user.id)
+    const { error } = await supabase.from("health_records").delete().eq("id", id).eq("user_id", user.id)
 
     if (error) {
       return NextResponse.json({ error: "Erreur lors de la suppression" }, { status: 500 })

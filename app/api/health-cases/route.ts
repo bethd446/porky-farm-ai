@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data, error } = await supabase
-      .from("veterinary_cases")
+      .from("health_records")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
@@ -70,21 +70,24 @@ export async function POST(request: NextRequest) {
 
     const validatedData = validation.data
 
+    // Mapper les champs du schéma validation vers health_records
     const { data, error } = await supabase
-      .from("veterinary_cases")
+      .from("health_records")
       .insert({
         user_id: user.id,
-        animal_id: validatedData.animal_id,
-        animal_name: validatedData.animal_name,
-        issue: validatedData.issue,
+        pig_id: validatedData.animal_id, // animal_id → pig_id
+        title: validatedData.issue || validatedData.title || "Cas de santé", // issue → title
         description: validatedData.description,
-        priority: validatedData.priority,
-        status: validatedData.status,
+        severity: validatedData.priority === 'high' || validatedData.priority === 'critical' 
+          ? (validatedData.priority === 'critical' ? 'critical' : 'high')
+          : (validatedData.priority === 'low' ? 'low' : 'medium'), // priority → severity
+        status: validatedData.status || 'ongoing',
         treatment: validatedData.treatment,
         veterinarian: validatedData.veterinarian,
-        photo: validatedData.photo,
+        image_url: validatedData.photo || validatedData.image_url, // photo → image_url
         cost: validatedData.cost,
-        start_date: validatedData.start_date,
+        start_date: validatedData.start_date || new Date().toISOString().split('T')[0],
+        type: validatedData.type || 'disease', // Ajouter type si manquant
       })
       .select()
       .single()
@@ -117,7 +120,7 @@ export async function POST(request: NextRequest) {
         if (profile?.phone) {
           const formattedPhone = formatPhoneNumber(profile.phone)
           if (formattedPhone) {
-            const smsMessage = `🚨 Alerte PorkyFarm: Cas santé critique - ${validatedData.issue} - ${validatedData.animal_name || 'Animal'}. Détails: ${validatedData.description?.substring(0, 100) || ''}`
+            const smsMessage = `🚨 Alerte PorkyFarm: Cas santé critique - ${validatedData.issue || validatedData.title || 'Cas de santé'} - ${validatedData.animal_name || 'Animal'}. Détails: ${validatedData.description?.substring(0, 100) || ''}`
             await sendAlertSms(formattedPhone, smsMessage)
             await trackEvent(user.id, AnalyticsEvents.SMS_SENT, {
               alertType: 'health_critical',
