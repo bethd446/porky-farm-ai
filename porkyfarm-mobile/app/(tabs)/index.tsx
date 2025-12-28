@@ -98,7 +98,7 @@ export default function DashboardScreen() {
       const gestationsList = gestations || []
 
       // Calculer les stats
-      const healthyCount = activeAnimals.filter((a) => a.status === 'active' && a.health_status === 'healthy').length
+      const healthyCount = activeAnimals.filter((a) => a.status === 'active').length
       const careRequired = activeCases.length
       const piglets = activeAnimals.filter((a) => a.category === 'piglet').length
 

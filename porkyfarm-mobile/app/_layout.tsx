@@ -1,12 +1,12 @@
 import { Stack, Redirect } from 'expo-router'
 import { AuthProvider, useAuthContext } from '../contexts/AuthContext'
 import { ErrorBoundary } from '../components/ErrorBoundary'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, ReactNode } from 'react'
 import { onboardingService } from '../services/onboarding'
 import { ActivityIndicator, View } from 'react-native'
 import { colors } from '../lib/designTokens'
 
-function OnboardingGuard({ children }: { children: React.ReactNode }) {
+function OnboardingGuard({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuthContext()
   const [checkingOnboarding, setCheckingOnboarding] = useState(true)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
