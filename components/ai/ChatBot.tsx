@@ -19,42 +19,53 @@ interface ChatBotProps {
 }
 
 export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
-  const { animals, stats } = useApp()
-  const [error, setError] = useState<string | null>(null)
+  const { animals } = useApp()
+  const [input, setInput] = useState("")
 
   // Construire le contexte d'élevage
   const buildLivestockContext = () => {
     if (!animals || animals.length === 0) return ""
 
-    const activeAnimals = animals.filter(
-      (a) => a.status === "active" || a.status === "pregnant" || a.status === "nursing"
-    )
+    // Utiliser les valeurs DB (anglais) pour le filtrage
+    const activeAnimals = animals.filter((a) => {
+      const status = a.status as string
+      return status === "active" || status === "pregnant" || status === "nursing"
+    })
 
     return `
 Élevage de ${activeAnimals.length} animaux:
-- Truies: ${activeAnimals.filter((a) => a.category === "sow").length}
-- Verrats: ${activeAnimals.filter((a) => a.category === "boar").length}
-- Porcelets: ${activeAnimals.filter((a) => a.category === "piglet").length}
-- Porcs d'engraissement: ${activeAnimals.filter((a) => a.category === "fattening").length}
+- Truies: ${activeAnimals.filter((a) => {
+      const cat = a.category as string
+      return cat === "sow"
+    }).length}
+- Verrats: ${activeAnimals.filter((a) => {
+      const cat = a.category as string
+      return cat === "boar"
+    }).length}
+- Porcelets: ${activeAnimals.filter((a) => {
+      const cat = a.category as string
+      return cat === "piglet"
+    }).length}
+- Porcs d'engraissement: ${activeAnimals.filter((a) => {
+      const cat = a.category as string
+      return cat === "fattening"
+    }).length}
 `
   }
 
-  // Utiliser useChat pour le streaming
-  const { messages, input, handleInputChange, handleSubmit, isLoading, reload } =
-    useChat({
-      api: "/api/ai/chat", // Nouveau endpoint via AI Gateway
-      body: {
-        livestockContext: buildLivestockContext() || initialContext,
-        userRole,
-      },
-      onError: (err: Error) => {
-        console.error("[ChatBot] Error:", err)
-        setError("Une erreur est survenue. Veuillez réessayer.")
-      },
-      onFinish: () => {
-        setError(null)
-      },
-    })
+  // Utiliser useChat pour le streaming (API v5)
+  const { messages, sendMessage, regenerate, status, error } = useChat({
+    api: "/api/ai/chat",
+    body: {
+      livestockContext: buildLivestockContext() || initialContext,
+      userRole,
+    },
+    onError: (err: Error) => {
+      console.error("[ChatBot] Error:", err)
+    },
+  })
+
+  const isLoading = status === "in_progress"
 
   return (
     <Card className="flex flex-col h-[600px]">
@@ -88,40 +99,49 @@ export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
           </div>
         )}
 
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex gap-3 ${
-              message.role === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            {message.role === "assistant" && (
-              <div className="shrink-0">
-                <Bot className="h-6 w-6 text-primary" />
-              </div>
-            )}
+        {messages.map((message) => {
+          const content =
+            typeof message.content === "string"
+              ? message.content
+              : Array.isArray(message.content)
+                ? message.content
+                    .map((part: any) =>
+                      typeof part === "string" ? part : part.text || JSON.stringify(part)
+                    )
+                    .join(" ")
+                : JSON.stringify(message.content)
 
+          return (
             <div
-              className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                message.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted"
+              key={message.id}
+              className={`flex gap-3 ${
+                message.role === "user" ? "justify-end" : "justify-start"
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">
-                {typeof message.content === "string"
-                  ? message.content
-                  : JSON.stringify(message.content)}
-              </p>
-            </div>
+              {message.role === "assistant" && (
+                <div className="shrink-0">
+                  <Bot className="h-6 w-6 text-primary" />
+                </div>
+              )}
 
-            {message.role === "user" && (
-              <div className="shrink-0">
-                <User className="h-6 w-6 text-muted-foreground" />
+              <div
+                className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                  message.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted"
+                }`}
+              >
+                <p className="text-sm whitespace-pre-wrap">{content}</p>
               </div>
-            )}
-          </div>
-        ))}
+
+              {message.role === "user" && (
+                <div className="shrink-0">
+                  <User className="h-6 w-6 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          )
+        })}
 
         {isLoading && (
           <div className="flex gap-3 justify-start">
@@ -168,4 +188,3 @@ export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
     </Card>
   )
 }
-
