@@ -82,16 +82,53 @@ export async function POST(req: Request) {
 
     const { messages, livestockContext, hasImage } = validation.data
 
-    const systemPrompt = `Tu es PorkyAssistant, un assistant IA expert en elevage porcin, specialement concu pour aider les eleveurs ivoiriens. 
+    // Vérifier le quota quotidien (50 requêtes par jour par défaut)
+    if (userId) {
+      try {
+        const supabase = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              get(name: string) {
+                return (await cookies()).get(name)?.value
+              },
+            },
+          },
+        )
 
-Ton role est de fournir des conseils pratiques et professionnels sur :
-- La gestion du cheptel (truies, verrats, porcelets)
-- L'alimentation et les rations selon le stade physiologique
-- La reproduction : saillie, gestation, mise-bas, lactation
-- La sante : prevention des maladies, vaccinations, traitements
-- L'hygiene et la biosecurite
-- La gestion financiere de l'elevage
-- Les meilleures pratiques adaptees au contexte africain
+        const { data: quotaCheck } = await supabase.rpc('check_ai_quota', {
+          p_user_id: userId,
+          p_daily_limit: 50, // Limite quotidienne (configurable)
+        })
+
+        if (quotaCheck === false) {
+          return Response.json(
+            {
+              content: 'Vous avez atteint votre limite quotidienne de requêtes IA (50/jour). Réessayez demain ou contactez le support pour augmenter votre quota.',
+              quotaExceeded: true,
+            },
+            { status: 429 },
+          )
+        }
+      } catch (quotaError) {
+        // Si la fonction RPC n'existe pas encore, continuer (pour compatibilité)
+        console.warn('[AI] Quota check failed, continuing:', quotaError)
+      }
+    }
+
+    const systemPrompt = `Tu es PorkyAssistant, un assistant IA expert en élevage porcin, spécialement conçu pour aider les éleveurs ivoiriens.
+
+⚠️ IMPORTANT : Tu es un outil d'aide et de conseil. Tu ne remplaces JAMAIS un vétérinaire professionnel. En cas de doute grave sur la santé d'un animal, tu dois toujours recommander de consulter un vétérinaire.
+
+Ton rôle est de fournir des conseils pratiques et professionnels sur :
+- La gestion du cheptel (truies, verrats, porcelets, porcs d'engraissement)
+- L'alimentation et les rations selon le stade physiologique et le poids
+- La reproduction : saillie, gestation (114 jours), mise-bas, lactation, sevrage
+- La santé : prévention des maladies courantes, vaccinations, traitements de base
+- L'hygiène et la biosécurité en élevage porcin
+- La gestion financière de l'élevage (coûts, revenus, rentabilité)
+- Les meilleures pratiques adaptées au contexte ivoirien et africain (climat, ressources disponibles)
 
 ${
   hasImage
@@ -146,20 +183,66 @@ REGLES DE REPONSE:
       }
     })
 
-    const { text } = await generateText({
-      model: hasImage ? openai("gpt-4o") : openai("gpt-4o-mini"),
+    const model = hasImage ? openai("gpt-4o") : openai("gpt-4o-mini")
+    const { text, usage } = await generateText({
+      model,
       system: systemPrompt,
       messages: formattedMessages,
     })
 
-    // Tracker l'utilisation de l'IA
+    // Estimer le coût (approximatif)
+    // GPT-4o-mini : ~$0.15/1M tokens input, ~$0.60/1M tokens output
+    // GPT-4o : ~$2.50/1M tokens input, ~$10/1M tokens output
+    const costPer1MInput = hasImage ? 2.5 : 0.15
+    const costPer1MOutput = hasImage ? 10 : 0.6
+    const estimatedCost =
+      ((usage?.promptTokens || 0) / 1_000_000) * costPer1MInput +
+      ((usage?.completionTokens || 0) / 1_000_000) * costPer1MOutput
+
+    // Enregistrer l'utilisation dans la table ai_usage
+    if (userId) {
+      try {
+        const supabaseForUsage = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              get(name: string) {
+                return (await cookies()).get(name)?.value
+              },
+            },
+          },
+        )
+
+        await supabaseForUsage.rpc('increment_ai_usage', {
+          p_user_id: userId,
+          p_cost_estimate: estimatedCost,
+          p_has_image: hasImage || false,
+        })
+      } catch (usageError) {
+        // Si la fonction RPC n'existe pas encore, continuer (pour compatibilité)
+        console.warn('[AI] Usage tracking failed:', usageError)
+      }
+    }
+
+    // Tracker l'utilisation de l'IA (analytics)
     await trackEvent(userId, AnalyticsEvents.AI_CHAT_USED, {
       hasImage,
       messageCount: messages.length,
+      estimatedCost,
+      tokensUsed: (usage?.promptTokens || 0) + (usage?.completionTokens || 0),
     })
 
     return Response.json(
-      { content: text },
+      {
+        content: text,
+        usage: {
+          promptTokens: usage?.promptTokens || 0,
+          completionTokens: usage?.completionTokens || 0,
+          totalTokens: (usage?.promptTokens || 0) + (usage?.completionTokens || 0),
+          estimatedCost,
+        },
+      },
       {
         headers: {
           "X-RateLimit-Remaining": String(rateLimitResult.remaining),

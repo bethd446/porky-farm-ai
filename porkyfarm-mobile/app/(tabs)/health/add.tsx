@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView,
 import { useRouter } from 'expo-router'
 import { healthCasesService, type HealthCaseInsert } from '../../../services/healthCases'
 import { animalsService, type Animal } from '../../../services/animals'
+import { offlineQueue } from '../../../lib/offlineQueue'
+import { useSyncQueue } from '../../../hooks/useSyncQueue'
 
 export default function AddHealthCaseScreen() {
   const [formData, setFormData] = useState<HealthCaseInsert>({
@@ -18,6 +20,7 @@ export default function AddHealthCaseScreen() {
   const [loading, setLoading] = useState(false)
   const [loadingAnimals, setLoadingAnimals] = useState(true)
   const router = useRouter()
+  const { isOnline, pendingCount } = useSyncQueue()
 
   useEffect(() => {
     loadAnimals()
@@ -42,16 +45,56 @@ export default function AddHealthCaseScreen() {
 
     setLoading(true)
     try {
-      const { error } = await healthCasesService.create({
-        ...formData,
-        animal_name: animalName,
-      })
-      if (error) {
-        Alert.alert('Erreur', error.message || 'Erreur lors de la création')
+      if (!isOnline) {
+        // Mode offline : enregistrer dans la queue
+        await offlineQueue.enqueue({
+          type: 'CREATE_HEALTH_CASE',
+          payload: {
+            ...formData,
+            animal_name: animalName,
+          },
+          endpoint: '/api/health-cases',
+          method: 'POST',
+        })
+
+        Alert.alert(
+          'Enregistré hors ligne',
+          'Votre cas de santé sera synchronisé automatiquement dès que la connexion sera rétablie.',
+          [{ text: 'OK', onPress: () => router.back() }],
+        )
       } else {
-        Alert.alert('Succès', 'Cas de santé créé avec succès', [
-          { text: 'OK', onPress: () => router.back() },
-        ])
+        // Mode online : envoi direct
+        const { error } = await healthCasesService.create({
+          ...formData,
+          animal_name: animalName,
+        })
+
+        if (error) {
+          // Si erreur réseau, essayer d'enregistrer dans la queue
+          if (error.message?.includes('réseau') || error.message?.includes('network')) {
+            await offlineQueue.enqueue({
+              type: 'CREATE_HEALTH_CASE',
+              payload: {
+                ...formData,
+                animal_name: animalName,
+              },
+              endpoint: '/api/health-cases',
+              method: 'POST',
+            })
+
+            Alert.alert(
+              'Enregistré hors ligne',
+              'Erreur de connexion. Votre cas sera synchronisé dès que possible.',
+              [{ text: 'OK', onPress: () => router.back() }],
+            )
+          } else {
+            Alert.alert('Erreur', error.message || 'Erreur lors de la création')
+          }
+        } else {
+          Alert.alert('Succès', 'Cas de santé créé avec succès', [
+            { text: 'OK', onPress: () => router.back() },
+          ])
+        }
       }
     } catch (err) {
       Alert.alert('Erreur', 'Une erreur est survenue')

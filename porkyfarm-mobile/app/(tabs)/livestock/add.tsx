@@ -23,18 +23,12 @@ export default function AddAnimalScreen() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const router = useRouter()
 
-  const requestPermissions = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
-    if (status !== 'granted') {
-      Alert.alert('Permission requise', 'Nous avons besoin de l\'accès à vos photos pour ajouter une image.')
-      return false
-    }
-    return true
-  }
-
   const handlePickImage = async () => {
-    const hasPermission = await requestPermissions()
-    if (!hasPermission) return
+    const permission = await requestMediaLibraryPermission()
+    if (!permission.granted) {
+      // Le message d'erreur est déjà affiché dans requestMediaLibraryPermission
+      return
+    }
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -67,9 +61,9 @@ export default function AddAnimalScreen() {
   }
 
   const handleTakePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync()
-    if (status !== 'granted') {
-      Alert.alert('Permission requise', 'Nous avons besoin de l\'accès à votre caméra.')
+    const permission = await requestCameraPermission()
+    if (!permission.granted) {
+      // Le message d'erreur est déjà affiché dans requestCameraPermission
       return
     }
 

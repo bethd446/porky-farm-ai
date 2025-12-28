@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { useApp } from "@/contexts/app-context"
 import { FormInput, FormTextarea, FormSelect } from "@/components/common/form-field"
-import { healthCaseSchema, symptomSchema } from "@/lib/validations/schemas"
+import { healthCaseSchema } from "@/lib/validations/schemas"
 
 const priorityOptions = [
   { value: "Basse", label: "Basse - Surveillance" },

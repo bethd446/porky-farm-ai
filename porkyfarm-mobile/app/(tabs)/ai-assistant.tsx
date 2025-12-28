@@ -1,23 +1,7 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native'
 import { useAuthContext } from '../../contexts/AuthContext'
-import { supabase } from '../../services/supabase/client'
-
-// URL API backend - utiliser 127.0.0.1 pour iOS simulator, localhost pour Android/Web
-const getApiUrl = () => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL
-  if (envUrl) {
-    // Si l'URL contient localhost et qu'on est sur iOS, remplacer par 127.0.0.1
-    if (envUrl.includes('localhost') && Platform.OS === 'ios') {
-      return envUrl.replace('localhost', '127.0.0.1')
-    }
-    return envUrl
-  }
-  // Fallback : utiliser 127.0.0.1 pour iOS, localhost pour le reste
-  return Platform.OS === 'ios' ? 'http://127.0.0.1:3000' : 'http://localhost:3000'
-}
-
-const API_URL = getApiUrl()
+import { apiClient } from '../../lib/apiClient'
 
 export default function AIAssistantScreen() {
   const { user } = useAuthContext()
@@ -40,17 +24,6 @@ export default function AIAssistantScreen() {
     setMessages(newMessages)
 
     try {
-      // Récupérer le token de session Supabase
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session) {
-        Alert.alert('Erreur', 'Vous devez être connecté')
-        setLoading(false)
-        return
-      }
-
       // Format de la requête aligné avec le backend web
       const requestBody = {
         messages: newMessages,
@@ -58,25 +31,47 @@ export default function AIAssistantScreen() {
         hasImage: false,
       }
 
-      console.log('Calling AI API:', `${API_URL}/api/chat`)
+      // Utiliser apiClient pour la requête
+      const response = await apiClient.post<{ content: string; quotaExceeded?: boolean; usage?: any }>(
+        '/api/chat',
+        requestBody,
+      )
 
-      const res = await fetch(`${API_URL}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(requestBody),
-      })
+      if (response.error) {
+        // Gérer les erreurs spécifiques
+        if (response.error.offline) {
+          Alert.alert(
+            'Hors ligne',
+            'Vous n\'êtes pas connecté à Internet. Vérifiez votre connexion et réessayez.',
+          )
+          setMessages(messages) // Retirer le message utilisateur
+          setLoading(false)
+          return
+        }
 
-      if (!res.ok) {
-        const errorText = await res.text()
-        console.error('AI API error:', res.status, errorText)
-        throw new Error(`Erreur HTTP: ${res.status} - ${errorText}`)
+        if (response.error.status === 429) {
+          Alert.alert(
+            'Limite atteinte',
+            response.error.message || 'Vous avez atteint votre limite de requêtes. Réessayez plus tard.',
+          )
+          setMessages(messages)
+          setLoading(false)
+          return
+        }
+
+        throw new Error(response.error.message || 'Erreur lors de l\'appel à l\'IA')
       }
 
-      const data = await res.json()
-      const assistantResponse = data.content || data.message || 'Aucune réponse reçue'
+      if (!response.data) {
+        throw new Error('Aucune réponse reçue')
+      }
+
+      const assistantResponse = response.data.content || 'Aucune réponse reçue'
+
+      // Afficher un avertissement si quota dépassé
+      if (response.data.quotaExceeded) {
+        Alert.alert('Limite quotidienne atteinte', 'Vous avez atteint votre limite de 50 requêtes par jour.')
+      }
 
       // Ajouter la réponse de l'assistant à l'historique
       setMessages([...newMessages, { role: 'assistant' as const, content: assistantResponse }])

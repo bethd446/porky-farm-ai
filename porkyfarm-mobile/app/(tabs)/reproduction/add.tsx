@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView,
 import { useRouter } from 'expo-router'
 import { gestationsService, type GestationInsert, calculateExpectedFarrowingDate } from '../../../services/gestations'
 import { animalsService, type Animal } from '../../../services/animals'
+import { offlineQueue } from '../../../lib/offlineQueue'
+import { useSyncQueue } from '../../../hooks/useSyncQueue'
 
 export default function AddGestationScreen() {
   const [formData, setFormData] = useState<GestationInsert>({

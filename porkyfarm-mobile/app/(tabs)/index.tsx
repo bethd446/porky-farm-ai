@@ -6,7 +6,8 @@ import { animalsService } from '../../services/animals'
 import { healthCasesService } from '../../services/healthCases'
 import { gestationsService } from '../../services/gestations'
 import { feedingService } from '../../services/feeding'
-import { WeatherWidget } from '../../components/WeatherWidget'
+// Temporairement désactivé : WeatherWidget nécessite une route backend stable
+// import { WeatherWidget } from '../../components/WeatherWidget'
 import type { Animal } from '../../services/animals'
 
 const getGreeting = () => {
