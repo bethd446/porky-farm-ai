@@ -47,18 +47,12 @@ export const models = {
 
   /**
    * Analyse structurée (recommandations, rapports)
-   * Claude 3.5 Sonnet pour meilleure structuration JSON
+   * GPT-4o pour meilleure structuration JSON
+   * Note: Claude disponible via Gateway si configuré, mais GPT-4o comme fallback
    */
   analysis: {
-    primary: (client = aiClient) => {
-      // Fallback vers GPT-4o si Claude n'est pas disponible via Gateway
-      try {
-        return client("anthropic/claude-3-5-sonnet")
-      } catch {
-        return client("openai/gpt-4o")
-      }
-    },
-    fallback: (client = aiClient) => client("openai/gpt-4o"),
+    primary: (client = aiClient) => client("openai/gpt-4o"),
+    fallback: (client = aiClient) => client("openai/gpt-4o-mini"),
   },
 
   /**
