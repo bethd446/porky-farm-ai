@@ -36,7 +36,6 @@ export const onboardingService: OnboardingService = {
       } = await supabase.auth.getUser()
 
       if (authError) {
-        console.warn('[onboardingService] Auth error:', authError.message)
         return { hasCompleted: false, error: authError as Error }
       }
 
@@ -44,7 +43,8 @@ export const onboardingService: OnboardingService = {
         return { hasCompleted: false, error: new Error('Non authentifié') }
       }
 
-      // Requête Supabase : select has_completed_onboarding
+      // Requête Supabase : select has_completed_onboarding depuis profiles
+      // La table profiles existe, la colonne has_completed_onboarding doit exister
       const { data, error } = await supabase
         .from('profiles')
         .select('has_completed_onboarding')
@@ -52,30 +52,18 @@ export const onboardingService: OnboardingService = {
         .single()
 
       if (error) {
-        const errorCode = error.code || ''
-        const errorMessage = error.message || ''
-
         // PGRST116 = No rows returned (profil n'existe pas encore)
-        if (errorCode === 'PGRST116' || errorMessage.includes('No rows')) {
-          // Comportement gracieux : considérer comme non complété, pas d'erreur
-          return { hasCompleted: false, error: null }
-        }
-
-        // PGRST205 = Table/column not found (schéma pas encore migré)
-        if (errorCode === 'PGRST205' || errorMessage.includes('does not exist') || errorMessage.includes('not found')) {
-          // Comportement gracieux : considérer comme non complété, pas d'erreur
-          // Pas de console.warn pour éviter les warnings répétés
+        if (error.code === 'PGRST116') {
           return { hasCompleted: false, error: null }
         }
 
         // Erreur réseau
-        if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('timeout')) {
-          console.warn('[onboardingService] Network error:', error.message)
+        if (error.message?.includes('network') || error.message?.includes('fetch') || error.message?.includes('timeout')) {
           return { hasCompleted: false, error: new Error('Erreur réseau. Vérifiez votre connexion.') }
         }
 
-        // Autre erreur Supabase
-        console.warn('[onboardingService] Supabase error:', error.message)
+        // Autre erreur Supabase (y compris PGRST205 si colonne manquante)
+        // On retourne une erreur pour que le guard puisse gérer
         return { hasCompleted: false, error: error as Error }
       }
 
@@ -83,8 +71,7 @@ export const onboardingService: OnboardingService = {
       const hasCompleted = Boolean(data?.has_completed_onboarding)
       return { hasCompleted, error: null }
     } catch (err: any) {
-      // Exception non catchée (timeout, erreur réseau, etc.)
-      console.warn('[onboardingService] Exception:', err?.message || 'Erreur inattendue')
+      // Exception non catchée
       const error = err instanceof Error ? err : new Error('Erreur inattendue lors de la vérification')
       return { hasCompleted: false, error }
     }
@@ -110,13 +97,11 @@ export const onboardingService: OnboardingService = {
         .eq('id', user.id)
 
       if (error) {
-        console.warn('[onboardingService] Error marking onboarding completed:', error.message)
         return { error: error as Error }
       }
 
       return { error: null }
     } catch (err: any) {
-      console.warn('[onboardingService] Exception marking onboarding completed:', err?.message)
       return { error: err instanceof Error ? err : new Error('Erreur lors de la mise à jour') }
     }
   },

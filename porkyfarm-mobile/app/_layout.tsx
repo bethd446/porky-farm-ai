@@ -56,7 +56,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       }
 
       if (result.error) {
-        // Si erreur : on laisse passer l'utilisateur vers l'app
+        // Si erreur : on laisse passer l'utilisateur vers l'app (ne pas bloquer)
         setOnboardingError(result.error)
         setNeedsOnboarding(false)
       } else {
@@ -76,7 +76,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       // IMPORTANT: Toujours reset dans finally
       isCheckingRef.current = false
       setCheckingOnboarding(false)
-      setHasTriedOnboardingCheck(true)
+      setHasTriedOnboardingCheck(true) // Clé pour ne plus relancer
     }
   }
 
@@ -108,14 +108,17 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
 
   const handleRetry = async () => {
     if (authError) {
-      setHasTriedOnboardingCheck(false)
+      // Pour authError, on peut réessayer l'auth
       setOnboardingError(null)
       isCheckingRef.current = false
+      // Ne pas remettre hasTriedOnboardingCheck à false ici
       await retryAuth()
     } else if (onboardingError) {
-      setHasTriedOnboardingCheck(false)
+      // Pour onboardingError, on peut réessayer le check
+      // MAIS on ne remet PAS hasTriedOnboardingCheck à false pour éviter boucles
       setOnboardingError(null)
       isCheckingRef.current = false
+      // Réessayer directement sans reset hasTriedOnboardingCheck
       await checkOnboarding()
     }
   }
