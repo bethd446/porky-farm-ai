@@ -10,8 +10,7 @@ export interface Animal {
   birth_date: string | null
   weight: number | null
   status: 'active' | 'sick' | 'pregnant' | 'nursing' | 'sold' | 'deceased'
-  health_status: 'healthy' | 'sick' | 'quarantine'
-  photo: string | null
+  image_url: string | null // La table pigs utilise image_url
   mother_id: string | null
   father_id: string | null
   notes: string | null
@@ -27,8 +26,7 @@ export interface AnimalInsert {
   birth_date?: string | null
   weight?: number | null
   status?: 'active' | 'sick' | 'pregnant' | 'nursing' | 'sold' | 'deceased'
-  health_status?: 'healthy' | 'sick' | 'quarantine'
-  photo?: string | null
+  image_url?: string | null // La table pigs utilise image_url, pas photo
   mother_id?: string | null
   father_id?: string | null
   notes?: string | null
@@ -42,8 +40,7 @@ export interface AnimalUpdate {
   birth_date?: string | null
   weight?: number | null
   status?: 'active' | 'sick' | 'pregnant' | 'nursing' | 'sold' | 'deceased'
-  health_status?: 'healthy' | 'sick' | 'quarantine'
-  photo?: string | null
+  image_url?: string | null
   mother_id?: string | null
   father_id?: string | null
   notes?: string | null

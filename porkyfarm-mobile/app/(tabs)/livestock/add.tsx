@@ -113,16 +113,32 @@ export default function AddAnimalScreen() {
 
     setLoading(true)
     try {
-      const { error } = await animalsService.create(formData)
+      // Convertir photo en image_url pour la table pigs
+      const animalData = {
+        ...formData,
+        image_url: photo || null,
+      }
+      // Supprimer photo si présent (pas dans AnimalInsert)
+      delete (animalData as any).photo
+
+      const { data, error } = await animalsService.create(animalData)
       if (error) {
-        Alert.alert('Erreur', error.message || 'Erreur lors de l\'ajout')
+        console.error('Error creating animal:', error)
+        Alert.alert(
+          'Erreur',
+          error.message || 'Impossible d\'enregistrer l\'animal. Vérifiez votre connexion ou réessayez.'
+        )
       } else {
         Alert.alert('Succès', 'Animal ajouté avec succès', [
           { text: 'OK', onPress: () => router.back() },
         ])
       }
-    } catch (err) {
-      Alert.alert('Erreur', 'Une erreur est survenue')
+    } catch (err: any) {
+      console.error('Uncaught error creating animal:', err)
+      Alert.alert(
+        'Erreur',
+        err?.message || 'Une erreur est survenue lors de l\'ajout de l\'animal. Vérifiez votre connexion ou réessayez.'
+      )
     } finally {
       setLoading(false)
     }

@@ -1,8 +1,10 @@
 import { Tabs, Redirect } from 'expo-router'
-import { View, StyleSheet } from 'react-native'
+import { View, StyleSheet, TouchableOpacity } from 'react-native'
+import { useState } from 'react'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { colors, spacing, typography, radius, shadows } from '../../lib/designTokens'
-import { Home, List, Plus, BarChart3, User } from 'lucide-react-native'
+import { Home, List, Plus, BarChart3, Brain } from 'lucide-react-native'
+import { ActionsModal } from '../../components/ActionsModal'
 
 // Icon component avec Lucide (style UX Pilot)
 function TabIcon({ name, color, focused }: { name: string; color: string; focused: boolean }) {
@@ -14,12 +16,8 @@ function TabIcon({ name, color, focused }: { name: string; color: string; focuse
       return <Home size={iconSize} color={iconColor} />
     case 'livestock':
       return <List size={iconSize} color={iconColor} />
-    case 'add':
-      return null // Géré séparément pour le bouton central
     case 'reports':
       return <BarChart3 size={iconSize} color={iconColor} />
-    case 'profile':
-      return <User size={iconSize} color={iconColor} />
     default:
       return <Home size={iconSize} color={iconColor} />
   }
@@ -27,6 +25,7 @@ function TabIcon({ name, color, focused }: { name: string; color: string; focuse
 
 export default function TabsLayout() {
   const { user, loading } = useAuthContext()
+  const [actionsModalVisible, setActionsModalVisible] = useState(false)
 
   if (loading) {
     return null // Or a loading screen
@@ -37,26 +36,27 @@ export default function TabsLayout() {
   }
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          height: 70,
-          paddingBottom: spacing.base,
-          paddingTop: spacing.sm,
-          ...shadows.md,
-        },
-        tabBarLabelStyle: {
-          fontSize: typography.fontSize.caption,
-          fontWeight: typography.fontWeight.medium,
-        },
-      }}
-    >
+    <>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.mutedForeground,
+          tabBarStyle: {
+            backgroundColor: colors.card,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            height: 70,
+            paddingBottom: spacing.base,
+            paddingTop: spacing.sm,
+            ...shadows.md,
+          },
+          tabBarLabelStyle: {
+            fontSize: typography.fontSize.caption,
+            fontWeight: typography.fontWeight.medium,
+          },
+        }}
+      >
       <Tabs.Screen
         name="index"
         options={{
@@ -71,17 +71,24 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => <TabIcon name="livestock" color={color} focused={focused} />,
         }}
       />
-      {/* Bouton central "Ajouter" - style UX Pilot */}
+      {/* Bouton central "Actions rapides" - ouvre modal */}
       <Tabs.Screen
         name="livestock/add"
         options={{
-          title: 'Ajouter',
+          title: '',
           tabBarIcon: ({ focused }) => (
             <View style={[styles.centralButton, focused && styles.centralButtonFocused]}>
               <Plus size={28} color="#ffffff" />
             </View>
           ),
           tabBarLabel: '',
+          tabBarButton: (props) => (
+            <TouchableOpacity
+              {...props}
+              onPress={() => setActionsModalVisible(true)}
+              style={props.style}
+            />
+          ),
         }}
       />
       {/* Masquer les routes dynamiques et add de la tab bar */}
@@ -92,17 +99,17 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="costs/index"
+        name="reports/index"
         options={{
           title: 'Rapports',
           tabBarIcon: ({ color, focused }) => <TabIcon name="reports" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="ai-assistant"
         options={{
-          title: 'Profil',
-          tabBarIcon: ({ color, focused }) => <TabIcon name="profile" color={color} focused={focused} />,
+          title: 'Assistant IA',
+          tabBarIcon: ({ color, focused }) => <Brain size={24} color={focused ? colors.primary : colors.mutedForeground} />,
         }}
       />
       {/* Masquer les routes dynamiques et add de la tab bar */}
@@ -163,12 +170,20 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="ai-assistant"
+        name="costs/index"
         options={{
-          href: null,
+          href: null, // Masquer de la tab bar (remplacé par reports)
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          href: null, // Masquer de la tab bar (pas dans MVP)
         }}
       />
     </Tabs>
+    <ActionsModal visible={actionsModalVisible} onClose={() => setActionsModalVisible(false)} />
+    </>
   )
 }
 

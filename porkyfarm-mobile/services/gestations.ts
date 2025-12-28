@@ -76,20 +76,39 @@ export const gestationsService: GestationsService = {
 
       const { data, error } = await supabase
         .from('gestations')
-        .select('*')
+        .select(`
+          *,
+          sow:pigs!gestations_sow_id_fkey (
+            name,
+            identifier
+          ),
+          boar:pigs!gestations_boar_id_fkey (
+            name,
+            identifier
+          )
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) {
         // Si la table n'existe pas, retourner une liste vide plutôt qu'une erreur
-        if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+        if (error.code === 'PGRST116' || error.code === 'PGRST205' || error.message?.includes('does not exist')) {
           console.warn('Table gestations non trouvée, retour d\'une liste vide')
           return { data: [], error: null }
         }
         return { data: null, error: error as Error }
       }
 
-      return { data: data as Gestation[], error: null }
+      // Mapper les données avec les noms des truies/verrats depuis la jointure
+      const mappedData = (data || []).map((record: any) => ({
+        ...record,
+        sow_name: record.sow?.name || null,
+        sow_identifier: record.sow?.identifier || null,
+        boar_name: record.boar?.name || null,
+        boar_identifier: record.boar?.identifier || null,
+      }))
+
+      return { data: mappedData as Gestation[], error: null }
     } catch (err) {
       console.error('Error in gestationsService.getAll:', err)
       return { data: [], error: null } // Retourner liste vide plutôt qu'erreur
@@ -105,13 +124,32 @@ export const gestationsService: GestationsService = {
 
       const { data, error } = await supabase
         .from('gestations')
-        .select('*')
+        .select(`
+          *,
+          sow:pigs!gestations_sow_id_fkey (
+            name,
+            identifier
+          ),
+          boar:pigs!gestations_boar_id_fkey (
+            name,
+            identifier
+          )
+        `)
         .eq('id', id)
         .eq('user_id', user.id)
         .single()
 
       if (error) return { data: null, error: error as Error }
-      return { data: data as Gestation, error: null }
+      
+      const mappedData = {
+        ...data,
+        sow_name: (data as any).sow?.name || null,
+        sow_identifier: (data as any).sow?.identifier || null,
+        boar_name: (data as any).boar?.name || null,
+        boar_identifier: (data as any).boar?.identifier || null,
+      }
+      
+      return { data: mappedData as Gestation, error: null }
     } catch (err) {
       return { data: null, error: err as Error }
     }
@@ -131,11 +169,30 @@ export const gestationsService: GestationsService = {
       const { data, error } = await supabase
         .from('gestations')
         .insert({ ...gestation, expected_farrowing_date: expectedFarrowingDate, user_id: user.id })
-        .select()
+        .select(`
+          *,
+          sow:pigs!gestations_sow_id_fkey (
+            name,
+            identifier
+          ),
+          boar:pigs!gestations_boar_id_fkey (
+            name,
+            identifier
+          )
+        `)
         .single()
 
       if (error) return { data: null, error: error as Error }
-      return { data: data as Gestation, error: null }
+      
+      const mappedData = {
+        ...data,
+        sow_name: (data as any).sow?.name || null,
+        sow_identifier: (data as any).sow?.identifier || null,
+        boar_name: (data as any).boar?.name || null,
+        boar_identifier: (data as any).boar?.identifier || null,
+      }
+      
+      return { data: mappedData as Gestation, error: null }
     } catch (err) {
       return { data: null, error: err as Error }
     }
@@ -153,11 +210,30 @@ export const gestationsService: GestationsService = {
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
         .eq('user_id', user.id)
-        .select()
+        .select(`
+          *,
+          sow:pigs!gestations_sow_id_fkey (
+            name,
+            identifier
+          ),
+          boar:pigs!gestations_boar_id_fkey (
+            name,
+            identifier
+          )
+        `)
         .single()
 
       if (error) return { data: null, error: error as Error }
-      return { data: data as Gestation, error: null }
+      
+      const mappedData = {
+        ...data,
+        sow_name: (data as any).sow?.name || null,
+        sow_identifier: (data as any).sow?.identifier || null,
+        boar_name: (data as any).boar?.name || null,
+        boar_identifier: (data as any).boar?.identifier || null,
+      }
+      
+      return { data: mappedData as Gestation, error: null }
     } catch (err) {
       return { data: null, error: err as Error }
     }
