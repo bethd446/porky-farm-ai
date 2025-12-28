@@ -325,9 +325,30 @@ export const db = {
 
   async updateVeterinaryCase(caseId: string, updates: Record<string, unknown>) {
     try {
+      // Mapper les champs si nécessaire
+      const mappedUpdates: any = { ...updates, updated_at: new Date().toISOString() }
+      if (mappedUpdates.animal_id) {
+        mappedUpdates.pig_id = mappedUpdates.animal_id
+        delete mappedUpdates.animal_id
+      }
+      if (mappedUpdates.issue) {
+        mappedUpdates.title = mappedUpdates.issue
+        delete mappedUpdates.issue
+      }
+      if (mappedUpdates.priority) {
+        mappedUpdates.severity = mappedUpdates.priority === 'high' || mappedUpdates.priority === 'critical' 
+          ? (mappedUpdates.priority === 'critical' ? 'critical' : 'high')
+          : (mappedUpdates.priority === 'low' ? 'low' : 'medium')
+        delete mappedUpdates.priority
+      }
+      if (mappedUpdates.photo) {
+        mappedUpdates.image_url = mappedUpdates.photo
+        delete mappedUpdates.photo
+      }
+      
       return await supabase
-        .from("veterinary_cases")
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .from("health_records")
+        .update(mappedUpdates)
         .eq("id", caseId)
         .select()
         .single()
@@ -339,7 +360,7 @@ export const db = {
 
   async deleteVeterinaryCase(caseId: string) {
     try {
-      return await supabase.from("veterinary_cases").delete().eq("id", caseId)
+      return await supabase.from("health_records").delete().eq("id", caseId)
     } catch (err) {
       console.error("[DB] deleteVeterinaryCase exception:", err)
       return { error: { message: "Erreur suppression cas veterinaire" } as any }
