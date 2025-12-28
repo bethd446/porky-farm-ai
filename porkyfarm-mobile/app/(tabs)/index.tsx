@@ -1,14 +1,25 @@
+/**
+ * Dashboard mobile - Style UX Pilot
+ * Sections : Stats, Actions rapides, Assistant IA, Alertes, Animaux récents
+ */
+
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { useRouter } from 'expo-router'
-import { animalsService } from '../../services/animals'
+import { animalsService, type Animal } from '../../services/animals'
 import { healthCasesService } from '../../services/healthCases'
 import { gestationsService } from '../../services/gestations'
 import { feedingService } from '../../services/feeding'
-// Temporairement désactivé : WeatherWidget nécessite une route backend stable
-// import { WeatherWidget } from '../../components/WeatherWidget'
-import type { Animal } from '../../services/animals'
+import { AiAssistantBanner } from '../../components/AiAssistantBanner'
+import { AlertCard } from '../../components/AlertCard'
+import { AnimalListItem } from '../../components/AnimalListItem'
+import { LoadingSkeleton, AnimalCardSkeleton } from '../../components/LoadingSkeleton'
+import { EmptyState } from '../../components/EmptyState'
+import { ErrorState } from '../../components/ErrorState'
+import { dashboardStyles } from '../../lib/dashboardStyles'
+import { colors, spacing, typography } from '../../lib/designTokens'
+import { PiggyBank, Heart, AlertTriangle, Baby, Plus, Syringe, Package, FileText } from 'lucide-react-native'
 
 const getGreeting = () => {
   const hour = new Date().getHours()
@@ -17,338 +28,357 @@ const getGreeting = () => {
   return 'Bonsoir'
 }
 
+const formatTimeAgo = (dateString: string): string => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffHours < 1) return "À l'instant"
+  if (diffHours < 24) return `Il y a ${diffHours} heure${diffHours > 1 ? 's' : ''}`
+  if (diffDays === 1) return 'Hier'
+  if (diffDays < 7) return `Il y a ${diffDays} jours`
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7)
+    return `Il y a ${weeks} semaine${weeks > 1 ? 's' : ''}`
+  }
+  return new Date(dateString).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+}
+
 export default function DashboardScreen() {
   const { user } = useAuthContext()
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
   const [stats, setStats] = useState({
     totalAnimals: 0,
-    truies: 0,
-    verrats: 0,
-    porcelets: 0,
-    porcs: 0,
-    gestationsActives: 0,
-    casSanteActifs: 0,
-    totalStock: 0,
-    loading: true,
+    healthyCount: 0,
+    careRequired: 0,
+    piglets: 0,
   })
+  const [recentAlerts, setRecentAlerts] = useState<Array<{
+    type: 'temperature' | 'vaccination' | 'health' | 'gestation'
+    title: string
+    description: string
+    timeAgo: string
+    link: string
+  }>>([])
+  const [recentAnimals, setRecentAnimals] = useState<Animal[]>([])
 
   useEffect(() => {
-    loadStats()
+    loadDashboardData()
   }, [])
 
-  const loadStats = async () => {
+  const loadDashboardData = async () => {
+    setLoading(true)
+    setError(null)
     try {
       // Charger les animaux
-      const { data: animals } = await animalsService.getAll()
+      const { data: animals, error: animalsError } = await animalsService.getAll()
+      if (animalsError) throw animalsError
+
       const animalsList = animals || []
-      const activeAnimals = animalsList.filter((a) => a.status === 'active' || a.status === 'sick' || a.status === 'pregnant' || a.status === 'nursing')
+      const activeAnimals = animalsList.filter(
+        (a) => a.status === 'active' || a.status === 'sick' || a.status === 'pregnant' || a.status === 'nursing'
+      )
 
       // Charger les cas de santé
-      const { data: healthCases } = await healthCasesService.getAll()
+      const { data: healthCases, error: healthError } = await healthCasesService.getAll()
+      if (healthError) throw healthError
+
       const casesList = healthCases || []
       const activeCases = casesList.filter((c) => c.status === 'active' || c.status === 'monitoring')
 
       // Charger les gestations
-      const { data: gestations } = await gestationsService.getAll()
-      const gestationsList = gestations || []
-      const activeGestations = gestationsList.filter(
-        (g) => g.status === 'pregnant' || g.status === 'farrowed' || g.status === 'weaning'
-      )
+      const { data: gestations, error: gestationsError } = await gestationsService.getAll()
+      if (gestationsError) throw gestationsError
 
-      // Charger le stock
-      const { data: stock } = await feedingService.getStock()
-      const stockList = stock || []
+      const gestationsList = gestations || []
+
+      // Calculer les stats
+      const healthyCount = activeAnimals.filter((a) => a.status === 'active' && a.health_status === 'healthy').length
+      const careRequired = activeCases.length
+      const piglets = activeAnimals.filter((a) => a.category === 'piglet').length
 
       setStats({
         totalAnimals: activeAnimals.length,
-        truies: activeAnimals.filter((a) => a.category === 'sow').length,
-        verrats: activeAnimals.filter((a) => a.category === 'boar').length,
-        porcelets: activeAnimals.filter((a) => a.category === 'piglet').length,
-        porcs: activeAnimals.filter((a) => a.category === 'fattening').length,
-        gestationsActives: activeGestations.length,
-        casSanteActifs: activeCases.length,
-        totalStock: stockList.reduce((sum, item) => sum + item.quantity_kg, 0),
-        loading: false,
+        healthyCount,
+        careRequired,
+        piglets,
       })
+
+      // Construire les alertes récentes
+      const alerts: typeof recentAlerts = []
+      
+      // Alertes température (cas de santé récents avec priorité haute)
+      const recentHealthCases = casesList
+        .filter((c) => c.priority === 'high' || c.priority === 'critical')
+        .sort((a, b) => new Date(b.start_date || b.created_at).getTime() - new Date(a.start_date || a.created_at).getTime())
+        .slice(0, 2)
+
+      recentHealthCases.forEach((c) => {
+        alerts.push({
+          type: 'temperature',
+          title: 'Alerte Température',
+          description: `${c.pig_name || c.animal_name || 'Animal'} montre des symptômes de fièvre`,
+          timeAgo: formatTimeAgo(c.start_date || c.created_at),
+          link: '/(tabs)/health',
+        })
+      })
+
+      // Alerte vaccination (si des animaux nécessitent des soins)
+      if (careRequired > 0) {
+        alerts.push({
+          type: 'vaccination',
+          title: 'Vaccination Due',
+          description: `${careRequired} porc${careRequired > 1 ? 's' : ''} nécessitent une vaccination cette semaine`,
+          timeAgo: "Aujourd'hui",
+          link: '/(tabs)/health',
+        })
+      }
+
+      setRecentAlerts(alerts)
+
+      // Animaux récents (3 derniers)
+      const sortedAnimals = animalsList
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 3)
+      setRecentAnimals(sortedAnimals)
     } catch (err) {
-      console.error('Error loading stats:', err)
-      setStats((prev) => ({ ...prev, loading: false }))
+      console.error('Error loading dashboard:', err)
+      setError(err as Error)
+    } finally {
+      setLoading(false)
     }
   }
 
   const firstName = user?.email?.split('@')[0] || 'Éleveur'
 
-  if (stats.loading) {
+  if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2d6a4f" />
+      <View style={dashboardStyles.container}>
+        <View style={dashboardStyles.header}>
+          <Text style={dashboardStyles.greeting}>{getGreeting()}, {firstName} !</Text>
+        </View>
+        <ScrollView style={dashboardStyles.container} contentContainerStyle={dashboardStyles.scrollContent}>
+          <View style={dashboardStyles.section}>
+            {[1, 2, 3].map((i) => (
+              <AnimalCardSkeleton key={i} />
+            ))}
+          </View>
+        </ScrollView>
       </View>
     )
   }
 
+  if (error) {
+    return (
+      <View style={dashboardStyles.container}>
+        <View style={dashboardStyles.header}>
+          <Text style={dashboardStyles.greeting}>{getGreeting()}, {firstName} !</Text>
+        </View>
+        <ErrorState message={error.message} onRetry={loadDashboardData} />
+      </View>
+    )
+  }
+
+  const healthyPercentage = stats.totalAnimals > 0 ? Math.round((stats.healthyCount / stats.totalAnimals) * 100) : 0
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.greeting}>{getGreeting()}, {firstName} !</Text>
-        <Text style={styles.subtitle}>
+    <ScrollView style={dashboardStyles.container} contentContainerStyle={dashboardStyles.scrollContent}>
+      {/* Header */}
+      <View style={dashboardStyles.header}>
+        <Text style={dashboardStyles.greeting}>{getGreeting()}, {firstName} !</Text>
+        <Text style={dashboardStyles.subtitle}>
           {stats.totalAnimals > 0
             ? `Votre élevage compte ${stats.totalAnimals} animal${stats.totalAnimals > 1 ? 'aux' : ''}`
             : 'Commencez par ajouter vos animaux pour suivre votre élevage'}
         </Text>
       </View>
 
-      <View style={styles.content}>
-        {/* Widget Météo - Temporairement désactivé en attente de stabilisation backend */}
-        {/* <WeatherWidget /> */}
+      {/* Stats Row - 4 cartes */}
+      <View style={dashboardStyles.statsRow}>
+        <TouchableOpacity
+          style={[dashboardStyles.statCard, dashboardStyles.statCardPrimary]}
+          onPress={() => router.push('/(tabs)/livestock')}
+        >
+          <View style={styles.statHeader}>
+            <PiggyBank size={20} color={colors.primary} />
+            <Text style={styles.statPlus}>+12</Text>
+          </View>
+          <Text style={dashboardStyles.statValue}>{stats.totalAnimals}</Text>
+          <Text style={dashboardStyles.statLabel}>Total Porcs</Text>
+        </TouchableOpacity>
 
-        {/* Stats Grid - Vue d'ensemble chiffrée */}
-        <View style={styles.statsGrid}>
+        <TouchableOpacity
+          style={[dashboardStyles.statCard, dashboardStyles.statCardSuccess]}
+          onPress={() => router.push('/(tabs)/livestock')}
+        >
+          <View style={styles.statHeader}>
+            <Heart size={20} color={colors.success} />
+            <Text style={styles.statPercentage}>{healthyPercentage}%</Text>
+          </View>
+          <Text style={dashboardStyles.statValue}>{stats.healthyCount}</Text>
+          <Text style={dashboardStyles.statLabel}>En Santé</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[dashboardStyles.statCard, dashboardStyles.statCardWarning]}
+          onPress={() => router.push('/(tabs)/health')}
+        >
+          <View style={styles.statHeader}>
+            <AlertTriangle size={20} color={colors.warning} />
+            <Text style={styles.statAlert}>Alerte</Text>
+          </View>
+          <Text style={dashboardStyles.statValue}>{stats.careRequired}</Text>
+          <Text style={dashboardStyles.statLabel}>Soins Requis</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[dashboardStyles.statCard, dashboardStyles.statCardInfo]}
+          onPress={() => router.push('/(tabs)/livestock')}
+        >
+          <View style={styles.statHeader}>
+            <Baby size={20} color={colors.info} />
+            <Text style={styles.statNew}>Nouveau</Text>
+          </View>
+          <Text style={dashboardStyles.statValue}>{stats.piglets}</Text>
+          <Text style={dashboardStyles.statLabel}>Porcelets</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Actions Rapides */}
+      <View style={dashboardStyles.section}>
+        <Text style={dashboardStyles.sectionTitle}>Actions Rapides</Text>
+        <View style={dashboardStyles.quickActionsRow}>
           <TouchableOpacity
-            style={[styles.statCard, styles.statCardPrimary]}
-            onPress={() => router.push('/(tabs)/livestock')}
+            style={[dashboardStyles.quickActionButton, dashboardStyles.quickActionButtonPrimary]}
+            onPress={() => router.push('/(tabs)/livestock/add')}
           >
-            <Text style={styles.statValue}>{stats.totalAnimals}</Text>
-            <Text style={styles.statLabel}>Vos animaux</Text>
-            <Text style={styles.statChange}>
-              {stats.totalAnimals === 0 ? 'Aucun animal' : `${stats.truies} truies, ${stats.verrats} verrats`}
+            <Plus size={24} color="#ffffff" style={dashboardStyles.quickActionIcon} />
+            <Text style={[dashboardStyles.quickActionText, dashboardStyles.quickActionTextPrimary]}>
+              Ajouter
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
-            style={[styles.statCard, styles.statCardReproduction]}
-            onPress={() => router.push('/(tabs)/reproduction')}
-          >
-            <Text style={styles.statValue}>{stats.gestationsActives}</Text>
-            <Text style={styles.statLabel}>Gestations en cours</Text>
-            <Text style={styles.statChange}>
-              {stats.gestationsActives === 0 ? 'Aucune gestation' : `Sur ${stats.truies} truie(s)`}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.statCard, stats.casSanteActifs === 0 ? styles.statCardSuccess : styles.statCardWarning]}
+            style={dashboardStyles.quickActionButton}
             onPress={() => router.push('/(tabs)/health')}
           >
-            <Text style={styles.statValue}>{stats.casSanteActifs}</Text>
-            <Text style={styles.statLabel}>Problèmes de santé</Text>
-            <Text style={[styles.statChange, stats.casSanteActifs > 0 && styles.statChangeWarning]}>
-              {stats.casSanteActifs === 0 ? 'Tout va bien' : 'À surveiller'}
-            </Text>
+            <Syringe size={24} color={colors.foreground} style={dashboardStyles.quickActionIcon} />
+            <Text style={dashboardStyles.quickActionText}>Vaccin</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
-            style={[styles.statCard, styles.statCardSuccess]}
+            style={dashboardStyles.quickActionButton}
             onPress={() => router.push('/(tabs)/feeding')}
           >
-            <Text style={styles.statValue}>{stats.totalStock.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>Stock d'aliments</Text>
-            <Text style={styles.statChange}>Total en kg</Text>
+            <Package size={24} color={colors.foreground} style={dashboardStyles.quickActionIcon} />
+            <Text style={dashboardStyles.quickActionText}>Stock</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={dashboardStyles.quickActionButton}
+            onPress={() => router.push('/(tabs)/costs')}
+          >
+            <FileText size={24} color={colors.foreground} style={dashboardStyles.quickActionIcon} />
+            <Text style={dashboardStyles.quickActionText}>Registres</Text>
           </TouchableOpacity>
         </View>
+      </View>
 
-        {/* Répartition par catégorie */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Répartition par catégorie</Text>
-          <View style={styles.categoryCard}>
-            <View style={styles.categoryItem}>
-              <Text style={styles.categoryLabel}>Truies</Text>
-              <Text style={styles.categoryValue}>{stats.truies}</Text>
-            </View>
-            <View style={styles.categoryDivider} />
-            <View style={styles.categoryItem}>
-              <Text style={styles.categoryLabel}>Verrats</Text>
-              <Text style={styles.categoryValue}>{stats.verrats}</Text>
-            </View>
-            <View style={styles.categoryDivider} />
-            <View style={styles.categoryItem}>
-              <Text style={styles.categoryLabel}>Porcelets</Text>
-              <Text style={styles.categoryValue}>{stats.porcelets}</Text>
-            </View>
-            <View style={styles.categoryDivider} />
-            <View style={styles.categoryItem}>
-              <Text style={styles.categoryLabel}>Porcs d'engraissement</Text>
-              <Text style={styles.categoryValue}>{stats.porcs}</Text>
-            </View>
-          </View>
-        </View>
+      {/* Assistant IA Banner */}
+      <View style={dashboardStyles.section}>
+        <AiAssistantBanner onPress={() => router.push('/(tabs)/ai-assistant')} />
+      </View>
 
-        {/* Actions rapides */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actions rapides</Text>
-          <View style={styles.actionsGrid}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => router.push('/(tabs)/livestock/add')}
-            >
-              <Text style={styles.actionButtonText}>+ Animal</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => router.push('/(tabs)/health/add')}
-            >
-              <Text style={styles.actionButtonText}>+ Cas santé</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => router.push('/(tabs)/reproduction/add')}
-            >
-              <Text style={styles.actionButtonText}>+ Saillie</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => router.push('/(tabs)/feeding/add-stock')}
-            >
-              <Text style={styles.actionButtonText}>+ Stock</Text>
-            </TouchableOpacity>
-          </View>
+      {/* Alertes Récentes */}
+      <View style={dashboardStyles.section}>
+        <View style={dashboardStyles.sectionHeader}>
+          <Text style={dashboardStyles.sectionTitle}>Alertes Récentes</Text>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/health')}>
+            <Text style={dashboardStyles.sectionLink}>Tout Voir</Text>
+          </TouchableOpacity>
         </View>
+        {recentAlerts.length === 0 ? (
+          <View style={styles.emptyAlerts}>
+            <Text style={styles.emptyAlertsText}>Aucune alerte récente</Text>
+          </View>
+        ) : (
+          recentAlerts.map((alert, index) => (
+            <AlertCard
+              key={index}
+              type={alert.type}
+              title={alert.title}
+              description={alert.description}
+              timeAgo={alert.timeAgo}
+              onPress={() => router.push(alert.link as any)}
+            />
+          ))
+        )}
+      </View>
+
+      {/* Animaux Récents */}
+      <View style={dashboardStyles.section}>
+        <View style={dashboardStyles.sectionHeader}>
+          <Text style={dashboardStyles.sectionTitle}>Animaux Récents</Text>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/livestock')}>
+            <Text style={dashboardStyles.sectionLink}>Voir Tout</Text>
+          </TouchableOpacity>
+        </View>
+        {recentAnimals.length === 0 ? (
+          <EmptyState
+            emoji="🐷"
+            title="Aucun animal enregistré"
+            description="Commencez par ajouter vos premiers animaux pour suivre votre élevage."
+            actionLabel="Ajouter un animal"
+            onAction={() => router.push('/(tabs)/livestock/add')}
+          />
+        ) : (
+          recentAnimals.map((animal) => (
+            <AnimalListItem
+              key={animal.id}
+              animal={animal}
+              onPress={() => router.push(`/(tabs)/livestock/${animal.id}`)}
+            />
+          ))
+        )}
       </View>
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
+  statHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  content: {
-    padding: 20,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '47%',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  statCardPrimary: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#2d6a4f',
-  },
-  statCardReproduction: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#ec4899',
-  },
-  statCardSuccess: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#10b981',
-  },
-  statCardWarning: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#f59e0b',
-  },
-  statValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  statChange: {
-    fontSize: 12,
-    color: '#10b981',
-    fontWeight: '500',
-  },
-  statChangeWarning: {
-    color: '#f59e0b',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  categoryCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  categoryItem: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  statPlus: {
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.success,
+  },
+  statPercentage: {
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.success,
+  },
+  statAlert: {
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.warning,
+  },
+  statNew: {
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.info,
+  },
+  emptyAlerts: {
+    padding: spacing.base,
     alignItems: 'center',
-    paddingVertical: 12,
   },
-  categoryDivider: {
-    height: 1,
-    backgroundColor: '#e5e7eb',
-  },
-  categoryLabel: {
-    fontSize: 16,
-    color: '#374151',
-  },
-  categoryValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2d6a4f',
-  },
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    minWidth: '47%',
-    backgroundColor: '#2d6a4f',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  emptyAlertsText: {
+    fontSize: typography.fontSize.bodySmall,
+    color: colors.mutedForeground,
   },
 })

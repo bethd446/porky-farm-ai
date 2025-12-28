@@ -1,19 +1,28 @@
 import { Tabs, Redirect } from 'expo-router'
-import { Text } from 'react-native'
+import { Text, View, StyleSheet, TouchableOpacity } from 'react-native'
 import { useAuthContext } from '../../contexts/AuthContext'
+import { colors, spacing, typography, radius, shadows } from '../../lib/designTokens'
+import { Home, List, Plus, BarChart3, User } from 'lucide-react-native'
 
-// Simple icon component (à remplacer par des vraies icônes plus tard)
-function TabIcon({ name, color }: { name: string; color: string }) {
-  const icons: Record<string, string> = {
-    home: '🏠',
-    pig: '🐷',
-    health: '🏥',
-    baby: '👶',
-    calculator: '📊',
-    ai: '🤖',
-    costs: '💰',
+// Icon component avec Lucide (style UX Pilot)
+function TabIcon({ name, color, focused }: { name: string; color: string; focused: boolean }) {
+  const iconSize = 24
+  const iconColor = focused ? colors.primary : colors.mutedForeground
+
+  switch (name) {
+    case 'home':
+      return <Home size={iconSize} color={iconColor} />
+    case 'livestock':
+      return <List size={iconSize} color={iconColor} />
+    case 'add':
+      return null // Géré séparément pour le bouton central
+    case 'reports':
+      return <BarChart3 size={iconSize} color={iconColor} />
+    case 'profile':
+      return <User size={iconSize} color={iconColor} />
+    default:
+      return <Home size={iconSize} color={iconColor} />
   }
-  return <Text style={{ color, fontSize: 20 }}>{icons[name] || '📱'}</Text>
 }
 
 export default function TabsLayout() {
@@ -31,56 +40,62 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#007AFF',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.mutedForeground,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          height: 70,
+          paddingBottom: spacing.base,
+          paddingTop: spacing.sm,
+          ...shadows.md,
+        },
+        tabBarLabelStyle: {
+          fontSize: typography.fontSize.caption,
+          fontWeight: typography.fontWeight.medium,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color }) => <TabIcon name="home" color={color} />,
+          title: 'Accueil',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="home" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="livestock/index"
         options={{
-          title: 'Cheptel',
-          tabBarIcon: ({ color }) => <TabIcon name="pig" color={color} />,
+          title: 'Animaux',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="livestock" color={color} focused={focused} />,
         }}
       />
+      {/* Bouton central "Ajouter" - style UX Pilot */}
       <Tabs.Screen
-        name="health/index"
+        name="livestock/add"
         options={{
-          title: 'Santé',
-          tabBarIcon: ({ color }) => <TabIcon name="health" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="reproduction/index"
-        options={{
-          title: 'Reproduction',
-          tabBarIcon: ({ color }) => <TabIcon name="baby" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="feeding/index"
-        options={{
-          title: 'Alimentation',
-          tabBarIcon: ({ color }) => <TabIcon name="calculator" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="ai-assistant"
-        options={{
-          title: 'IA',
-          tabBarIcon: ({ color }) => <TabIcon name="ai" color={color} />,
+          title: 'Ajouter',
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.centralButton, focused && styles.centralButtonFocused]}>
+              <Plus size={28} color="#ffffff" />
+            </View>
+          ),
+          tabBarLabel: '',
         }}
       />
       <Tabs.Screen
         name="costs/index"
         options={{
-          title: 'Coûts',
-          tabBarIcon: ({ color }) => <TabIcon name="calculator" color={color} />,
+          title: 'Rapports',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="reports" color={color} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profil',
+          tabBarIcon: ({ color, focused }) => <TabIcon name="profile" color={color} focused={focused} />,
         }}
       />
       {/* Masquer les routes dynamiques et add de la tab bar */}
@@ -133,6 +148,48 @@ export default function TabsLayout() {
           href: null, // Masquer de la tab bar
         }}
       />
+      {/* Masquer les autres routes de la tab bar */}
+      <Tabs.Screen
+        name="health/index"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="reproduction/index"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="feeding/index"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="ai-assistant"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   )
 }
+
+const styles = StyleSheet.create({
+  centralButton: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -spacing.base,
+    ...shadows.lg,
+  },
+  centralButtonFocused: {
+    backgroundColor: colors.primaryDark,
+    transform: [{ scale: 1.05 }],
+  },
+})
