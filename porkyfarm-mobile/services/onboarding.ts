@@ -20,7 +20,8 @@ export interface OnboardingData {
 }
 
 export interface OnboardingService {
-  checkOnboardingStatus: () => Promise<{ hasCompleted: boolean; error: Error | null }>
+  checkOnboardingStatus: () => Promise<{ hasCompleted: boolean; error?: Error | null }>
+  markOnboardingCompleted: () => Promise<{ error: Error | null }>
   saveOnboardingData: (data: OnboardingData) => Promise<{ error: Error | null }>
   completeOnboarding: (data: OnboardingData) => Promise<{ error: Error | null }>
 }
@@ -35,16 +36,15 @@ export const onboardingService: OnboardingService = {
       } = await supabase.auth.getUser()
 
       if (authError) {
-        console.error('[onboardingService] Auth error:', authError)
+        console.warn('[onboardingService] Auth error:', authError.message)
         return { hasCompleted: false, error: authError as Error }
       }
 
       if (!user) {
-        console.log('[onboardingService] No user found')
         return { hasCompleted: false, error: new Error('Non authentifié') }
       }
 
-      // Requête Supabase avec gestion d'erreurs robuste
+      // Requête Supabase : select has_completed_onboarding
       const { data, error } = await supabase
         .from('profiles')
         .select('has_completed_onboarding')
@@ -52,42 +52,72 @@ export const onboardingService: OnboardingService = {
         .single()
 
       if (error) {
-        // Codes d'erreur Supabase courants
         const errorCode = error.code || ''
         const errorMessage = error.message || ''
 
         // PGRST116 = No rows returned (profil n'existe pas encore)
         if (errorCode === 'PGRST116' || errorMessage.includes('No rows')) {
-          console.log('[onboardingService] Profile not found, considering onboarding not completed')
+          // Comportement gracieux : considérer comme non complété, pas d'erreur
           return { hasCompleted: false, error: null }
         }
 
-        // PGRST205 = Table not found (schéma pas encore migré)
+        // PGRST205 = Table/column not found (schéma pas encore migré)
         if (errorCode === 'PGRST205' || errorMessage.includes('does not exist') || errorMessage.includes('not found')) {
-          console.warn('[onboardingService] Table or column not found, considering onboarding not completed')
+          // Comportement gracieux : considérer comme non complété, pas d'erreur
+          // Pas de console.warn pour éviter les warnings répétés
           return { hasCompleted: false, error: null }
         }
 
         // Erreur réseau
         if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('timeout')) {
-          console.error('[onboardingService] Network error:', error)
+          console.warn('[onboardingService] Network error:', error.message)
           return { hasCompleted: false, error: new Error('Erreur réseau. Vérifiez votre connexion.') }
         }
 
         // Autre erreur Supabase
-        console.error('[onboardingService] Supabase error:', error)
+        console.warn('[onboardingService] Supabase error:', error.message)
         return { hasCompleted: false, error: error as Error }
       }
 
       // Succès : retourner le statut
       const hasCompleted = Boolean(data?.has_completed_onboarding)
-      console.log('[onboardingService] Onboarding status:', hasCompleted)
       return { hasCompleted, error: null }
     } catch (err: any) {
       // Exception non catchée (timeout, erreur réseau, etc.)
-      console.error('[onboardingService] Exception:', err)
+      console.warn('[onboardingService] Exception:', err?.message || 'Erreur inattendue')
       const error = err instanceof Error ? err : new Error('Erreur inattendue lors de la vérification')
       return { hasCompleted: false, error }
+    }
+  },
+
+  markOnboardingCompleted: async () => {
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        return { error: new Error('Non authentifié') }
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          has_completed_onboarding: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+
+      if (error) {
+        console.warn('[onboardingService] Error marking onboarding completed:', error.message)
+        return { error: error as Error }
+      }
+
+      return { error: null }
+    } catch (err: any) {
+      console.warn('[onboardingService] Exception marking onboarding completed:', err?.message)
+      return { error: err instanceof Error ? err : new Error('Erreur lors de la mise à jour') }
     }
   },
 
@@ -161,20 +191,16 @@ export const onboardingService: OnboardingService = {
       await tasksService.createRecurringDailyTasks(data)
 
       // 4. Marquer l'onboarding comme complété
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          has_completed_onboarding: true,
-          onboarding_data: data as any,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id)
+      const { error: updateError } = await onboardingService.markOnboardingCompleted()
 
-      if (updateError) return { error: updateError as Error }
+      if (updateError) return { error: updateError }
+      
+      // 5. Sauvegarder aussi les données d'onboarding
+      await onboardingService.saveOnboardingData(data)
+
       return { error: null }
     } catch (err) {
       return { error: err as Error }
     }
   },
 }
-

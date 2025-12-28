@@ -1,7 +1,7 @@
 import { Stack, Redirect } from 'expo-router'
 import { AuthProvider, useAuthContext } from '../contexts/AuthContext'
 import { ErrorBoundary } from '../components/ErrorBoundary'
-import { useEffect, useState, ReactNode, useRef, useCallback } from 'react'
+import { useEffect, useState, ReactNode, useRef } from 'react'
 import { onboardingService } from '../services/onboarding'
 import { ActivityIndicator, View, Text } from 'react-native'
 import { colors, spacing, typography } from '../lib/designTokens'
@@ -16,16 +16,14 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isCheckingRef = useRef(false) // Protection contre appels multiples
 
-  // Fonction checkOnboarding (pas de useCallback pour éviter dépendances circulaires)
+  // Fonction checkOnboarding avec toutes les protections
   const checkOnboarding = async () => {
     // Protection contre appels multiples
     if (isCheckingRef.current) {
-      console.log('[OnboardingGuard] checkOnboarding déjà en cours, ignoré')
       return
     }
 
     if (!user) {
-      console.log('[OnboardingGuard] Pas d\'utilisateur, skip onboarding check')
       setCheckingOnboarding(false)
       setHasTriedOnboardingCheck(true)
       isCheckingRef.current = false
@@ -37,7 +35,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
     setOnboardingError(null)
 
     try {
-      // Timeout de 8 secondes pour la vérification onboarding
+      // Timeout de 8 secondes
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutRef.current = setTimeout(() => {
           reject(new Error('Timeout: La vérification prend trop de temps'))
@@ -49,7 +47,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       const result = await Promise.race([
         onboardingPromise,
         timeoutPromise,
-      ]) as { hasCompleted: boolean; error: Error | null }
+      ]) as { hasCompleted: boolean; error?: Error | null }
 
       // Nettoyage timeout
       if (timeoutRef.current) {
@@ -58,15 +56,14 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       }
 
       if (result.error) {
-        console.error('[OnboardingGuard] Error checking onboarding:', result.error)
+        // Si erreur : on laisse passer l'utilisateur vers l'app
         setOnboardingError(result.error)
-        setNeedsOnboarding(false) // En cas d'erreur, on laisse passer vers l'app
+        setNeedsOnboarding(false)
       } else {
-        console.log('[OnboardingGuard] Onboarding status:', result.hasCompleted ? 'completed' : 'not completed')
+        // Si succès : setNeedsOnboarding selon hasCompleted
         setNeedsOnboarding(!result.hasCompleted)
       }
     } catch (err: any) {
-      console.error('[OnboardingGuard] Exception checking onboarding:', err)
       // Nettoyage timeout en cas d'exception
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
@@ -76,32 +73,28 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       setOnboardingError(error)
       setNeedsOnboarding(false) // En cas d'erreur, on laisse passer
     } finally {
-      setCheckingOnboarding(false)
-      setHasTriedOnboardingCheck(true) // IMPORTANT: Marquer comme essayé pour éviter boucles
+      // IMPORTANT: Toujours reset dans finally
       isCheckingRef.current = false
+      setCheckingOnboarding(false)
+      setHasTriedOnboardingCheck(true)
     }
   }
 
   // Effect pour déclencher le check onboarding
   useEffect(() => {
-    // Ne vérifier que si :
-    // - Auth n'est plus en chargement
-    // - User est défini
-    // - On n'a pas déjà essayé
+    // Déclencher une seule fois quand toutes les conditions sont remplies
     if (!authLoading && user && !hasTriedOnboardingCheck && !isCheckingRef.current) {
-      console.log('[OnboardingGuard] Déclenchement checkOnboarding')
       checkOnboarding()
     } else if (!authLoading && !user) {
-      // Pas d'utilisateur = pas besoin de vérifier onboarding
-      console.log('[OnboardingGuard] Pas d\'utilisateur, reset flags')
+      // Pas d'utilisateur : reset des états
       setCheckingOnboarding(false)
-      setHasTriedOnboardingCheck(false) // Reset pour prochaine connexion
       setNeedsOnboarding(false)
+      setHasTriedOnboardingCheck(true) // Marquer comme essayé pour éviter re-tentative
       setOnboardingError(null)
       isCheckingRef.current = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading, hasTriedOnboardingCheck]) // checkOnboarding retiré des deps pour éviter boucles
+  }, [user, authLoading, hasTriedOnboardingCheck])
 
   // Nettoyage timeout au unmount
   useEffect(() => {
@@ -115,18 +108,28 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
 
   const handleRetry = async () => {
     if (authError) {
-      console.log('[OnboardingGuard] Retry auth')
-      setHasTriedOnboardingCheck(false) // Reset pour permettre nouveau check après auth
+      setHasTriedOnboardingCheck(false)
       setOnboardingError(null)
       isCheckingRef.current = false
       await retryAuth()
     } else if (onboardingError) {
-      console.log('[OnboardingGuard] Retry onboarding check')
-      setHasTriedOnboardingCheck(false) // Reset pour permettre nouveau check
+      setHasTriedOnboardingCheck(false)
       setOnboardingError(null)
       isCheckingRef.current = false
       await checkOnboarding()
     }
+  }
+
+  // État de chargement
+  if (authLoading || checkingOnboarding) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: spacing.base, fontSize: typography.fontSize.body, color: colors.mutedForeground }}>
+          Chargement...
+        </Text>
+      </View>
+    )
   }
 
   // État d'erreur (auth ou onboarding) - seulement si pas en chargement
@@ -143,21 +146,8 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
     )
   }
 
-  // État de chargement
-  if (authLoading || checkingOnboarding) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: spacing.base, fontSize: typography.fontSize.body, color: colors.mutedForeground }}>
-          Chargement...
-        </Text>
-      </View>
-    )
-  }
-
   // Redirection vers onboarding si nécessaire
-  // Conditions strictes : user défini + needsOnboarding + pas d'erreur + pas en chargement
-  if (needsOnboarding && user && !onboardingError && !authError) {
+  if (needsOnboarding && user) {
     return <Redirect href="/onboarding" />
   }
 
