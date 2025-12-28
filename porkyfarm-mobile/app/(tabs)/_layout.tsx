@@ -84,6 +84,13 @@ export default function TabsLayout() {
           tabBarLabel: '',
         }}
       />
+      {/* Masquer les routes dynamiques et add de la tab bar */}
+      <Tabs.Screen
+        name="livestock/[id]"
+        options={{
+          href: null, // Masquer de la tab bar
+        }}
+      />
       <Tabs.Screen
         name="costs/index"
         options={{
@@ -101,12 +108,6 @@ export default function TabsLayout() {
       {/* Masquer les routes dynamiques et add de la tab bar */}
       <Tabs.Screen
         name="livestock/[id]"
-        options={{
-          href: null, // Masquer de la tab bar
-        }}
-      />
-      <Tabs.Screen
-        name="livestock/add"
         options={{
           href: null, // Masquer de la tab bar
         }}
