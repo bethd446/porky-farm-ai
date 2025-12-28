@@ -117,7 +117,7 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="onboarding" />
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="profile" options={{ headerShown: false }} />
+            <Stack.Screen name="profile/index" options={{ headerShown: false }} />
             <Stack.Screen name="debug/supabase-test" options={{ title: 'Test Supabase' }} />
           </Stack>
         </OnboardingGuard>
