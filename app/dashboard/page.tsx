@@ -8,6 +8,9 @@ import { DashboardRecentActivity } from "@/components/dashboard/dashboard-recent
 import { DashboardLivestockOverview } from "@/components/dashboard/dashboard-livestock-overview"
 import { DashboardPlanning } from "@/components/dashboard/dashboard-planning"
 import { CostsWidget } from "@/components/dashboard/CostsWidget"
+import { AiAssistantBanner } from "@/components/dashboard/AiAssistantBanner"
+import { RecentAlertsSection } from "@/components/dashboard/RecentAlertsSection"
+import { RecentAnimalsSection } from "@/components/dashboard/RecentAnimalsSection"
 import { useAuthContext } from "@/contexts/auth-context"
 import { useApp } from "@/contexts/app-context"
 
@@ -43,8 +46,14 @@ export default function DashboardPage() {
       {/* Stats Grid - Vue d'ensemble chiffree */}
       <DashboardStats />
 
+      {/* Assistant IA Banner - Style UX Pilot */}
+      <AiAssistantBanner />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
+          {/* Animaux Récents - Style UX Pilot */}
+          <RecentAnimalsSection />
+
           {/* Apercu du cheptel - Repartition des animaux */}
           <DashboardLivestockOverview />
 
@@ -56,6 +65,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-6">
+          {/* Alertes Récentes - Style UX Pilot */}
+          <RecentAlertsSection />
+
           {/* Alertes & Rappels - Priorite haute */}
           <DashboardAlerts />
 

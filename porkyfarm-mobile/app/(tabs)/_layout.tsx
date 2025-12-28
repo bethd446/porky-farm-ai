@@ -2,27 +2,21 @@ import { Tabs, Redirect } from 'expo-router'
 import { Text, View, StyleSheet, TouchableOpacity } from 'react-native'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { colors, spacing, typography, radius, shadows } from '../../lib/designTokens'
-import { Home, List, Plus, BarChart3, User } from 'lucide-react-native'
+// Note: lucide-react-native sera installé, utiliser temporairement des emojis
+// import { Home, List, Plus, BarChart3, User } from 'lucide-react-native'
 
-// Icon component avec Lucide (style UX Pilot)
+// Icon component (style UX Pilot) - temporairement avec emojis, à remplacer par lucide-react-native
 function TabIcon({ name, color, focused }: { name: string; color: string; focused: boolean }) {
-  const iconSize = 24
-  const iconColor = focused ? colors.primary : colors.mutedForeground
-
-  switch (name) {
-    case 'home':
-      return <Home size={iconSize} color={iconColor} />
-    case 'livestock':
-      return <List size={iconSize} color={iconColor} />
-    case 'add':
-      return null // Géré séparément pour le bouton central
-    case 'reports':
-      return <BarChart3 size={iconSize} color={iconColor} />
-    case 'profile':
-      return <User size={iconSize} color={iconColor} />
-    default:
-      return <Home size={iconSize} color={iconColor} />
+  const icons: Record<string, string> = {
+    home: '🏠',
+    livestock: '📋',
+    add: null, // Géré séparément pour le bouton central
+    reports: '📊',
+    profile: '👤',
   }
+  const emoji = icons[name]
+  if (!emoji) return null
+  return <Text style={{ fontSize: 24, opacity: focused ? 1 : 0.6 }}>{emoji}</Text>
 }
 
 export default function TabsLayout() {
@@ -78,7 +72,7 @@ export default function TabsLayout() {
           title: 'Ajouter',
           tabBarIcon: ({ focused }) => (
             <View style={[styles.centralButton, focused && styles.centralButtonFocused]}>
-              <Plus size={28} color="#ffffff" />
+              <Text style={styles.centralButtonIcon}>➕</Text>
             </View>
           ),
           tabBarLabel: '',
@@ -191,5 +185,9 @@ const styles = StyleSheet.create({
   centralButtonFocused: {
     backgroundColor: colors.primaryDark,
     transform: [{ scale: 1.05 }],
+  },
+  centralButtonIcon: {
+    fontSize: 28,
+    color: '#ffffff',
   },
 })

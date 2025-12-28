@@ -27,13 +27,13 @@ export function AiAssistantBanner({ onPress }: AiAssistantBannerProps) {
       >
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Brain size={24} color="#ffffff" />
+            <Text style={styles.iconEmoji}>🤖</Text>
           </View>
           <View style={styles.textContainer}>
             <Text style={styles.title}>Assistant IA</Text>
             <Text style={styles.subtitle}>Posez vos questions</Text>
           </View>
-          <ChevronRight size={20} color="#ffffff" style={styles.chevron} />
+          <Text style={styles.chevron}>›</Text>
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -77,7 +77,12 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.bodySmall,
     color: 'rgba(255, 255, 255, 0.9)',
   },
+  iconEmoji: {
+    fontSize: 24,
+  },
   chevron: {
+    fontSize: 24,
+    color: '#ffffff',
     marginLeft: spacing.sm,
   },
 })
