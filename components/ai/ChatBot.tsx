@@ -63,9 +63,9 @@ export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
     onError: (err: Error) => {
       console.error("[ChatBot] Error:", err)
     },
-  })
+  } as any) // Type assertion temporaire pour compatibilité API
 
-  const isLoading = status === "in_progress"
+  const isLoading = status === "in_progress" || status === "streaming"
 
   return (
     <Card className="flex flex-col h-[600px]">
@@ -99,7 +99,8 @@ export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
           </div>
         )}
 
-        {messages.map((message) => {
+        {messages.map((message: any) => {
+          // Extraire le contenu du message (peut être string ou array de parts)
           const content =
             typeof message.content === "string"
               ? message.content
@@ -109,7 +110,7 @@ export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
                       typeof part === "string" ? part : part.text || JSON.stringify(part)
                     )
                     .join(" ")
-                : JSON.stringify(message.content)
+                : message.content?.text || JSON.stringify(message.content || "")
 
           return (
             <div
