@@ -71,6 +71,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => <TabIcon name="livestock" color={color} focused={focused} />,
         }}
       />
+      {/* Alias pour animaux */}
+      <Tabs.Screen
+        name="animals/index"
+        options={{
+          href: null, // Masquer, redirige vers livestock/index
+        }}
+      />
       {/* Bouton central "Actions rapides" - ouvre modal */}
       <Tabs.Screen
         name="livestock/add"
@@ -110,6 +117,13 @@ export default function TabsLayout() {
         options={{
           title: 'Assistant IA',
           tabBarIcon: ({ color, focused }) => <Brain size={24} color={focused ? colors.primary : colors.mutedForeground} />,
+        }}
+      />
+      {/* Alias pour ai-assistant/index */}
+      <Tabs.Screen
+        name="ai-assistant/index"
+        options={{
+          href: null, // Masquer, redirige vers ai-assistant
         }}
       />
       {/* Masquer les routes dynamiques et add de la tab bar */}
