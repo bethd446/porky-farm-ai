@@ -16,6 +16,8 @@ export type QueueActionType =
   | 'UPDATE_ANIMAL'
   | 'UPDATE_STOCK'
   | 'CREATE_STOCK'
+  | 'CREATE_COST_ENTRY'
+  | 'UPDATE_COST_ENTRY'
 
 export interface QueueAction {
   id: string

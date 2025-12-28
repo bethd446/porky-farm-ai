@@ -73,6 +73,7 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-background text-foreground">
         <AuthProvider>{children}</AuthProvider>
         <Analytics />
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   )

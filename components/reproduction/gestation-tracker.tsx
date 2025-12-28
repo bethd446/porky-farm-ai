@@ -164,10 +164,10 @@ export function GestationTracker() {
 
   const getStatusStyle = (gest: (typeof gestations)[0]) => {
     const { day } = getGestationProgress(gest)
-    if (day >= 107) return { status: "Proche terme", color: "bg-red-500" }
-    if (day >= 84) return { status: "3eme tiers", color: "bg-amber-500" }
-    if (day >= 28) return { status: "En cours", color: "bg-green-500" }
-    return { status: "Debut gestation", color: "bg-blue-500" }
+    if (day >= 107) return { status: "Proche terme", color: "bg-destructive" }
+    if (day >= 84) return { status: "3eme tiers", color: "bg-warning" }
+    if (day >= 28) return { status: "En cours", color: "bg-success" }
+    return { status: "Debut gestation", color: "bg-info" }
   }
 
   const activeGestations = gestations.filter((g) => g.status === "active")

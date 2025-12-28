@@ -194,7 +194,7 @@ export function AddAnimalForm() {
                         e.stopPropagation()
                         removePhoto()
                       }}
-                      className="absolute top-2 right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                      className="absolute top-2 right-2 rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90"
                     >
                       <X className="h-4 w-4" />
                     </button>

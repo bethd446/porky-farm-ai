@@ -210,11 +210,11 @@ export function HealthCases() {
     switch (priority) {
       case "critical":
       case "high":
-        return "bg-red-500"
+        return "bg-destructive"
       case "medium":
-        return "bg-amber-500"
+        return "bg-warning"
       default:
-        return "bg-blue-500"
+        return "bg-info"
     }
   }
 
@@ -234,11 +234,11 @@ export function HealthCases() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "resolved":
-        return "bg-green-500"
+        return "bg-success"
       case "in_progress":
-        return "bg-blue-500"
+        return "bg-info"
       default:
-        return "bg-amber-500"
+        return "bg-warning"
     }
   }
 
@@ -355,7 +355,7 @@ export function HealthCases() {
                       <button
                         type="button"
                         onClick={() => setSymptomData({ ...symptomData, photo: null })}
-                        className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white"
+                        className="absolute right-2 top-2 rounded-full bg-destructive p-1 text-destructive-foreground"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -537,7 +537,7 @@ export function HealthCases() {
                         <button
                           type="button"
                           onClick={() => setNewCase({ ...newCase, photo: null })}
-                          className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white"
+                          className="absolute -right-1 -top-1 rounded-full bg-destructive p-0.5 text-destructive-foreground"
                         >
                           <X className="h-3 w-3" />
                         </button>
