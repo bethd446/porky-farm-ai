@@ -5,7 +5,7 @@
 
 "use client"
 
-import { useChat } from "ai/react"
+import { useChat } from "@ai-sdk/react"
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -47,7 +47,7 @@ export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
         livestockContext: buildLivestockContext() || initialContext,
         userRole,
       },
-      onError: (err) => {
+      onError: (err: Error) => {
         console.error("[ChatBot] Error:", err)
         setError("Une erreur est survenue. Veuillez réessayer.")
       },
@@ -68,7 +68,7 @@ export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={reload}
+            onClick={() => regenerate()}
             disabled={isLoading}
           >
             <RefreshCw className="h-4 w-4" />
@@ -96,7 +96,7 @@ export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
             }`}
           >
             {message.role === "assistant" && (
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <Bot className="h-6 w-6 text-primary" />
               </div>
             )}
@@ -108,11 +108,15 @@ export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
                   : "bg-muted"
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              <p className="text-sm whitespace-pre-wrap">
+                {typeof message.content === "string"
+                  ? message.content
+                  : JSON.stringify(message.content)}
+              </p>
             </div>
 
             {message.role === "user" && (
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <User className="h-6 w-6 text-muted-foreground" />
               </div>
             )}
@@ -130,19 +134,25 @@ export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
 
         {error && (
           <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
-            {error}
+            {error.message || "Une erreur est survenue. Veuillez réessayer."}
           </div>
         )}
       </div>
 
       {/* Input */}
       <form
-        onSubmit={handleSubmit}
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (input.trim() && !isLoading) {
+            sendMessage({ text: input })
+            setInput("")
+          }
+        }}
         className="p-4 border-t flex gap-2"
       >
         <Input
           value={input}
-          onChange={handleInputChange}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Posez votre question..."
           disabled={isLoading}
           className="flex-1"
