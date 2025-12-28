@@ -4,7 +4,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary'
 
 export default function RootLayout() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary fallback={null}>
       <AuthProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
