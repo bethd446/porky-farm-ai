@@ -316,7 +316,34 @@ export const db = {
 
   async addVeterinaryCase(vetCase: Record<string, unknown>) {
     try {
-      return await supabase.from("veterinary_cases").insert(vetCase).select().single()
+      // Mapper les champs si nécessaire (animal_id → pig_id, issue → title, priority → severity, photo → image_url)
+      const mappedCase: any = { ...vetCase }
+      if (mappedCase.animal_id) {
+        mappedCase.pig_id = mappedCase.animal_id
+        delete mappedCase.animal_id
+      }
+      if (mappedCase.issue) {
+        mappedCase.title = mappedCase.issue
+        delete mappedCase.issue
+      }
+      if (mappedCase.priority) {
+        mappedCase.severity = mappedCase.priority === 'high' || mappedCase.priority === 'critical' 
+          ? (mappedCase.priority === 'critical' ? 'critical' : 'high')
+          : (mappedCase.priority === 'low' ? 'low' : 'medium')
+        delete mappedCase.priority
+      }
+      if (mappedCase.photo) {
+        mappedCase.image_url = mappedCase.photo
+        delete mappedCase.photo
+      }
+      if (!mappedCase.type) {
+        mappedCase.type = 'disease'
+      }
+      if (!mappedCase.status) {
+        mappedCase.status = 'ongoing'
+      }
+      
+      return await supabase.from("health_records").insert(mappedCase).select().single()
     } catch (err) {
       console.error("[DB] addVeterinaryCase exception:", err)
       return { data: null, error: { message: "Erreur ajout cas veterinaire" } as any }
