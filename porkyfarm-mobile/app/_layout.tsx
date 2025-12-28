@@ -16,8 +16,8 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isCheckingRef = useRef(false) // Protection contre appels multiples
 
-  // Mémoïsation de checkOnboarding pour éviter les appels multiples
-  const checkOnboarding = useCallback(async () => {
+  // Fonction checkOnboarding (pas de useCallback pour éviter dépendances circulaires)
+  const checkOnboarding = async () => {
     // Protection contre appels multiples
     if (isCheckingRef.current) {
       console.log('[OnboardingGuard] checkOnboarding déjà en cours, ignoré')
@@ -28,6 +28,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       console.log('[OnboardingGuard] Pas d\'utilisateur, skip onboarding check')
       setCheckingOnboarding(false)
       setHasTriedOnboardingCheck(true)
+      isCheckingRef.current = false
       return
     }
 
@@ -76,27 +77,31 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       setNeedsOnboarding(false) // En cas d'erreur, on laisse passer
     } finally {
       setCheckingOnboarding(false)
-      setHasTriedOnboardingCheck(true)
+      setHasTriedOnboardingCheck(true) // IMPORTANT: Marquer comme essayé pour éviter boucles
       isCheckingRef.current = false
     }
-  }, [user])
+  }
 
   // Effect pour déclencher le check onboarding
   useEffect(() => {
     // Ne vérifier que si :
     // - Auth n'est plus en chargement
     // - User est défini
-    // - On n'a pas déjà essayé (ou on réessaie après erreur)
-    if (!authLoading && user && !hasTriedOnboardingCheck) {
+    // - On n'a pas déjà essayé
+    if (!authLoading && user && !hasTriedOnboardingCheck && !isCheckingRef.current) {
+      console.log('[OnboardingGuard] Déclenchement checkOnboarding')
       checkOnboarding()
     } else if (!authLoading && !user) {
       // Pas d'utilisateur = pas besoin de vérifier onboarding
+      console.log('[OnboardingGuard] Pas d\'utilisateur, reset flags')
       setCheckingOnboarding(false)
       setHasTriedOnboardingCheck(false) // Reset pour prochaine connexion
       setNeedsOnboarding(false)
       setOnboardingError(null)
+      isCheckingRef.current = false
     }
-  }, [user, authLoading, hasTriedOnboardingCheck, checkOnboarding])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading, hasTriedOnboardingCheck]) // checkOnboarding retiré des deps pour éviter boucles
 
   // Nettoyage timeout au unmount
   useEffect(() => {
@@ -108,18 +113,21 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const handleRetry = useCallback(async () => {
+  const handleRetry = async () => {
     if (authError) {
       console.log('[OnboardingGuard] Retry auth')
       setHasTriedOnboardingCheck(false) // Reset pour permettre nouveau check après auth
+      setOnboardingError(null)
+      isCheckingRef.current = false
       await retryAuth()
     } else if (onboardingError) {
       console.log('[OnboardingGuard] Retry onboarding check')
       setHasTriedOnboardingCheck(false) // Reset pour permettre nouveau check
       setOnboardingError(null)
+      isCheckingRef.current = false
       await checkOnboarding()
     }
-  }, [authError, onboardingError, retryAuth, checkOnboarding])
+  }
 
   // État d'erreur (auth ou onboarding) - seulement si pas en chargement
   if ((authError || onboardingError) && !authLoading && !checkingOnboarding) {
