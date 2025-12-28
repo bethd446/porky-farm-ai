@@ -13,7 +13,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
   const [onboardingError, setOnboardingError] = useState<Error | null>(null)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
   const [hasTriedOnboardingCheck, setHasTriedOnboardingCheck] = useState(false)
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isCheckingRef = useRef(false) // Protection contre appels multiples
 
   // Mémoïsation de checkOnboarding pour éviter les appels multiples
