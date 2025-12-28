@@ -1,7 +1,7 @@
 import { Stack, Redirect } from 'expo-router'
 import { AuthProvider, useAuthContext } from '../contexts/AuthContext'
 import { ErrorBoundary } from '../components/ErrorBoundary'
-import { useEffect, useState, ReactNode, useRef } from 'react'
+import { useEffect, useState, ReactNode, useRef, useCallback } from 'react'
 import { onboardingService } from '../services/onboarding'
 import { ActivityIndicator, View, Text } from 'react-native'
 import { colors, spacing, typography } from '../lib/designTokens'
@@ -12,17 +12,26 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
   const [checkingOnboarding, setCheckingOnboarding] = useState(false)
   const [onboardingError, setOnboardingError] = useState<Error | null>(null)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
+  const [hasTriedOnboardingCheck, setHasTriedOnboardingCheck] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isCheckingRef = useRef(false) // Protection contre appels multiples
 
-  useEffect(() => {
-    if (!authLoading && user) {
-      checkOnboarding()
-    } else if (!authLoading && !user) {
-      setCheckingOnboarding(false)
+  // Mémoïsation de checkOnboarding pour éviter les appels multiples
+  const checkOnboarding = useCallback(async () => {
+    // Protection contre appels multiples
+    if (isCheckingRef.current) {
+      console.log('[OnboardingGuard] checkOnboarding déjà en cours, ignoré')
+      return
     }
-  }, [user, authLoading])
 
-  const checkOnboarding = async () => {
+    if (!user) {
+      console.log('[OnboardingGuard] Pas d\'utilisateur, skip onboarding check')
+      setCheckingOnboarding(false)
+      setHasTriedOnboardingCheck(true)
+      return
+    }
+
+    isCheckingRef.current = true
     setCheckingOnboarding(true)
     setOnboardingError(null)
 
@@ -36,45 +45,83 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
 
       const onboardingPromise = onboardingService.checkOnboardingStatus()
 
-      const { hasCompleted, error } = await Promise.race([
+      const result = await Promise.race([
         onboardingPromise,
         timeoutPromise,
-      ]) as any
+      ]) as { hasCompleted: boolean; error: Error | null }
 
+      // Nettoyage timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
         timeoutRef.current = null
       }
 
-      if (error) {
-        console.error('[OnboardingGuard] Error checking onboarding:', error)
-        setOnboardingError(error as Error)
-        setNeedsOnboarding(false) // En cas d'erreur, on laisse passer
+      if (result.error) {
+        console.error('[OnboardingGuard] Error checking onboarding:', result.error)
+        setOnboardingError(result.error)
+        setNeedsOnboarding(false) // En cas d'erreur, on laisse passer vers l'app
       } else {
-        setNeedsOnboarding(!hasCompleted)
+        console.log('[OnboardingGuard] Onboarding status:', result.hasCompleted ? 'completed' : 'not completed')
+        setNeedsOnboarding(!result.hasCompleted)
       }
     } catch (err: any) {
       console.error('[OnboardingGuard] Exception checking onboarding:', err)
+      // Nettoyage timeout en cas d'exception
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
         timeoutRef.current = null
       }
-      setOnboardingError(err instanceof Error ? err : new Error('Erreur lors de la vérification'))
-      setNeedsOnboarding(false)
+      const error = err instanceof Error ? err : new Error('Erreur lors de la vérification')
+      setOnboardingError(error)
+      setNeedsOnboarding(false) // En cas d'erreur, on laisse passer
     } finally {
       setCheckingOnboarding(false)
+      setHasTriedOnboardingCheck(true)
+      isCheckingRef.current = false
     }
-  }
+  }, [user])
 
-  const handleRetry = async () => {
+  // Effect pour déclencher le check onboarding
+  useEffect(() => {
+    // Ne vérifier que si :
+    // - Auth n'est plus en chargement
+    // - User est défini
+    // - On n'a pas déjà essayé (ou on réessaie après erreur)
+    if (!authLoading && user && !hasTriedOnboardingCheck) {
+      checkOnboarding()
+    } else if (!authLoading && !user) {
+      // Pas d'utilisateur = pas besoin de vérifier onboarding
+      setCheckingOnboarding(false)
+      setHasTriedOnboardingCheck(false) // Reset pour prochaine connexion
+      setNeedsOnboarding(false)
+      setOnboardingError(null)
+    }
+  }, [user, authLoading, hasTriedOnboardingCheck, checkOnboarding])
+
+  // Nettoyage timeout au unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+    }
+  }, [])
+
+  const handleRetry = useCallback(async () => {
     if (authError) {
+      console.log('[OnboardingGuard] Retry auth')
+      setHasTriedOnboardingCheck(false) // Reset pour permettre nouveau check après auth
       await retryAuth()
     } else if (onboardingError) {
+      console.log('[OnboardingGuard] Retry onboarding check')
+      setHasTriedOnboardingCheck(false) // Reset pour permettre nouveau check
+      setOnboardingError(null)
       await checkOnboarding()
     }
-  }
+  }, [authError, onboardingError, retryAuth, checkOnboarding])
 
-  // État d'erreur (auth ou onboarding)
+  // État d'erreur (auth ou onboarding) - seulement si pas en chargement
   if ((authError || onboardingError) && !authLoading && !checkingOnboarding) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -101,10 +148,12 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
   }
 
   // Redirection vers onboarding si nécessaire
-  if (needsOnboarding && user) {
+  // Conditions strictes : user défini + needsOnboarding + pas d'erreur + pas en chargement
+  if (needsOnboarding && user && !onboardingError && !authError) {
     return <Redirect href="/onboarding" />
   }
 
+  // Sinon, afficher les enfants (app normale)
   return <>{children}</>
 }
 
@@ -119,6 +168,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="profile/index" options={{ headerShown: false }} />
             <Stack.Screen name="debug/supabase-test" options={{ title: 'Test Supabase' }} />
+            <Stack.Screen name="index" options={{ headerShown: false }} />
           </Stack>
         </OnboardingGuard>
       </AuthProvider>
