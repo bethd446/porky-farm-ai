@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { animalsService } from '../../../services/animals'
 import type { AnimalInsert } from '../../../services/animals'
-import { requestMediaLibraryPermissions, requestCameraPermissions } from '../../../lib/permissions'
+import { requestMediaLibraryPermission, requestCameraPermission } from '../../../lib/permissions'
 
 export default function AddAnimalScreen() {
   const [formData, setFormData] = useState<AnimalInsert>({
@@ -24,7 +24,7 @@ export default function AddAnimalScreen() {
   const router = useRouter()
 
   const handlePickImage = async () => {
-    const permission = await requestMediaLibraryPermissions()
+    const permission = await requestMediaLibraryPermission()
     if (!permission.granted) {
       // Le message d'erreur est déjà affiché dans requestMediaLibraryPermissions
       return
@@ -61,7 +61,7 @@ export default function AddAnimalScreen() {
   }
 
   const handleTakePhoto = async () => {
-    const permission = await requestCameraPermissions()
+    const permission = await requestCameraPermission()
     if (!permission.granted) {
       // Le message d'erreur est déjà affiché dans requestCameraPermissions
       return

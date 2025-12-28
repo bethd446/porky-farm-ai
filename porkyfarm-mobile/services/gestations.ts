@@ -126,11 +126,11 @@ export const gestationsService: GestationsService = {
         .from('gestations')
         .select(`
           *,
-          sow:pigs!gestations_sow_id_fkey (
+          sow:pigs!sow_id (
             name,
             identifier
           ),
-          boar:pigs!gestations_boar_id_fkey (
+          boar:pigs!boar_id (
             name,
             identifier
           )
@@ -171,11 +171,11 @@ export const gestationsService: GestationsService = {
         .insert({ ...gestation, expected_farrowing_date: expectedFarrowingDate, user_id: user.id })
         .select(`
           *,
-          sow:pigs!gestations_sow_id_fkey (
+          sow:pigs!sow_id (
             name,
             identifier
           ),
-          boar:pigs!gestations_boar_id_fkey (
+          boar:pigs!boar_id (
             name,
             identifier
           )
@@ -212,11 +212,11 @@ export const gestationsService: GestationsService = {
         .eq('user_id', user.id)
         .select(`
           *,
-          sow:pigs!gestations_sow_id_fkey (
+          sow:pigs!sow_id (
             name,
             identifier
           ),
-          boar:pigs!gestations_boar_id_fkey (
+          boar:pigs!boar_id (
             name,
             identifier
           )
