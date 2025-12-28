@@ -89,17 +89,19 @@ export default function HealthScreen() {
               }}
             >
               <View style={styles.caseHeader}>
-                <Text style={styles.caseTitle}>{item.issue}</Text>
-                <View
-                  style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) }]}
-                >
-                  <Text style={styles.priorityText}>
-                    {item.priority === 'high' ? 'Haute' : item.priority === 'medium' ? 'Moyenne' : 'Faible'}
-                  </Text>
-                </View>
+                <Text style={styles.caseTitle}>{item.title}</Text>
+                {item.severity && (
+                  <View
+                    style={[styles.priorityBadge, { backgroundColor: getSeverityColor(item.severity) }]}
+                  >
+                    <Text style={styles.priorityText}>
+                      {item.severity === 'critical' ? 'Critique' : item.severity === 'high' ? 'Haute' : item.severity === 'medium' ? 'Moyenne' : 'Faible'}
+                    </Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.caseAnimal}>
-                {item.animal_name || 'Animal inconnu'}
+                {item.pig_name || item.pig_identifier || 'Animal inconnu'}
               </Text>
               <Text style={styles.caseDescription} numberOfLines={2}>
                 {item.description || 'Aucune description'}
