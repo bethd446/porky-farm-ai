@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
-import { animalsService, type Animal } from '../../../services/animals'
+import { animalsService, type Animal, mapSexToCategory } from '../../../services/animals'
+import { animalToUI } from '../../../lib/animalHelpers'
 
 export default function AnimalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -26,7 +27,8 @@ export default function AnimalDetailScreen() {
     setLoading(false)
   }
 
-  const getCategoryLabel = (category: string) => {
+  const getCategoryLabel = (sex: string) => {
+    const category = mapSexToCategory(sex)
     const labels: Record<string, string> = {
       sow: 'Truie',
       boar: 'Verrat',
@@ -52,22 +54,31 @@ export default function AnimalDetailScreen() {
     )
   }
 
+  const animalUI = animalToUI(animal)
+  // Extraire le poids le plus récent
+  let currentWeight: number | null = null
+  if (animal.weight_history && Array.isArray(animal.weight_history) && animal.weight_history.length > 0) {
+    const sorted = [...animal.weight_history].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
+    currentWeight = sorted[0]?.weight || null
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{animal.name || animal.identifier}</Text>
-        <Text style={styles.subtitle}>{getCategoryLabel(animal.category)}</Text>
+        <Text style={styles.title}>{animalUI.name || animalUI.identifier}</Text>
+        <Text style={styles.subtitle}>{getCategoryLabel(animal.sex)}</Text>
       </View>
 
       <View style={styles.content}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Informations</Text>
-          <InfoRow label="Identifiant" value={animal.identifier} />
+          <InfoRow label="Identifiant" value={animal.tag_number} />
           <InfoRow label="Race" value={animal.breed || 'Non renseigné'} />
           <InfoRow label="Date de naissance" value={animal.birth_date || 'Non renseigné'} />
-          <InfoRow label="Poids" value={animal.weight ? `${animal.weight} kg` : 'Non renseigné'} />
+          <InfoRow label="Poids" value={currentWeight ? `${currentWeight} kg` : 'Non renseigné'} />
           <InfoRow label="Statut" value={animal.status} />
-          <InfoRow label="Santé" value={animal.health_status} />
         </View>
 
         {animal.notes && (
@@ -150,4 +161,3 @@ const styles = StyleSheet.create({
     color: '#666',
   },
 })
-

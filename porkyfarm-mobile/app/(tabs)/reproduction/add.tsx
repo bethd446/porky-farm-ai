@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router'
 import { gestationsService, type GestationInsert, calculateExpectedFarrowingDate } from '../../../services/gestations'
-import { animalsService, type Animal } from '../../../services/animals'
+import { animalsService, type Animal, mapSexToCategory } from '../../../services/animals'
+import { animalToUI } from '../../../lib/animalHelpers'
 import { offlineQueue } from '../../../lib/offlineQueue'
 import { useSyncQueue } from '../../../hooks/useSyncQueue'
 
@@ -27,8 +28,9 @@ export default function AddGestationScreen() {
     setLoadingAnimals(true)
     const { data } = await animalsService.getAll()
     const allAnimals = data || []
-    setSows(allAnimals.filter((a) => a.category === 'sow'))
-    setBoars(allAnimals.filter((a) => a.category === 'boar'))
+    // Filtrer par sex : female = sow, male = boar
+    setSows(allAnimals.filter((a) => a.sex === 'female'))
+    setBoars(allAnimals.filter((a) => a.sex === 'male'))
     setLoadingAnimals(false)
   }
 
@@ -80,17 +82,20 @@ export default function AddGestationScreen() {
           <Text style={styles.hint}>Aucune truie disponible. Ajoutez d'abord une truie dans le cheptel.</Text>
         ) : (
           <View style={styles.animalSelector}>
-            {sows.map((sow) => (
-              <TouchableOpacity
-                key={sow.id}
-                style={[styles.animalOption, formData.sow_id === sow.id && styles.animalOptionSelected]}
-                onPress={() => setFormData({ ...formData, sow_id: sow.id })}
-              >
-                <Text style={[styles.animalOptionText, formData.sow_id === sow.id && styles.animalOptionTextSelected]}>
-                  {sow.name || sow.identifier}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {sows.map((sow) => {
+              const sowUI = animalToUI(sow)
+              return (
+                <TouchableOpacity
+                  key={sow.id}
+                  style={[styles.animalOption, formData.sow_id === sow.id && styles.animalOptionSelected]}
+                  onPress={() => setFormData({ ...formData, sow_id: sow.id })}
+                >
+                  <Text style={[styles.animalOptionText, formData.sow_id === sow.id && styles.animalOptionTextSelected]}>
+                    {sowUI.name || sowUI.identifier}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
           </View>
         )}
 
@@ -104,17 +109,20 @@ export default function AddGestationScreen() {
               Aucun
             </Text>
           </TouchableOpacity>
-          {boars.map((boar) => (
-            <TouchableOpacity
-              key={boar.id}
-              style={[styles.animalOption, formData.boar_id === boar.id && styles.animalOptionSelected]}
-              onPress={() => setFormData({ ...formData, boar_id: boar.id })}
-            >
-              <Text style={[styles.animalOptionText, formData.boar_id === boar.id && styles.animalOptionTextSelected]}>
-                {boar.name || boar.identifier}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {boars.map((boar) => {
+            const boarUI = animalToUI(boar)
+            return (
+              <TouchableOpacity
+                key={boar.id}
+                style={[styles.animalOption, formData.boar_id === boar.id && styles.animalOptionSelected]}
+                onPress={() => setFormData({ ...formData, boar_id: boar.id })}
+              >
+                <Text style={[styles.animalOptionText, formData.boar_id === boar.id && styles.animalOptionTextSelected]}>
+                  {boarUI.name || boarUI.identifier}
+                </Text>
+              </TouchableOpacity>
+            )
+          })}
         </View>
 
         <Text style={styles.label}>Date de saillie *</Text>

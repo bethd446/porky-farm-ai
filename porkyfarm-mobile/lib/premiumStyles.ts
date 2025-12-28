@@ -1,57 +1,43 @@
 /**
- * PREMIUM STYLES - PORKYFARM MOBILE
- * ==================================
- * Styles premium pour composants haut de gamme (React Native)
- * Gradients, ombres, animations, effets glass contrôlés
- * Basés sur les tokens du design system
+ * Styles premium (Ultra Design Émotionnel)
+ * Gradients, ombres douces, animations subtiles
  */
 
-import { StyleSheet } from 'react-native'
-import { colors, spacing, radius, shadows } from './designTokens'
+import { colors } from './designTokens'
 
-// ============================================
-// GRADIENTS (couleurs pour LinearGradient)
-// ============================================
-
+// Palettes de gradients basées sur les couleurs du design system
 export const premiumGradients = {
-  // Gradient primary (vert forêt)
   primary: {
-    light: [colors.primaryLight, colors.primary],
-    medium: [colors.primary, colors.primaryDark],
-    soft: [colors.primaryLight, colors.primary, colors.primaryDark],
+    icon: ['#2d6a4f', '#1e4d3a'] as const,
+    card: ['#f0fdf4', '#dcfce7'] as const,
   },
-
-  // Gradient violet/indigo (Assistant IA)
-  ai: {
-    purple: ['#8b5cf6', '#a78bfa', '#c4b5fd'] as const,
-    purpleSoft: ['rgba(139, 92, 246, 0.9)', 'rgba(167, 139, 250, 0.9)'] as const,
-  },
-
-  // Gradients sémantiques
   success: {
-    soft: [colors.successLight, colors.success] as const,
-    icon: [colors.success, '#059669'] as const,
+    icon: ['#10b981', '#059669'] as const,
+    card: ['#ecfdf5', '#d1fae5'] as const,
   },
   warning: {
-    soft: [colors.warningLight, colors.warning] as const,
-    icon: [colors.warning, '#d97706'] as const,
+    icon: ['#f59e0b', '#d97706'] as const,
+    card: ['#fffbeb', '#fef3c7'] as const,
   },
   error: {
-    soft: [colors.errorLight, colors.error] as const,
-    icon: [colors.error, '#dc2626'] as const,
+    icon: ['#ef4444', '#dc2626'] as const,
+    card: ['#fef2f2', '#fee2e2'] as const,
   },
   info: {
-    soft: [colors.infoLight, colors.info] as const,
-    icon: [colors.info, '#2563eb'] as const,
+    icon: ['#3b82f6', '#2563eb'] as const,
+    card: ['#eff6ff', '#dbeafe'] as const,
+  },
+  violet: {
+    icon: ['#8b5cf6', '#7c3aed'] as const,
+    card: ['#f5f3ff', '#ede9fe'] as const,
+  },
+  ai: {
+    purple: ['#8b5cf6', '#7c3aed'] as const,
   },
 } as const
 
-// ============================================
-// OMBRES PREMIUM (pour React Native)
-// ============================================
-
+// Ombres douces pour profondeur
 export const premiumShadows = {
-  // Ombre douce pour cartes premium
   card: {
     soft: {
       shadowColor: '#000',
@@ -63,184 +49,123 @@ export const premiumShadows = {
     medium: {
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.06,
+      shadowOpacity: 0.08,
       shadowRadius: 12,
       elevation: 4,
     },
     strong: {
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.08,
-      shadowRadius: 24,
-      elevation: 6,
-    },
-  },
-
-  // Ombre pour icônes avec gradient
-  icon: {
-    soft: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 6,
-      elevation: 2,
-    },
-    medium: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-  },
-
-  // Ombre pour boutons premium
-  button: {
-    default: {
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    pressed: {
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-  },
-
-  // Ombre pour FAB (Floating Action Button)
-  fab: {
-    default: {
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.12,
       shadowRadius: 16,
       elevation: 6,
     },
-    pressed: {
-      shadowColor: colors.primary,
+  },
+  icon: {
+    soft: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.03,
+      shadowRadius: 4,
+      elevation: 1,
+    },
+    medium: {
+      shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
+      shadowOpacity: 0.06,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    strong: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.1,
       shadowRadius: 8,
-      elevation: 4,
+      elevation: 3,
+    },
+  },
+  button: {
+    default: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    pressed: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+  },
+  fab: {
+    default: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    pressed: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
     },
   },
 } as const
 
-// ============================================
-// ANIMATIONS (valeurs pour Animated API)
-// ============================================
-
-export const premiumAnimations = {
-  // Durées (ms)
-  duration: {
-    fast: 150,
-    normal: 200,
-    slow: 250,
-  },
-
-  // Valeurs de scale pour interactions
-  scale: {
-    hover: 1.02,
-    press: 0.98,
-    pressStrong: 0.96,
-  },
-
-  // Valeurs d'opacité
-  opacity: {
-    disabled: 0.5,
-    pressed: 0.8,
-    hover: 0.9,
-    normal: 1,
-  },
-} as const
-
-// ============================================
-// EFFETS GLASS (overlays semi-transparents)
-// ============================================
-
+// Effet glass (blur léger)
 export const premiumGlass = {
-  // Glass léger (pour bandeau IA, panels)
   light: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-
-  // Glass moyen
   medium: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-
-  // Glass sur fond sombre
-  dark: {
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
 } as const
 
-// ============================================
-// STYLESHEET PREMIUM
-// ============================================
-
-export const premiumStyles = StyleSheet.create({
-  // Carte premium
-  card: {
-    borderRadius: radius.lg,
-    padding: spacing.base,
-    ...premiumShadows.card.soft,
-  },
-
-  // Icône avec gradient (container)
-  iconGradientContainer: {
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    ...premiumShadows.icon.soft,
-  },
-
-  // Badge avec gradient
+// Styles réutilisables
+export const premiumStyles = {
   badge: {
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    ...premiumShadows.icon.soft,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
-
-  // Bouton premium
+  card: {
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: colors.card,
+  },
   button: {
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.sm,
-    ...premiumShadows.button.default,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    minHeight: 44,
   },
-})
-
-// ============================================
-// UTILITAIRES
-// ============================================
-
-/**
- * Génère un style glass pour un composant React Native
- */
-export function getGlassStyle(variant: 'light' | 'medium' | 'dark' = 'light') {
-  return premiumGlass[variant]
-}
+  iconGradientContainer: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+} as const
 
 /**
  * Génère un style d'ombre premium pour un composant
  */
-export function getPremiumShadow(variant: 'card' | 'icon' | 'button' | 'fab' = 'card', intensity: 'soft' | 'medium' | 'strong' | 'default' | 'pressed' = 'soft') {
-  const shadowMap = premiumShadows[variant]
+export function getPremiumShadow(
+  variant: 'card' | 'icon' | 'button' | 'fab' = 'card',
+  intensity: 'soft' | 'medium' | 'strong' = 'soft'
+): typeof premiumShadows.card.soft {
   if (variant === 'card' || variant === 'icon') {
-    return shadowMap[intensity as 'soft' | 'medium' | 'strong']
+    return premiumShadows[variant][intensity]
   }
-  return shadowMap[intensity as 'default' | 'pressed']
+  // Pour button et fab, utiliser 'default' ou 'pressed'
+  return premiumShadows[variant].default
 }
-

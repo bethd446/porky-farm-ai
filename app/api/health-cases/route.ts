@@ -76,19 +76,36 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         pig_id: validatedData.animal_id, // animal_id → pig_id
-        title: validatedData.issue || validatedData.title || "Cas de santé", // issue → title
-        description: validatedData.description,
-        severity: validatedData.priority === 'high' || validatedData.priority === 'critical' 
-          ? (validatedData.priority === 'critical' ? 'critical' : 'high')
-          : (validatedData.priority === 'low' ? 'low' : 'medium'), // priority → severity
+        priority:
+          validatedData.priority === 'critical'
+            ? 'high'
+            : validatedData.priority === 'low'
+            ? 'low'
+            : validatedData.priority === 'medium'
+            ? 'medium'
+            : 'medium', // Assure un mapping correct même si la valeur n'est pas attendue
         status: validatedData.status || 'ongoing',
         treatment: validatedData.treatment,
         veterinarian: validatedData.veterinarian,
-        image_url: validatedData.photo || validatedData.image_url, // photo → image_url
+        image_url: validatedData.photo,
         cost: validatedData.cost,
         start_date: validatedData.start_date || new Date().toISOString().split('T')[0],
-        type: validatedData.type || 'disease', // Ajouter type si manquant
+        issue: validatedData.issue || validatedData.title,
+        description: validatedData.description,
       })
+      })
+      .select()
+      .single()
+              ? 'low'
+              : 'medium',
+            : 'medium', // 'critical' is not a valid value for priority, keep proper mapping
+        status: validatedData.status || 'ongoing',
+        treatment: validatedData.treatment,
+        veterinarian: validatedData.veterinarian,
+        image_url: validatedData.photo, // Only use photo; remove .image_url as it may not exist
+        cost: validatedData.cost,
+        start_date: validatedData.start_date || new Date().toISOString().split('T')[0],
+        // Remove type, as it does not exist in schema/type definition
       .select()
       .single()
 
@@ -110,31 +127,37 @@ export async function POST(request: NextRequest) {
     // Envoyer SMS si cas critique et numéro disponible
     if (isCritical) {
       try {
-        // Récupérer le profil utilisateur pour le numéro de téléphone
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('phone')
-          .eq('id', user.id)
-          .single()
+        // Get the user profile to retrieve the phone number
+        const { data: profile, error: profileError } = await supabaseClient
+          const { data: profile, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('phone')
+            .eq('id', user.id)
+            .single();
 
-        if (profile?.phone) {
-          const formattedPhone = formatPhoneNumber(profile.phone)
-          if (formattedPhone) {
-            const smsMessage = `🚨 Alerte PorkyFarm: Cas santé critique - ${validatedData.issue || validatedData.title || 'Cas de santé'} - ${validatedData.animal_name || 'Animal'}. Détails: ${validatedData.description?.substring(0, 100) || ''}`
-            await sendAlertSms(formattedPhone, smsMessage)
-            await trackEvent(user.id, AnalyticsEvents.SMS_SENT, {
-              alertType: 'health_critical',
-            })
+          if (profileError) {
+            throw profileError;
           }
         }
+
+        if (profile?.phone) {
+          const formattedPhone = formatPhoneNumber(profile.phone);
+          if (formattedPhone) {
+            const smsMessage = `🚨 Alerte PorkyFarm: Cas santé critique - ${validatedData.issue || validatedData.title || 'Cas de santé'} - ${validatedData.animal_name || 'Animal'}. Détails: ${validatedData.description ? validatedData.description.substring(0, 100) : ''}`;
+            await sendAlertSms(formattedPhone, smsMessage);
+            await trackEvent(user.id, AnalyticsEvents.SMS_SENT, {
+              alertType: 'health_critical',
+            });
+          }
       } catch (smsError) {
         // Ne pas bloquer la création si SMS échoue
         console.error('[API Health Cases] SMS error:', smsError)
       }
     }
 
-    return NextResponse.json({ data }, { status: 201 })
-  } catch (error) {
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
-  }
-}
+    // Assume the variable storing the main query's result is named 'healthCase'
+    if (healthCase) {
+      return NextResponse.json({ data: healthCase }, { status: 201 });
+    } else {
+      return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    }

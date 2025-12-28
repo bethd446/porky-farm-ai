@@ -1,37 +1,35 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { apiClient } from '../../lib/apiClient'
+import { colors, spacing, typography, radius, commonStyles } from '../../lib/designTokens'
+import { Brain, Send } from 'lucide-react-native'
 
-export default function AIAssistantScreen() {
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export default function AiAssistantScreen() {
   const { user } = useAuthContext()
-  const [question, setQuestion] = useState('')
-  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSend = async () => {
-    if (!question.trim()) {
-      Alert.alert('Erreur', 'Veuillez poser une question')
-      return
-    }
+    if (!input.trim() || loading) return
 
-    setLoading(true)
-    const userMessage = question.trim()
-    setQuestion('')
-
-    // Ajouter le message utilisateur à l'historique
-    const newMessages = [...messages, { role: 'user' as const, content: userMessage }]
+    const userMessage: Message = { role: 'user', content: input.trim() }
+    const newMessages = [...messages, userMessage]
     setMessages(newMessages)
+    setInput('')
+    setLoading(true)
 
     try {
-      // Format de la requête aligné avec le backend web
       const requestBody = {
-        messages: newMessages,
-        livestockContext: '', // Optionnel : contexte de l'élevage
-        hasImage: false,
+        messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
       }
 
-      // Utiliser apiClient pour la requête
       const response = await apiClient.post<{ content: string; quotaExceeded?: boolean; usage?: any }>(
         '/api/chat',
         requestBody,
@@ -39,7 +37,7 @@ export default function AIAssistantScreen() {
 
       if (response.error) {
         // Gérer les erreurs spécifiques
-        if (response.error.offline) {
+        if (response.error.code === 'OFFLINE') {
           Alert.alert(
             'Hors ligne',
             'Vous n\'êtes pas connecté à Internet. Vérifiez votre connexion et réessayez.',
@@ -49,38 +47,22 @@ export default function AIAssistantScreen() {
           return
         }
 
-        if (response.error.status === 429) {
-          Alert.alert(
-            'Limite atteinte',
-            response.error.message || 'Vous avez atteint votre limite de requêtes. Réessayez plus tard.',
-          )
-          setMessages(messages)
-          setLoading(false)
-          return
+        Alert.alert('Erreur', response.error.message || 'Erreur lors de l\'envoi du message')
+        setMessages(messages) // Retirer le message utilisateur
+        setLoading(false)
+        return
+      }
+
+      if (response.data) {
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: response.data.content || 'Réponse vide',
         }
-
-        throw new Error(response.error.message || 'Erreur lors de l\'appel à l\'IA')
+        setMessages([...newMessages, assistantMessage])
       }
-
-      if (!response.data) {
-        throw new Error('Aucune réponse reçue')
-      }
-
-      const assistantResponse = response.data.content || 'Aucune réponse reçue'
-
-      // Afficher un avertissement si quota dépassé
-      if (response.data.quotaExceeded) {
-        Alert.alert('Limite quotidienne atteinte', 'Vous avez atteint votre limite de 50 requêtes par jour.')
-      }
-
-      // Ajouter la réponse de l'assistant à l'historique
-      setMessages([...newMessages, { role: 'assistant' as const, content: assistantResponse }])
-    } catch (err) {
-      console.error('Error calling AI:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Impossible de contacter l\'assistant IA'
-      Alert.alert('Erreur', errorMessage)
-      // Retirer le message utilisateur en cas d'erreur
-      setMessages(messages)
+    } catch (err: any) {
+      Alert.alert('Erreur', err.message || 'Une erreur est survenue')
+      setMessages(messages) // Retirer le message utilisateur
     } finally {
       setLoading(false)
     }
@@ -89,36 +71,34 @@ export default function AIAssistantScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <Brain size={24} color={colors.primary} />
         <Text style={styles.title}>Assistant IA</Text>
-        <Text style={styles.subtitle}>Posez vos questions sur l'élevage</Text>
       </View>
 
-      <ScrollView style={styles.chatContainer} contentContainerStyle={styles.chatContent}>
+      <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
         {messages.length === 0 ? (
           <View style={styles.emptyState}>
+            <Brain size={48} color={colors.mutedForeground} />
             <Text style={styles.emptyText}>
-              👋 Bonjour ! Je suis PorkyAssistant, votre assistant IA pour l'élevage porcin.
+              Posez vos questions sur la gestion de votre élevage porcin
             </Text>
-            <Text style={styles.emptyText}>
-              Posez-moi vos questions sur la santé, l'alimentation, la reproduction, etc.
+            <Text style={styles.emptySubtext}>
+              Exemples : "Comment prévenir les maladies ?", "Quand vacciner mes porcs ?"
             </Text>
           </View>
         ) : (
           messages.map((msg, index) => (
             <View
               key={index}
-              style={[styles.messageCard, msg.role === 'user' ? styles.userMessage : styles.assistantMessage]}
+              style={[styles.message, msg.role === 'user' ? styles.userMessage : styles.assistantMessage]}
             >
-              <Text style={msg.role === 'user' ? styles.userMessageText : styles.assistantMessageText}>
-                {msg.content}
-              </Text>
+              <Text style={styles.messageText}>{msg.content}</Text>
             </View>
           ))
         )}
         {loading && (
-          <View style={styles.loadingCard}>
-            <ActivityIndicator size="small" color="#2d6a4f" />
-            <Text style={styles.loadingText}>Réflexion en cours...</Text>
+          <View style={[styles.message, styles.assistantMessage]}>
+            <ActivityIndicator size="small" color={colors.primary} />
           </View>
         )}
       </ScrollView>
@@ -126,21 +106,21 @@ export default function AIAssistantScreen() {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          value={question}
-          onChangeText={setQuestion}
+          value={input}
+          onChangeText={setInput}
           placeholder="Posez votre question..."
           multiline
           editable={!loading}
         />
         <TouchableOpacity
-          style={[styles.sendButton, (loading || !question.trim()) && styles.sendButtonDisabled]}
+          style={[styles.sendButton, loading && styles.sendButtonDisabled]}
           onPress={handleSend}
-          disabled={loading || !question.trim()}
+          disabled={loading || !input.trim()}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.sendButtonText}>Envoyer</Text>
+            <Send size={20} color="#fff" />
           )}
         </TouchableOpacity>
       </View>
@@ -151,117 +131,98 @@ export default function AIAssistantScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
   },
   header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.lg,
+    paddingTop: spacing['2xl'],
+    backgroundColor: colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.border,
+    gap: spacing.sm,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
+    fontSize: typography.fontSize.h2,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.foreground,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  chatContainer: {
+  messagesContainer: {
     flex: 1,
-    padding: 20,
   },
-  chatContent: {
-    flexGrow: 1,
-    gap: 12,
+  messagesContent: {
+    padding: spacing.lg,
+    gap: spacing.md,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing['4xl'],
   },
   emptyText: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: typography.fontSize.body,
+    color: colors.foreground,
     textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 24,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
-  messageCard: {
-    padding: 16,
-    borderRadius: 12,
-    maxWidth: '85%',
+  emptySubtext: {
+    fontSize: typography.fontSize.bodySmall,
+    color: colors.mutedForeground,
+    textAlign: 'center',
+  },
+  message: {
+    maxWidth: '80%',
+    padding: spacing.md,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
   },
   userMessage: {
-    backgroundColor: '#2d6a4f',
     alignSelf: 'flex-end',
+    backgroundColor: colors.primary,
   },
   assistantMessage: {
-    backgroundColor: '#fff',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    alignSelf: 'flex-start',
+    borderColor: colors.border,
   },
-  userMessageText: {
-    fontSize: 16,
-    color: '#fff',
-    lineHeight: 24,
-  },
-  assistantMessageText: {
-    fontSize: 16,
-    color: '#111827',
-    lineHeight: 24,
-  },
-  loadingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#6b7280',
+  messageText: {
+    fontSize: typography.fontSize.body,
+    color: colors.foreground,
   },
   inputContainer: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#fff',
+    padding: spacing.md,
+    backgroundColor: colors.card,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    gap: 12,
+    borderTopColor: colors.border,
+    gap: spacing.sm,
+    alignItems: 'flex-end',
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#f9fafb',
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    fontSize: typography.fontSize.body,
+    backgroundColor: colors.background,
+    color: colors.foreground,
     maxHeight: 100,
+    minHeight: 44,
   },
   sendButton: {
-    backgroundColor: '#2d6a4f',
-    borderRadius: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 80,
   },
   sendButtonDisabled: {
     opacity: 0.5,
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 })

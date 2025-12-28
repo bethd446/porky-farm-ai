@@ -10,6 +10,7 @@
 import { supabase } from './supabase/client'
 
 export type CostType = 'expense' | 'income'
+// Catégories alignées sur le schéma Supabase réel
 export type CostCategory = 'sale' | 'feed' | 'veterinary' | 'equipment' | 'labor' | 'other'
 
 export interface CostEntry {

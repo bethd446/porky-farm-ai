@@ -20,17 +20,14 @@ import { offlineQueue } from '../../../lib/offlineQueue'
 import { useSyncQueue } from '../../../hooks/useSyncQueue'
 import { colors, spacing, typography, radius, commonStyles } from '../../../lib/designTokens'
 
+// Catégories alignées sur le schéma Supabase : 'sale','feed','veterinary','equipment','labor','other'
+// Mapping des catégories UI vers DB
 const CATEGORIES: { value: CostCategory; label: string; icon: string }[] = [
-  { value: 'pig_purchase', label: 'Achat sujet', icon: '🐷' },
   { value: 'feed', label: 'Aliment', icon: '🌾' },
-  { value: 'vitamins', label: 'Vitamines', icon: '💊' },
-  { value: 'medication', label: 'Médicament', icon: '💉' },
-  { value: 'transport', label: 'Transport', icon: '🚚' },
   { value: 'veterinary', label: 'Vétérinaire', icon: '🏥' },
+  { value: 'equipment', label: 'Équipement', icon: '🔧' },
   { value: 'labor', label: 'Main d\'œuvre', icon: '👷' },
-  { value: 'misc', label: 'Divers', icon: '📋' },
   { value: 'sale', label: 'Vente', icon: '💰' },
-  { value: 'subsidy', label: 'Subvention', icon: '🎁' },
   { value: 'other', label: 'Autre', icon: '📝' },
 ]
 
@@ -39,27 +36,23 @@ export default function AddCostScreen() {
   const { isOnline } = useSyncQueue()
   const [formData, setFormData] = useState<CostEntryInsert>({
     type: 'expense',
-    category: 'misc',
+    category: 'other',
     amount: 0,
-    description: '',
+    description: null,
     transaction_date: new Date().toISOString().split('T')[0],
-    notes: '',
+    notes: null,
   })
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async () => {
-    // Validation
     if (!formData.category) {
       Alert.alert('Erreur', 'Veuillez sélectionner une catégorie')
       return
     }
+
     if (formData.amount <= 0) {
       Alert.alert('Erreur', 'Le montant doit être supérieur à 0')
-      return
-    }
-    if (!formData.transaction_date) {
-      Alert.alert('Erreur', 'Veuillez sélectionner une date')
       return
     }
 
@@ -68,7 +61,7 @@ export default function AddCostScreen() {
       if (!isOnline) {
         // Mode offline : enregistrer dans la queue
         await offlineQueue.enqueue({
-          type: 'CREATE_COST_ENTRY',
+          type: 'CREATE_COST',
           payload: formData,
           endpoint: '/api/costs',
           method: 'POST',
@@ -84,10 +77,9 @@ export default function AddCostScreen() {
         const { error } = await costsService.create(formData)
 
         if (error) {
-          // Si erreur réseau, essayer d'enregistrer dans la queue
           if (error.message?.includes('réseau') || error.message?.includes('network')) {
             await offlineQueue.enqueue({
-              type: 'CREATE_COST_ENTRY',
+              type: 'CREATE_COST',
               payload: formData,
               endpoint: '/api/costs',
               method: 'POST',
@@ -102,13 +94,9 @@ export default function AddCostScreen() {
             Alert.alert('Erreur', error.message || 'Erreur lors de la création')
           }
         } else {
-          Alert.alert(
-            'Succès',
-            formData.type === 'expense'
-              ? 'Dépense enregistrée avec succès'
-              : 'Entrée enregistrée avec succès',
-            [{ text: 'OK', onPress: () => router.back() }],
-          )
+          Alert.alert('Succès', 'Transaction enregistrée avec succès', [
+            { text: 'OK', onPress: () => router.back() },
+          ])
         }
       }
     } catch (err) {
@@ -127,14 +115,11 @@ export default function AddCostScreen() {
       </View>
 
       <View style={styles.form}>
-        {/* Type : Dépense / Entrée */}
+        {/* Type */}
         <Text style={styles.label}>Type *</Text>
-        <View style={styles.typeSelector}>
+        <View style={styles.typeToggle}>
           <TouchableOpacity
-            style={[
-              styles.typeButton,
-              formData.type === 'expense' && styles.typeButtonActive,
-            ]}
+            style={[styles.typeButton, formData.type === 'expense' && styles.typeButtonActive]}
             onPress={() => setFormData({ ...formData, type: 'expense' })}
           >
             <Text
@@ -147,10 +132,7 @@ export default function AddCostScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[
-              styles.typeButton,
-              formData.type === 'income' && styles.typeButtonActive,
-            ]}
+            style={[styles.typeButton, formData.type === 'income' && styles.typeButtonActive]}
             onPress={() => setFormData({ ...formData, type: 'income' })}
           >
             <Text
@@ -170,9 +152,9 @@ export default function AddCostScreen() {
           {CATEGORIES.filter((cat) => {
             // Filtrer selon le type
             if (formData.type === 'expense') {
-              return cat.value !== 'sale' && cat.value !== 'subsidy'
+              return cat.value !== 'sale' // Les dépenses ne peuvent pas être 'sale'
             } else {
-              return cat.value === 'sale' || cat.value === 'subsidy' || cat.value === 'other'
+              return cat.value === 'sale' || cat.value === 'other' // Les entrées sont 'sale' ou 'other'
             }
           }).map((cat) => (
             <TouchableOpacity
@@ -200,13 +182,13 @@ export default function AddCostScreen() {
         <Text style={styles.label}>Montant (FCFA) *</Text>
         <TextInput
           style={commonStyles.input}
-          value={formData.amount > 0 ? formData.amount.toString() : ''}
+          value={formData.amount.toString()}
           onChangeText={(text) => {
             const num = parseFloat(text) || 0
             setFormData({ ...formData, amount: num })
           }}
-          placeholder="0"
           keyboardType="numeric"
+          placeholder="0"
         />
 
         {/* Date */}
@@ -215,13 +197,7 @@ export default function AddCostScreen() {
           style={commonStyles.input}
           onPress={() => setShowDatePicker(true)}
         >
-          <Text style={styles.dateText}>
-            {new Date(formData.transaction_date).toLocaleDateString('fr-FR', {
-              day: '2-digit',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </Text>
+          <Text style={styles.dateText}>{formData.transaction_date}</Text>
         </TouchableOpacity>
         {showDatePicker && (
           <DateTimePicker
@@ -244,8 +220,8 @@ export default function AddCostScreen() {
         <Text style={styles.label}>Description</Text>
         <TextInput
           style={[commonStyles.input, styles.textArea]}
-          value={formData.description}
-          onChangeText={(text) => setFormData({ ...formData, description: text })}
+          value={formData.description || ''}
+          onChangeText={(text) => setFormData({ ...formData, description: text || null })}
           placeholder="Description optionnelle"
           multiline
           numberOfLines={3}
@@ -255,8 +231,8 @@ export default function AddCostScreen() {
         <Text style={styles.label}>Notes</Text>
         <TextInput
           style={[commonStyles.input, styles.textArea]}
-          value={formData.notes}
-          onChangeText={(text) => setFormData({ ...formData, notes: text })}
+          value={formData.notes || ''}
+          onChangeText={(text) => setFormData({ ...formData, notes: text || null })}
           placeholder="Notes optionnelles"
           multiline
           numberOfLines={2}
@@ -269,7 +245,7 @@ export default function AddCostScreen() {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#ffffff" />
+            <ActivityIndicator color="#fff" />
           ) : (
             <Text style={commonStyles.buttonText}>Enregistrer</Text>
           )}
@@ -285,11 +261,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    padding: spacing.base,
-    paddingTop: 60,
+    padding: spacing.lg,
+    paddingTop: spacing.xxl,
     backgroundColor: colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
   },
   title: {
     fontSize: typography.fontSize.h2,
@@ -297,67 +273,71 @@ const styles = StyleSheet.create({
     color: colors.foreground,
   },
   form: {
-    padding: spacing.base,
-    gap: spacing.base,
+    padding: spacing.lg,
   },
   label: {
-    fontSize: typography.fontSize.label,
-    fontWeight: typography.fontWeight.medium,
+    fontSize: typography.fontSize.body,
+    fontWeight: typography.fontWeight.semibold,
     color: colors.foreground,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
+    marginTop: spacing.md,
   },
-  typeSelector: {
+  typeToggle: {
     flexDirection: 'row',
     gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   typeButton: {
     flex: 1,
-    padding: spacing.base,
+    padding: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: colors.muted,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
   },
   typeButtonActive: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   typeButtonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.medium,
-    color: colors.mutedForeground,
+    color: colors.foreground,
   },
   typeButtonTextActive: {
-    color: '#ffffff',
+    color: '#fff',
   },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   categoryButton: {
     width: '30%',
-    padding: spacing.base,
+    padding: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: colors.muted,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
+    gap: spacing.xs,
   },
   categoryButtonActive: {
+    backgroundColor: colors.primary,
     borderColor: colors.primary,
-    backgroundColor: colors.primary + '20',
   },
   categoryIcon: {
     fontSize: 24,
-    marginBottom: spacing.xs,
   },
   categoryLabel: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.caption,
     color: colors.foreground,
     textAlign: 'center',
   },
   categoryLabelActive: {
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.primary,
+    color: '#fff',
   },
   dateText: {
     fontSize: typography.fontSize.body,
@@ -368,7 +348,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   submitButton: {
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
 })
-

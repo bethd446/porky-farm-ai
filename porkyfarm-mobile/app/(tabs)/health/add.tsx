@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView,
 import { useRouter } from 'expo-router'
 import { healthCasesService, type HealthCaseInsert } from '../../../services/healthCases'
 import { animalsService, type Animal } from '../../../services/animals'
+import { animalToUI } from '../../../lib/animalHelpers'
 import { offlineQueue } from '../../../lib/offlineQueue'
 import { useSyncQueue } from '../../../hooks/useSyncQueue'
 
@@ -109,17 +110,20 @@ export default function AddHealthCaseScreen() {
           {animals.length === 0 ? (
             <Text style={styles.emptyAnimalsText}>Aucun animal disponible. Ajoutez d'abord un animal.</Text>
           ) : (
-            animals.map((animal) => (
-              <TouchableOpacity
-                key={animal.id}
-                style={[styles.animalOption, formData.animal_id === animal.id && styles.animalOptionSelected]}
-                onPress={() => setFormData({ ...formData, animal_id: animal.id })}
-              >
-                <Text style={[styles.animalOptionText, formData.animal_id === animal.id && styles.animalOptionTextSelected]}>
-                  {animal.name || animal.identifier}
-                </Text>
-              </TouchableOpacity>
-            ))
+            animals.map((animal) => {
+              const animalUI = animalToUI(animal)
+              return (
+                <TouchableOpacity
+                  key={animal.id}
+                  style={[styles.animalOption, formData.pig_id === animal.id && styles.animalOptionSelected]}
+                  onPress={() => setFormData({ ...formData, pig_id: animal.id })}
+                >
+                  <Text style={[styles.animalOptionText, formData.pig_id === animal.id && styles.animalOptionTextSelected]}>
+                    {animalUI.name || animalUI.identifier}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })
           )}
         </View>
 

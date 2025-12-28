@@ -1,238 +1,106 @@
 /**
- * Client API unifié pour toutes les requêtes réseau mobile
- * Gère : timeout, erreurs, offline, retry, logs
+ * Client API unifié pour les appels backend (mobile)
+ * Gestion centralisée des erreurs, offline, timeouts
  */
 
-import { Platform } from 'react-native'
-import * as Network from 'expo-network'
+import { Network } from 'expo-network'
+import { colors } from './designTokens'
 
-const API_URL = (() => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL
-  if (envUrl) {
-    if (envUrl.includes('localhost') && Platform.OS === 'ios') {
-      return envUrl.replace('localhost', '127.0.0.1')
-    }
-    return envUrl
-  }
-  return Platform.OS === 'ios' ? 'http://127.0.0.1:3000' : 'http://localhost:3000'
-})()
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'
 
 export interface ApiError {
   message: string
   code?: string
   status?: number
-  offline?: boolean
 }
 
 export interface ApiResponse<T> {
-  data: T | null
-  error: ApiError | null
-}
-
-interface RequestOptions extends RequestInit {
-  timeout?: number
-  retries?: number
-  retryDelay?: number
+  data?: T
+  error?: ApiError
 }
 
 class ApiClient {
   private baseURL: string
-  private defaultTimeout: number = 30000 // 30 secondes
-  private defaultRetries: number = 2
-  private defaultRetryDelay: number = 1000 // 1 seconde
 
   constructor(baseURL: string) {
-    this.baseURL = baseURL.replace(/\/$/, '') // Enlever le trailing slash
+    this.baseURL = baseURL
   }
 
   /**
-   * Vérifie si le réseau est disponible
+   * Vérifie si l'appareil est en ligne
    */
   private async isOnline(): Promise<boolean> {
     try {
       const state = await Network.getNetworkStateAsync()
-      return state.isConnected && state.isInternetReachable !== false
+      return state.isConnected === true && state.isInternetReachable !== false
     } catch {
       return false
     }
   }
 
   /**
-   * Récupère le token d'authentification Supabase
-   */
-  private async getAuthToken(): Promise<string | null> {
-    try {
-      const { supabase } = await import('../services/supabase/client')
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      return session?.access_token || null
-    } catch {
-      return null
-    }
-  }
-
-  /**
-   * Requête générique avec gestion d'erreurs, timeout, retry
+   * Effectue une requête HTTP
    */
   async request<T>(
-    path: string,
-    options: RequestOptions = {},
+    endpoint: string,
+    options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const {
-      timeout = this.defaultTimeout,
-      retries = this.defaultRetries,
-      retryDelay = this.defaultRetryDelay,
-      ...fetchOptions
-    } = options
-
-    // Vérifier le réseau
+    // Vérifier la connexion
     const online = await this.isOnline()
     if (!online) {
       return {
-        data: null,
         error: {
-          message: 'Aucune connexion réseau disponible',
-          offline: true,
+          message: 'Vous êtes hors ligne. Vérifiez votre connexion internet.',
+          code: 'OFFLINE',
         },
       }
     }
 
-    // Récupérer le token d'auth
-    const token = await this.getAuthToken()
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...(fetchOptions.headers as HeadersInit),
-    }
+    try {
+      const url = `${this.baseURL}${endpoint}`
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      })
 
-    const url = `${this.baseURL}${path.startsWith('/') ? path : `/${path}`}`
-
-    // Retry logic
-    let lastError: ApiError | null = null
-
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), timeout)
-
-        const response = await fetch(url, {
-          ...fetchOptions,
-          headers,
-          signal: controller.signal,
-        })
-
-        clearTimeout(timeoutId)
-
-        // Gérer les erreurs HTTP
-        if (!response.ok) {
-          const errorText = await response.text().catch(() => 'Erreur inconnue')
-          let errorData: any = {}
-
-          try {
-            errorData = JSON.parse(errorText)
-          } catch {
-            errorData = { message: errorText || `Erreur HTTP ${response.status}` }
-          }
-
-          // Ne pas retry sur erreurs 4xx (sauf 429)
-          if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-            return {
-              data: null,
-              error: {
-                message: errorData.message || `Erreur ${response.status}`,
-                code: errorData.code,
-                status: response.status,
-              },
-            }
-          }
-
-          // Retry sur erreurs 5xx ou 429
-          if (attempt < retries) {
-            await new Promise((resolve) => setTimeout(resolve, retryDelay * (attempt + 1)))
-            continue
-          }
-
-          return {
-            data: null,
-            error: {
-              message: errorData.message || `Erreur ${response.status}`,
-              code: errorData.code,
-              status: response.status,
-            },
-          }
-        }
-
-        // Parser la réponse
-        const contentType = response.headers.get('content-type')
-        if (contentType?.includes('application/json')) {
-          const data = await response.json()
-          return { data: data as T, error: null }
-        }
-
-        const text = await response.text()
-        return { data: text as T, error: null }
-      } catch (error: any) {
-        // Gérer les erreurs réseau
-        if (error.name === 'AbortError') {
-          lastError = {
-            message: 'La requête a expiré. Vérifiez votre connexion.',
-            code: 'TIMEOUT',
-          }
-        } else if (error.message?.includes('Network request failed') || error.message?.includes('Failed to fetch')) {
-          const onlineCheck = await this.isOnline()
-          if (!onlineCheck) {
-            return {
-              data: null,
-              error: {
-                message: 'Aucune connexion réseau disponible',
-                offline: true,
-              },
-            }
-          }
-
-          lastError = {
-            message: 'Erreur de connexion. Vérifiez votre réseau.',
-            code: 'NETWORK_ERROR',
-            offline: true,
-          }
-
-          // Retry si on a encore des tentatives
-          if (attempt < retries) {
-            await new Promise((resolve) => setTimeout(resolve, retryDelay * (attempt + 1)))
-            continue
-          }
-        } else {
-          lastError = {
-            message: error.message || 'Une erreur inattendue est survenue',
-            code: 'UNKNOWN_ERROR',
-          }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        return {
+          error: {
+            message: errorData.message || `Erreur ${response.status}`,
+            code: errorData.code,
+            status: response.status,
+          },
         }
       }
-    }
 
-    return {
-      data: null,
-      error: lastError || {
-        message: 'Erreur inconnue après plusieurs tentatives',
-        code: 'MAX_RETRIES_EXCEEDED',
-      },
+      const data = await response.json()
+      return { data }
+    } catch (error: any) {
+      return {
+        error: {
+          message: error.message || 'Erreur réseau. Vérifiez votre connexion.',
+          code: 'NETWORK_ERROR',
+        },
+      }
     }
   }
 
   /**
    * GET request
    */
-  async get<T>(path: string, options?: RequestOptions): Promise<ApiResponse<T>> {
-    return this.request<T>(path, { ...options, method: 'GET' })
+  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'GET' })
   }
 
   /**
    * POST request
    */
-  async post<T>(path: string, body?: any, options?: RequestOptions): Promise<ApiResponse<T>> {
-    return this.request<T>(path, {
-      ...options,
+  async post<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
     })
@@ -241,9 +109,8 @@ class ApiClient {
   /**
    * PUT request
    */
-  async put<T>(path: string, body?: any, options?: RequestOptions): Promise<ApiResponse<T>> {
-    return this.request<T>(path, {
-      ...options,
+  async put<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
       method: 'PUT',
       body: body ? JSON.stringify(body) : undefined,
     })
@@ -252,11 +119,9 @@ class ApiClient {
   /**
    * DELETE request
    */
-  async delete<T>(path: string, options?: RequestOptions): Promise<ApiResponse<T>> {
-    return this.request<T>(path, { ...options, method: 'DELETE' })
+  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'DELETE' })
   }
 }
 
-// Instance singleton
 export const apiClient = new ApiClient(API_URL)
-

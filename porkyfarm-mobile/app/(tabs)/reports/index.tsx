@@ -1,10 +1,5 @@
-/**
- * Écran Rapports / Statistiques
- * Vue d'ensemble des données de l'élevage
- */
-
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native'
 import { useAuthContext } from '../../../contexts/AuthContext'
 import { animalsService } from '../../../services/animals'
 import { healthCasesService } from '../../../services/healthCases'
@@ -29,61 +24,62 @@ export default function ReportsScreen() {
   })
 
   useEffect(() => {
-    loadStats()
-  }, [])
+    if (user) {
+      loadReportsData()
+    }
+  }, [user])
 
-  const loadStats = async () => {
+  const loadReportsData = async () => {
     setLoading(true)
     setError(null)
     try {
-      // Charger les animaux
-      const { data: animals, error: animalsError } = await animalsService.getAll()
-      if (animalsError) throw animalsError
+      const [
+        { data: animalsData, error: animalsError },
+        { data: healthCasesData, error: healthCasesError },
+        { data: gestationsData, error: gestationsError },
+        { data: costsData, error: costsError },
+      ] = await Promise.all([
+        animalsService.getAll(),
+        healthCasesService.getAll(),
+        gestationsService.getAll(),
+        costsService.getAll(),
+      ])
 
-      const animalsList = animals || []
-      const activeAnimals = animalsList.filter(
-        (a) => a.status === 'active' || a.status === 'sick' || a.status === 'pregnant' || a.status === 'nursing'
-      )
+      if (animalsError || healthCasesError || gestationsError || costsError) {
+        throw new Error(
+          animalsError?.message ||
+            healthCasesError?.message ||
+            gestationsError?.message ||
+            costsError?.message ||
+            'Erreur lors du chargement des rapports',
+        )
+      }
 
-      // Charger les cas de santé
-      const { data: healthCases, error: healthError } = await healthCasesService.getAll()
-      if (healthError) throw healthError
+      const totalAnimals = animalsData?.length || 0
+      const healthyCount = animalsData?.filter((a) => a.status === 'active').length || 0
+      const careRequired = animalsData?.filter((a) => a.status === 'sick').length || 0
+      const activeGestations = gestationsData?.filter((g) => g.status === 'pregnant').length || 0
 
-      const casesList = healthCases || []
-      const activeCases = casesList.filter((c) => c.status === 'ongoing' || c.status === 'scheduled')
-
-      // Charger les gestations
-      const { data: gestations, error: gestationsError } = await gestationsService.getAll()
-      if (gestationsError) throw gestationsError
-
-      const gestationsList = gestations || []
-      const activeGestations = gestationsList.filter((g) => g.status === 'pregnant' || g.status === 'farrowed')
-
-      // Charger les transactions (coûts)
-      const { data: transactions, error: transactionsError } = await costsService.getAll()
-      if (transactionsError) throw transactionsError
-
-      const transactionsList = transactions || []
-      const expenses = transactionsList
-        .filter((t) => t.type === 'expense')
-        .reduce((sum, t) => sum + (t.amount || 0), 0)
-      const income = transactionsList
-        .filter((t) => t.type === 'income')
-        .reduce((sum, t) => sum + (t.amount || 0), 0)
-
-      const healthyCount = activeAnimals.filter((a) => a.status === 'active').length
+      const totalExpenses =
+        costsData
+          ?.filter((c) => c.type === 'expense')
+          .reduce((sum, c) => sum + c.amount, 0) || 0
+      const totalIncome =
+        costsData
+          ?.filter((c) => c.type === 'income')
+          .reduce((sum, c) => sum + c.amount, 0) || 0
 
       setStats({
-        totalAnimals: activeAnimals.length,
+        totalAnimals,
         healthyCount,
-        careRequired: activeCases.length,
-        activeGestations: activeGestations.length,
-        totalExpenses: expenses,
-        totalIncome: income,
+        careRequired,
+        activeGestations,
+        totalExpenses,
+        totalIncome,
       })
-    } catch (err) {
-      console.error('Error loading stats:', err)
-      setError(err as Error)
+    } catch (e: any) {
+      console.error('Error loading reports:', e)
+      setError(e)
     } finally {
       setLoading(false)
     }
@@ -91,200 +87,223 @@ export default function ReportsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Rapports</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Chargement des rapports...</Text>
       </View>
     )
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Rapports</Text>
-        </View>
-        <ErrorState message={error.message} onRetry={loadStats} />
+      <View style={styles.center}>
+        <ErrorState
+          title="Erreur de chargement"
+          message={error.message || 'Impossible de charger les données des rapports.'}
+          onRetry={loadReportsData}
+          retryLabel="Réessayer"
+        />
       </View>
     )
   }
 
-  const balance = stats.totalIncome - stats.totalExpenses
+  if (stats.totalAnimals === 0 && stats.totalExpenses === 0 && stats.totalIncome === 0) {
+    return (
+      <View style={styles.center}>
+        <EmptyState
+          title="Aucune donnée de rapport"
+          description="Ajoutez des animaux, des cas de santé ou des transactions pour voir vos rapports ici."
+          emoji="📊"
+        />
+      </View>
+    )
+  }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Rapports</Text>
+        <Text style={styles.title}>Rapports & Statistiques</Text>
         <Text style={styles.subtitle}>Vue d'ensemble de votre élevage</Text>
       </View>
 
-      {/* Stats Cards */}
-      <View style={styles.statsGrid}>
-        <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-          <PiggyBank size={24} color={colors.primary} />
-          <Text style={styles.statValue}>{stats.totalAnimals}</Text>
-          <Text style={styles.statLabel}>Total Animaux</Text>
-        </View>
-
-        <View style={[styles.statCard, { backgroundColor: colors.successLight }]}>
-          <Heart size={24} color={colors.success} />
-          <Text style={styles.statValue}>{stats.healthyCount}</Text>
-          <Text style={styles.statLabel}>En Santé</Text>
-        </View>
-
-        <View style={[styles.statCard, { backgroundColor: colors.warningLight }]}>
-          <AlertTriangle size={24} color={colors.warning} />
-          <Text style={styles.statValue}>{stats.careRequired}</Text>
-          <Text style={styles.statLabel}>Soins Requis</Text>
-        </View>
-
-        <View style={[styles.statCard, { backgroundColor: colors.infoLight }]}>
-          <Baby size={24} color={colors.info} />
-          <Text style={styles.statValue}>{stats.activeGestations}</Text>
-          <Text style={styles.statLabel}>Gestations</Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Statistiques du Cheptel</Text>
+        <View style={styles.statsGrid}>
+          <StatCard icon={PiggyBank} label="Total Animaux" value={stats.totalAnimals} color={colors.primary} />
+          <StatCard icon={Heart} label="Animaux en Santé" value={stats.healthyCount} color={colors.success} />
+          <StatCard icon={AlertTriangle} label="Soins Requis" value={stats.careRequired} color={colors.warning} />
+          <StatCard icon={Baby} label="Gestations Actives" value={stats.activeGestations} color={colors.info} />
         </View>
       </View>
 
-      {/* Finances */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Finances</Text>
-        <View style={[styles.financeCard, { backgroundColor: colors.card }]}>
-          <View style={styles.financeRow}>
-            <Text style={styles.financeLabel}>Dépenses</Text>
-            <Text style={[styles.financeValue, { color: colors.error }]}>
+        <Text style={styles.sectionTitle}>Résumé Financier (Mois)</Text>
+        <View style={styles.financialCard}>
+          <View style={styles.financialRow}>
+            <TrendingUp size={20} color={colors.error} />
+            <Text style={styles.financialLabel}>Dépenses :</Text>
+            <Text style={[styles.financialValue, { color: colors.error }]}>
               {stats.totalExpenses.toLocaleString('fr-FR')} FCFA
             </Text>
           </View>
-          <View style={styles.financeRow}>
-            <Text style={styles.financeLabel}>Recettes</Text>
-            <Text style={[styles.financeValue, { color: colors.success }]}>
+          <View style={styles.financialRow}>
+            <TrendingUp size={20} color={colors.success} />
+            <Text style={styles.financialLabel}>Revenus :</Text>
+            <Text style={[styles.financialValue, { color: colors.success }]}>
               {stats.totalIncome.toLocaleString('fr-FR')} FCFA
             </Text>
           </View>
-          <View style={[styles.financeRow, styles.financeRowTotal]}>
-            <Text style={styles.financeLabelTotal}>Solde</Text>
-            <Text
-              style={[
-                styles.financeValueTotal,
-                { color: balance >= 0 ? colors.success : colors.error },
-              ]}
-            >
-              {balance.toLocaleString('fr-FR')} FCFA
+          <View style={styles.financialRow}>
+            <PiggyBank size={20} color={colors.primary} />
+            <Text style={styles.financialLabel}>Solde :</Text>
+            <Text style={[styles.financialValue, { color: colors.primary }]}>
+              {(stats.totalIncome - stats.totalExpenses).toLocaleString('fr-FR')} FCFA
             </Text>
           </View>
         </View>
       </View>
 
-      {stats.totalAnimals === 0 && (
-        <EmptyState
-          title="Aucune donnée"
-          message="Commencez par ajouter des animaux pour voir vos statistiques"
-        />
-      )}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Rapports Détaillés</Text>
+        <TouchableOpacity style={styles.reportLink}>
+          <Text style={styles.reportLinkText}>Voir les rapports de santé</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.reportLink}>
+          <Text style={styles.reportLinkText}>Voir les rapports de reproduction</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.reportLink}>
+          <Text style={styles.reportLinkText}>Voir les rapports d'alimentation</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   )
 }
+
+interface StatCardProps {
+  icon: React.ComponentType<{ size: number; color: string }>
+  label: string
+  value: string | number
+  color: string
+}
+
+const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, color }) => (
+  <View style={[styles.statCard, { borderColor: color }]}>
+    <View style={[styles.statIconContainer, { backgroundColor: color + '20' }]}>
+      <Icon size={24} color={color} />
+    </View>
+    <Text style={styles.statLabel}>{label}</Text>
+    <Text style={styles.statValue}>{value}</Text>
+  </View>
+)
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    padding: spacing.base,
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    padding: spacing.lg,
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: typography.fontSize.body,
+    color: colors.mutedForeground,
   },
   header: {
-    marginBottom: spacing.lg,
+    padding: spacing.lg,
+    paddingTop: spacing['2xl'],
+    backgroundColor: colors.card,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+    ...shadows.sm,
+    marginBottom: spacing.md,
   },
   title: {
-    fontSize: typography.fontSize.h1,
+    fontSize: typography.fontSize.h3,
     fontWeight: typography.fontWeight.bold,
     color: colors.foreground,
     marginBottom: spacing.xs,
   },
   subtitle: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.body,
     color: colors.mutedForeground,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  section: {
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: typography.fontSize.h4,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.foreground,
+    marginBottom: spacing.md,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.base,
-    marginBottom: spacing.lg,
+    justifyContent: 'space-between',
   },
   statCard: {
-    flex: 1,
-    minWidth: '45%',
-    padding: spacing.base,
-    borderRadius: radius.lg,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    width: '48%',
+    marginBottom: spacing.md,
     alignItems: 'center',
-    gap: spacing.sm,
-    ...shadows.md,
+    borderLeftWidth: 4,
+    ...shadows.sm,
   },
-  statValue: {
-    fontSize: typography.fontSize.h2,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.foreground,
+  statIconContainer: {
+    borderRadius: radius.full,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
   },
   statLabel: {
-    fontSize: typography.fontSize.bodySmall,
+    fontSize: typography.fontSize.caption,
     color: colors.mutedForeground,
     textAlign: 'center',
   },
-  section: {
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
+  statValue: {
     fontSize: typography.fontSize.h3,
-    fontWeight: typography.fontWeight.semibold,
+    fontWeight: typography.fontWeight.bold,
     color: colors.foreground,
-    marginBottom: spacing.base,
+    marginTop: spacing.xs / 2,
   },
-  financeCard: {
-    padding: spacing.base,
-    borderRadius: radius.lg,
-    ...shadows.md,
+  financialCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    ...shadows.sm,
   },
-  financeRow: {
+  financialRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginBottom: spacing.sm,
   },
-  financeRowTotal: {
-    borderBottomWidth: 0,
-    marginTop: spacing.sm,
-    paddingTop: spacing.base,
-    borderTopWidth: 2,
-    borderTopColor: colors.border,
-  },
-  financeLabel: {
+  financialLabel: {
     fontSize: typography.fontSize.body,
-    color: colors.mutedForeground,
-  },
-  financeValue: {
-    fontSize: typography.fontSize.body,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  financeLabelTotal: {
-    fontSize: typography.fontSize.h4,
-    fontWeight: typography.fontWeight.bold,
     color: colors.foreground,
+    marginLeft: spacing.sm,
+    flex: 1,
   },
-  financeValueTotal: {
-    fontSize: typography.fontSize.h4,
+  financialValue: {
+    fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.bold,
+  },
+  reportLink: {
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    ...shadows.sm,
+  },
+  reportLinkText: {
+    fontSize: typography.fontSize.body,
+    color: colors.primary,
+    fontWeight: typography.fontWeight.medium,
   },
 })
-

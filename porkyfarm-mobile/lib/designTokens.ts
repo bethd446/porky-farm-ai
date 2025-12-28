@@ -64,6 +64,7 @@ export const spacing = {
   '2xl': 32,
   '3xl': 40,
   '4xl': 48,
+  xxl: 48, // Alias pour compatibilité
 
   // Composants
   cardPadding: 16,
@@ -100,28 +101,36 @@ export const typography = {
   },
   lineHeight: {
     tight: 1.2,
-    normal: 1.4,
-    relaxed: 1.6,
+    normal: 1.5,
+    relaxed: 1.75,
   },
 } as const
 
 // ============================================
-// BORDERS & RADIUS
+// RAYONS DE BORDURE
 // ============================================
 
 export const radius = {
-  sm: 4,
+  xs: 4,
+  sm: 6,
   md: 8,
   lg: 12,
   xl: 16,
-  full: 9999,
+  full: 999,
 } as const
 
 // ============================================
-// OMBRES (React Native)
+// OMBRES
 // ============================================
 
 export const shadows = {
+  xs: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
   sm: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -146,78 +155,52 @@ export const shadows = {
 } as const
 
 // ============================================
-// STYLES RÉUTILISABLES
+// STYLES COMMUNS
 // ============================================
 
 export const commonStyles = StyleSheet.create({
-  // Cartes
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.cardPadding,
+  // Inputs
+  input: {
     borderWidth: 1,
     borderColor: colors.border,
-    ...shadows.md,
+    borderRadius: radius.md,
+    padding: spacing.inputPadding,
+    fontSize: typography.fontSize.body,
+    backgroundColor: colors.card,
+    color: colors.foreground,
+    minHeight: spacing.touchTarget,
   },
 
-  // Boutons
+  // Buttons
   button: {
-    minHeight: spacing.touchTarget,
-    paddingHorizontal: spacing.buttonPadding,
     borderRadius: radius.md,
+    padding: spacing.buttonPadding,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: spacing.touchTarget,
   },
   buttonPrimary: {
     backgroundColor: colors.primary,
+  },
+  buttonSecondary: {
+    backgroundColor: colors.secondary,
   },
   buttonText: {
     fontSize: typography.fontSize.body,
     fontWeight: typography.fontWeight.semibold,
     color: '#ffffff',
   },
-
-  // Inputs
-  input: {
-    minHeight: spacing.touchTarget,
-    paddingHorizontal: spacing.inputPadding,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+  buttonSecondaryText: {
     fontSize: typography.fontSize.body,
-    color: colors.foreground,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.secondaryForeground,
   },
 
-  // Listes
-  listItem: {
-    minHeight: 64, // Touch-friendly
-    paddingVertical: spacing.base,
-    paddingHorizontal: spacing.base,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  // Cards
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing.cardPadding,
+    gap: spacing.cardGap,
   },
 })
-
-// ============================================
-// ICÔNES (Lucide React Native)
-// ============================================
-
-export const iconNames = {
-  dashboard: 'LayoutDashboard',
-  livestock: 'PiggyBank',
-  health: 'Stethoscope',
-  reproduction: 'Baby',
-  feeding: 'Calculator',
-  ai: 'Brain',
-  profile: 'User',
-  add: 'Plus',
-  edit: 'Pencil',
-  delete: 'Trash2',
-  success: 'CheckCircle',
-  error: 'AlertCircle',
-  warning: 'AlertTriangle',
-} as const
-

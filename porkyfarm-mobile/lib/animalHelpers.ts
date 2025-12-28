@@ -6,7 +6,10 @@
  */
 
 import type { Animal } from '../services/animals'
-import { mapSexToCategory } from '../services/animals'
+import { mapSexToCategory as mapSexToCategoryFromService } from '../services/animals'
+
+// Réexporter mapSexToCategory pour usage dans les composants
+export { mapSexToCategoryFromService as mapSexToCategory }
 
 // Extension de l'interface Animal pour compatibilité UI
 export interface AnimalUI extends Animal {
@@ -35,7 +38,7 @@ export function animalToUI(animal: Animal): AnimalUI {
   return {
     ...animal,
     identifier: animal.tag_number,
-    category: mapSexToCategory(animal.sex),
+    category: mapSexToCategoryFromService(animal.sex),
     image_url: animal.photo_url,
     weight,
   }
@@ -47,4 +50,3 @@ export function animalToUI(animal: Animal): AnimalUI {
 export function animalsToUI(animals: Animal[]): AnimalUI[] {
   return animals.map(animalToUI)
 }
-

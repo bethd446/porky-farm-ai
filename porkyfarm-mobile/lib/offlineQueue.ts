@@ -16,6 +16,7 @@ export type QueueActionType =
   | 'UPDATE_ANIMAL'
   | 'UPDATE_STOCK'
   | 'CREATE_STOCK'
+  | 'CREATE_COST'
   | 'CREATE_COST_ENTRY'
   | 'UPDATE_COST_ENTRY'
 
@@ -51,7 +52,7 @@ class OfflineQueue {
     const queue = await this.getAll()
     const newAction: QueueAction = {
       ...action,
-      id: `queue_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date().toISOString(),
       status: 'pending',
       retries: 0,
@@ -59,80 +60,55 @@ class OfflineQueue {
 
     queue.push(newAction)
     await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queue))
-
     return newAction.id
   }
 
   /**
-   * Marque une action comme synchronisée
+   * Supprime une action de la queue
    */
-  async markAsSynced(id: string): Promise<void> {
+  async remove(actionId: string): Promise<void> {
     const queue = await this.getAll()
-    const action = queue.find((a) => a.id === id)
-    if (action) {
-      action.status = 'synced'
-      await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queue))
-    }
-  }
-
-  /**
-   * Marque une action comme échouée
-   */
-  async markAsFailed(id: string, error: string): Promise<void> {
-    const queue = await this.getAll()
-    const action = queue.find((a) => a.id === id)
-    if (action) {
-      action.status = 'failed'
-      action.error = error
-      action.retries += 1
-      await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queue))
-    }
+    const filtered = queue.filter((a) => a.id !== actionId)
+    await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(filtered))
   }
 
   /**
    * Marque une action comme en cours de synchronisation
    */
-  async markAsSyncing(id: string): Promise<void> {
+  async markSyncing(actionId: string): Promise<void> {
     const queue = await this.getAll()
-    const action = queue.find((a) => a.id === id)
-    if (action) {
-      action.status = 'syncing'
-      await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queue))
-    }
+    const updated = queue.map((a) => (a.id === actionId ? { ...a, status: 'syncing' as const } : a))
+    await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(updated))
   }
 
   /**
-   * Supprime une action de la queue (après succès ou échec définitif)
+   * Marque une action comme synchronisée
    */
-  async remove(id: string): Promise<void> {
+  async markSynced(actionId: string): Promise<void> {
     const queue = await this.getAll()
-    const filtered = queue.filter((a) => a.id !== id)
-    await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(filtered))
+    const updated = queue.map((a) => (a.id === actionId ? { ...a, status: 'synced' as const } : a))
+    await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(updated))
   }
 
   /**
-   * Récupère les actions en attente
+   * Marque une action comme échouée
    */
-  async getPending(): Promise<QueueAction[]> {
+  async markFailed(actionId: string, error: string): Promise<void> {
     const queue = await this.getAll()
-    return queue.filter((a) => a.status === 'pending' || (a.status === 'failed' && a.retries < 3))
+    const updated = queue.map((a) =>
+      a.id === actionId
+        ? { ...a, status: 'failed' as const, error, retries: a.retries + 1 }
+        : a
+    )
+    await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(updated))
   }
 
   /**
-   * Vide la queue (utile pour les tests ou reset)
+   * Vide la queue
    */
   async clear(): Promise<void> {
     await AsyncStorage.removeItem(QUEUE_STORAGE_KEY)
   }
-
-  /**
-   * Compte les actions en attente
-   */
-  async getPendingCount(): Promise<number> {
-    const pending = await this.getPending()
-    return pending.length
-  }
 }
 
 export const offlineQueue = new OfflineQueue()
-

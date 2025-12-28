@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router'
-import { animalsService, type Animal } from '../../../services/animals'
+import { animalsService, type Animal, mapSexToCategory } from '../../../services/animals'
+import { animalToUI, type AnimalUI } from '../../../lib/animalHelpers'
 
 export default function LivestockScreen() {
   const [animals, setAnimals] = useState<Animal[]>([])
@@ -23,7 +24,8 @@ export default function LivestockScreen() {
     setLoading(false)
   }
 
-  const getCategoryLabel = (category: string) => {
+  const getCategoryLabel = (sex: string) => {
+    const category = mapSexToCategory(sex)
     const labels: Record<string, string> = {
       sow: 'Truie',
       boar: 'Verrat',
@@ -67,17 +69,20 @@ export default function LivestockScreen() {
         <FlatList
           data={animals}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.animalCard}
-              onPress={() => router.push(`/(tabs)/livestock/${item.id}`)}
-            >
-              <Text style={styles.animalName}>{item.name || item.identifier}</Text>
-              <Text style={styles.animalInfo}>
-                {getCategoryLabel(item.category)} • {item.status}
-              </Text>
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => {
+            const animalUI = animalToUI(item)
+            return (
+              <TouchableOpacity
+                style={styles.animalCard}
+                onPress={() => router.push(`/(tabs)/livestock/${item.id}`)}
+              >
+                <Text style={styles.animalName}>{animalUI.name || animalUI.identifier}</Text>
+                <Text style={styles.animalInfo}>
+                  {getCategoryLabel(item.sex)} • {item.status}
+                </Text>
+              </TouchableOpacity>
+            )
+          }}
           refreshing={loading}
           onRefresh={loadAnimals}
         />
@@ -138,4 +143,3 @@ const styles = StyleSheet.create({
     color: '#666',
   },
 })
-

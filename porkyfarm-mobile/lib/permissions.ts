@@ -163,18 +163,17 @@ export async function checkAllPermissions(): Promise<{
   const [camera, mediaLibrary, notifications] = await Promise.all([
     Camera.getCameraPermissionsAsync().then((r) => ({
       granted: r.granted,
-      canAskAgain: r.canAskAgain,
+      canAskAgain: r.canAskAgain ?? true,
     })),
     ImagePicker.getMediaLibraryPermissionsAsync().then((r) => ({
       granted: r.granted,
-      canAskAgain: r.canAskAgain,
+      canAskAgain: r.canAskAgain ?? true,
     })),
     Notifications.getPermissionsAsync().then((r) => ({
       granted: r.granted,
-      canAskAgain: r.canAskAgain,
+      canAskAgain: r.canAskAgain ?? true,
     })),
   ])
 
   return { camera, mediaLibrary, notifications }
 }
-

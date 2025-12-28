@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { colors, spacing, typography, radius } from '../lib/designTokens'
 import { premiumGradients, premiumShadows, premiumStyles } from '../lib/premiumStyles'
 import type { Animal } from '../services/animals'
+import { animalToUI, mapSexToCategory } from '../lib/animalHelpers'
 
 interface AnimalListItemProps {
   animal: Animal
@@ -15,7 +16,7 @@ interface AnimalListItemProps {
   premium?: boolean
 }
 
-const getStatusBadge = (status: string, category: string) => {
+const getStatusBadge = (status: string, sex: string) => {
   // Mapper les statuts DB vers les labels français
   const statusMap: Record<string, { label: string; color: string; bgColor: string }> = {
     active: { label: 'Sain', color: colors.success, bgColor: colors.successLight },
@@ -26,22 +27,13 @@ const getStatusBadge = (status: string, category: string) => {
     deceased: { label: 'Décédé', color: colors.error, bgColor: colors.errorLight },
   }
 
-  // Si c'est un porcelet, afficher "Porcelet" au lieu du statut
+  // Si c'est un porcelet (sex = unknown), afficher "Porcelet" au lieu du statut
+  const category = mapSexToCategory(sex)
   if (category === 'piglet') {
     return { label: 'Porcelet', color: colors.info, bgColor: colors.infoLight }
   }
 
   return statusMap[status] || { label: status, color: colors.mutedForeground, bgColor: colors.muted }
-}
-
-const getCategoryLabel = (category: string) => {
-  const labels: Record<string, string> = {
-    sow: 'Truie',
-    boar: 'Verrat',
-    piglet: 'Porcelet',
-    fattening: 'Porc',
-  }
-  return labels[category] || category
 }
 
 const calculateAge = (birthDate: string | null): string => {
@@ -65,9 +57,10 @@ const calculateAge = (birthDate: string | null): string => {
 }
 
 export function AnimalListItem({ animal, onPress, premium = true }: AnimalListItemProps) {
-  const badge = getStatusBadge(animal.status, animal.category)
+  const animalUI = animalToUI(animal)
+  const badge = getStatusBadge(animal.status, animal.sex)
   const age = calculateAge(animal.birth_date)
-  const identifier = animal.identifier || `Porc #${animal.id.slice(0, 6)}`
+  const identifier = animalUI.identifier || `Porc #${animal.id.slice(0, 6)}`
 
   const getBadgeGradient = (): readonly [string, string, ...string[]] => {
     if (badge.color === colors.success) return premiumGradients.success.icon
@@ -91,8 +84,8 @@ export function AnimalListItem({ animal, onPress, premium = true }: AnimalListIt
         styles.photoContainer,
         premium && premiumShadows.icon.soft,
       ]}>
-        {animal.photo ? (
-          <Image source={{ uri: animal.photo }} style={styles.photo} />
+        {animalUI.image_url ? (
+          <Image source={{ uri: animalUI.image_url }} style={styles.photo} />
         ) : (
           <View style={styles.photoPlaceholder}>
             <Text style={styles.photoPlaceholderText}>🐷</Text>
@@ -105,10 +98,10 @@ export function AnimalListItem({ animal, onPress, premium = true }: AnimalListIt
         <Text style={styles.identifier}>{identifier}</Text>
         <View style={styles.meta}>
           <Text style={styles.metaText}>{age}</Text>
-          {animal.weight && (
+          {animalUI.weight && (
             <>
               <Text style={styles.metaSeparator}> • </Text>
-              <Text style={styles.metaText}>{animal.weight} kg</Text>
+              <Text style={styles.metaText}>{animalUI.weight} kg</Text>
             </>
           )}
         </View>
@@ -206,4 +199,3 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
   },
 })
-

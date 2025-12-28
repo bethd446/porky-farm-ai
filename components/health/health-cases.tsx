@@ -145,7 +145,7 @@ export function HealthCases() {
     const result = symptomSchema.safeParse(symptomData)
     if (!result.success) {
       const fieldErrors: Record<string, string> = {}
-      result.error.errors.forEach((err) => {
+      result.error.errors.forEach((err: { path: (string | number)[], message: string }) => {
         const field = err.path[0] as string
         fieldErrors[field] = err.message
       })

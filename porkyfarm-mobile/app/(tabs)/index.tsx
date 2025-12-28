@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { useRouter } from 'expo-router'
-import { animalsService, type Animal } from '../../services/animals'
+import { animalsService, type Animal, mapSexToCategory } from '../../services/animals'
 import { healthCasesService } from '../../services/healthCases'
 import { gestationsService } from '../../services/gestations'
 import { feedingService } from '../../services/feeding'
@@ -89,7 +89,8 @@ export default function DashboardScreen() {
       if (healthError) throw healthError
 
       const casesList = healthCases || []
-      const activeCases = casesList.filter((c) => c.status === 'active' || c.status === 'monitoring')
+      // Filtrer les cas actifs : status = 'ongoing' (pas 'active' ou 'monitoring')
+      const activeCases = casesList.filter((c) => c.status === 'ongoing')
 
       // Charger les gestations
       const { data: gestations, error: gestationsError } = await gestationsService.getAll()
@@ -100,7 +101,11 @@ export default function DashboardScreen() {
       // Calculer les stats
       const healthyCount = activeAnimals.filter((a) => a.status === 'active').length
       const careRequired = activeCases.length
-      const piglets = activeAnimals.filter((a) => a.category === 'piglet').length
+      // Filtrer les porcelets : sex = 'unknown' (mappé vers 'piglet')
+      const piglets = activeAnimals.filter((a) => {
+        const category = mapSexToCategory(a.sex)
+        return category === 'piglet'
+      }).length
 
       setStats({
         totalAnimals: activeAnimals.length,
@@ -110,206 +115,150 @@ export default function DashboardScreen() {
       })
 
       // Construire les alertes récentes
-      const alerts: typeof recentAlerts = []
-      
-      // Alertes température (cas de santé récents avec sévérité haute)
-      const recentHealthCases = casesList
-        .filter((c) => c.severity === 'high' || c.severity === 'critical')
-        .sort((a, b) => new Date(b.start_date || b.created_at).getTime() - new Date(a.start_date || a.created_at).getTime())
-        .slice(0, 2)
+      const alerts: Array<{
+        type: 'temperature' | 'vaccination' | 'health' | 'gestation'
+        title: string
+        description: string
+        timeAgo: string
+        link: string
+      }> = []
 
-      recentHealthCases.forEach((c) => {
+      // Alertes santé (cas critiques)
+      const criticalCases = casesList
+        .filter((c) => (c.severity === 'high' || c.severity === 'critical') && c.status === 'ongoing')
+        .slice(0, 3)
+      criticalCases.forEach((c) => {
         alerts.push({
-          type: 'temperature',
-          title: 'Alerte Température',
+          type: 'health',
+          title: c.title,
           description: `${c.pig_name || c.pig_identifier || 'Animal'} montre des symptômes de fièvre`,
           timeAgo: formatTimeAgo(c.start_date || c.created_at),
-          link: '/(tabs)/health',
+          link: `/(tabs)/health/${c.id}`,
         })
       })
 
-      // Alerte vaccination (si des animaux nécessitent des soins)
-      if (careRequired > 0) {
+      // Alertes gestations (mise-bas proche)
+      const upcomingGestations = gestationsList
+        .filter((g) => g.status === 'pregnant')
+        .slice(0, 2)
+      upcomingGestations.forEach((g) => {
         alerts.push({
-          type: 'vaccination',
-          title: 'Vaccination Due',
-          description: `${careRequired} porc${careRequired > 1 ? 's' : ''} nécessitent une vaccination cette semaine`,
-          timeAgo: "Aujourd'hui",
-          link: '/(tabs)/health',
+          type: 'gestation',
+          title: 'Mise-bas prévue',
+          description: `${g.sow_name || g.sow_identifier || 'Truie'} - ${formatTimeAgo(g.expected_farrowing_date || g.mating_date)}`,
+          timeAgo: formatTimeAgo(g.expected_farrowing_date || g.mating_date),
+          link: `/(tabs)/reproduction/${g.id}`,
         })
-      }
+      })
 
-      setRecentAlerts(alerts)
-
-      // Animaux récents (3 derniers)
-      const sortedAnimals = animalsList
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 3)
-      setRecentAnimals(sortedAnimals)
-    } catch (err) {
+      setRecentAlerts(alerts.slice(0, 5))
+      setRecentAnimals(activeAnimals.slice(0, 5))
+    } catch (err: any) {
       console.error('Error loading dashboard:', err)
-      setError(err as Error)
+      setError(err)
     } finally {
       setLoading(false)
     }
   }
 
-  const firstName = user?.email?.split('@')[0] || 'Éleveur'
-
   if (loading) {
     return (
-      <View style={dashboardStyles.container}>
-        <View style={dashboardStyles.header}>
-          <Text style={dashboardStyles.greeting}>{getGreeting()}, {firstName} !</Text>
-        </View>
-        <ScrollView style={dashboardStyles.container} contentContainerStyle={dashboardStyles.scrollContent}>
-          <View style={dashboardStyles.section}>
-            {[1, 2, 3].map((i) => (
-              <AnimalCardSkeleton key={i} />
-            ))}
-          </View>
-        </ScrollView>
+      <View style={styles.container}>
+        <LoadingSkeleton />
       </View>
     )
   }
 
   if (error) {
     return (
-      <View style={dashboardStyles.container}>
-        <View style={dashboardStyles.header}>
-          <Text style={dashboardStyles.greeting}>{getGreeting()}, {firstName} !</Text>
-        </View>
-        <ErrorState message={error.message} onRetry={loadDashboardData} />
+      <View style={styles.container}>
+        <ErrorState
+          title="Erreur de chargement"
+          message={error.message || 'Impossible de charger les données du dashboard.'}
+          onRetry={loadDashboardData}
+          retryLabel="Réessayer"
+        />
       </View>
     )
   }
 
-  const healthyPercentage = stats.totalAnimals > 0 ? Math.round((stats.healthyCount / stats.totalAnimals) * 100) : 0
-
   return (
-    <ScrollView style={dashboardStyles.container} contentContainerStyle={dashboardStyles.scrollContent}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <View style={dashboardStyles.header}>
-        <Text style={dashboardStyles.greeting}>{getGreeting()}, {firstName} !</Text>
-        <Text style={dashboardStyles.subtitle}>
-          {stats.totalAnimals > 0
-            ? `Votre élevage compte ${stats.totalAnimals} animal${stats.totalAnimals > 1 ? 'aux' : ''}`
-            : 'Commencez par ajouter vos animaux pour suivre votre élevage'}
-        </Text>
+      <View style={styles.header}>
+        <Text style={styles.greeting}>{getGreeting()}, {user?.email?.split('@')[0] || 'Éleveur'}</Text>
+        <Text style={styles.subtitle}>Vue d'ensemble de votre élevage</Text>
       </View>
 
-      {/* To-Do Liste du jour */}
-      <View style={{ marginBottom: spacing.lg }}>
-        <TodoList maxItems={5} showCompleted={false} />
-      </View>
-
-      {/* Stats Row - 4 cartes */}
-      <View style={dashboardStyles.statsRow}>
-        <TouchableOpacity
-          style={[dashboardStyles.statCard, dashboardStyles.statCardPrimary]}
-          onPress={() => router.push('/(tabs)/livestock')}
-        >
-          <View style={styles.statHeader}>
-            <PiggyBank size={20} color={colors.primary} />
-            <Text style={styles.statPlus}>+12</Text>
-          </View>
-          <Text style={dashboardStyles.statValue}>{stats.totalAnimals}</Text>
-          <Text style={dashboardStyles.statLabel}>Total Porcs</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[dashboardStyles.statCard, dashboardStyles.statCardSuccess]}
-          onPress={() => router.push('/(tabs)/livestock')}
-        >
-          <View style={styles.statHeader}>
-            <Heart size={20} color={colors.success} />
-            <Text style={styles.statPercentage}>{healthyPercentage}%</Text>
-          </View>
-          <Text style={dashboardStyles.statValue}>{stats.healthyCount}</Text>
-          <Text style={dashboardStyles.statLabel}>En Santé</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[dashboardStyles.statCard, dashboardStyles.statCardWarning]}
-          onPress={() => router.push('/(tabs)/health')}
-        >
-          <View style={styles.statHeader}>
-            <AlertTriangle size={20} color={colors.warning} />
-            <Text style={styles.statAlert}>Alerte</Text>
-          </View>
-          <Text style={dashboardStyles.statValue}>{stats.careRequired}</Text>
-          <Text style={dashboardStyles.statLabel}>Soins Requis</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[dashboardStyles.statCard, dashboardStyles.statCardInfo]}
-          onPress={() => router.push('/(tabs)/livestock')}
-        >
-          <View style={styles.statHeader}>
-            <Baby size={20} color={colors.info} />
-            <Text style={styles.statNew}>Nouveau</Text>
-          </View>
-          <Text style={dashboardStyles.statValue}>{stats.piglets}</Text>
-          <Text style={dashboardStyles.statLabel}>Porcelets</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Actions Rapides */}
-      <View style={dashboardStyles.section}>
-        <Text style={dashboardStyles.sectionTitle}>Actions Rapides</Text>
-        <View style={dashboardStyles.quickActionsRow}>
-          <TouchableOpacity
-            style={[dashboardStyles.quickActionButton, dashboardStyles.quickActionButtonPrimary]}
-            onPress={() => router.push('/(tabs)/livestock/add')}
-          >
-            <Plus size={24} color="#ffffff" style={dashboardStyles.quickActionIcon} />
-            <Text style={[dashboardStyles.quickActionText, dashboardStyles.quickActionTextPrimary]}>
-              Ajouter
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={dashboardStyles.quickActionButton}
-            onPress={() => router.push('/(tabs)/health')}
-          >
-            <Syringe size={24} color={colors.foreground} style={dashboardStyles.quickActionIcon} />
-            <Text style={dashboardStyles.quickActionText}>Vaccin</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={dashboardStyles.quickActionButton}
-            onPress={() => router.push('/(tabs)/feeding')}
-          >
-            <Package size={24} color={colors.foreground} style={dashboardStyles.quickActionIcon} />
-            <Text style={dashboardStyles.quickActionText}>Stock</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={dashboardStyles.quickActionButton}
-            onPress={() => router.push('/(tabs)/costs')}
-          >
-            <FileText size={24} color={colors.foreground} style={dashboardStyles.quickActionIcon} />
-            <Text style={dashboardStyles.quickActionText}>Registres</Text>
-          </TouchableOpacity>
+      {/* Stats Cards */}
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <PiggyBank size={24} color={colors.primary} />
+          <Text style={styles.statValue}>{stats.totalAnimals}</Text>
+          <Text style={styles.statLabel}>Total porcs</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Heart size={24} color={colors.success} />
+          <Text style={styles.statValue}>{stats.healthyCount}</Text>
+          <Text style={styles.statLabel}>En santé</Text>
+        </View>
+        <View style={styles.statCard}>
+          <AlertTriangle size={24} color={colors.warning} />
+          <Text style={styles.statValue}>{stats.careRequired}</Text>
+          <Text style={styles.statLabel}>Soins requis</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Baby size={24} color={colors.info} />
+          <Text style={styles.statValue}>{stats.piglets}</Text>
+          <Text style={styles.statLabel}>Porcelets</Text>
         </View>
       </View>
 
-      {/* Assistant IA Banner */}
-      <View style={dashboardStyles.section}>
-        <AiAssistantBanner onPress={() => router.push('/(tabs)/ai-assistant')} />
+      {/* Quick Actions */}
+      <View style={styles.quickActions}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push('/(tabs)/livestock/add')}
+        >
+          <Plus size={20} color={colors.primary} />
+          <Text style={styles.actionButtonText}>Ajouter</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push('/(tabs)/health/add')}
+        >
+          <Syringe size={20} color={colors.success} />
+          <Text style={styles.actionButtonText}>Vaccin</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push('/(tabs)/feeding/add-stock')}
+        >
+          <Package size={20} color={colors.warning} />
+          <Text style={styles.actionButtonText}>Stock</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push('/(tabs)/reports')}
+        >
+          <FileText size={20} color={colors.info} />
+          <Text style={styles.actionButtonText}>Rapports</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Alertes Récentes */}
-      <View style={dashboardStyles.section}>
-        <View style={dashboardStyles.sectionHeader}>
-          <Text style={dashboardStyles.sectionTitle}>Alertes Récentes</Text>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/health')}>
-            <Text style={dashboardStyles.sectionLink}>Tout Voir</Text>
-          </TouchableOpacity>
-        </View>
-        {recentAlerts.length === 0 ? (
-          <View style={styles.emptyAlerts}>
-            <Text style={styles.emptyAlertsText}>Aucune alerte récente</Text>
+      {/* AI Assistant Banner */}
+      <AiAssistantBanner />
+
+      {/* Recent Alerts */}
+      {recentAlerts.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Alertes Récentes</Text>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/health')}>
+              <Text style={styles.sectionLink}>Tout voir</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          recentAlerts.map((alert, index) => (
+          {recentAlerts.map((alert, index) => (
             <AlertCard
               key={index}
               type={alert.type}
@@ -318,73 +267,125 @@ export default function DashboardScreen() {
               timeAgo={alert.timeAgo}
               onPress={() => router.push(alert.link as any)}
             />
-          ))
-        )}
-      </View>
-
-      {/* Animaux Récents */}
-      <View style={dashboardStyles.section}>
-        <View style={dashboardStyles.sectionHeader}>
-          <Text style={dashboardStyles.sectionTitle}>Animaux Récents</Text>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/livestock')}>
-            <Text style={dashboardStyles.sectionLink}>Voir Tout</Text>
-          </TouchableOpacity>
+          ))}
         </View>
-        {recentAnimals.length === 0 ? (
-          <EmptyState
-            emoji="🐷"
-            title="Aucun animal enregistré"
-            description="Commencez par ajouter vos premiers animaux pour suivre votre élevage."
-            actionLabel="Ajouter un animal"
-            onAction={() => router.push('/(tabs)/livestock/add')}
-          />
-        ) : (
-          recentAnimals.map((animal) => (
+      )}
+
+      {/* Recent Animals */}
+      {recentAnimals.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Animaux Récents</Text>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/livestock')}>
+              <Text style={styles.sectionLink}>Voir tout</Text>
+            </TouchableOpacity>
+          </View>
+          {recentAnimals.map((animal) => (
             <AnimalListItem
               key={animal.id}
               animal={animal}
               onPress={() => router.push(`/(tabs)/livestock/${animal.id}`)}
             />
-          ))
-        )}
+          ))}
+        </View>
+      )}
+
+      {/* Todo List */}
+      <View style={styles.section}>
+        <TodoList />
       </View>
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  statHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    padding: spacing.lg,
+    paddingTop: spacing.xxl,
+    backgroundColor: colors.card,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  greeting: {
+    fontSize: typography.fontSize.h2,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.foreground,
     marginBottom: spacing.xs,
   },
-  statPlus: {
-    fontSize: typography.fontSize.caption,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.success,
-  },
-  statPercentage: {
-    fontSize: typography.fontSize.caption,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.success,
-  },
-  statAlert: {
-    fontSize: typography.fontSize.caption,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.warning,
-  },
-  statNew: {
-    fontSize: typography.fontSize.caption,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.info,
-  },
-  emptyAlerts: {
-    padding: spacing.base,
-    alignItems: 'center',
-  },
-  emptyAlertsText: {
-    fontSize: typography.fontSize.bodySmall,
+  subtitle: {
+    fontSize: typography.fontSize.body,
     color: colors.mutedForeground,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: spacing.md,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statValue: {
+    fontSize: typography.fontSize.h2,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.foreground,
+    marginTop: spacing.xs,
+  },
+  statLabel: {
+    fontSize: typography.fontSize.caption,
+    color: colors.mutedForeground,
+    marginTop: spacing.xs / 2,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: spacing.md,
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  actionButtonText: {
+    fontSize: typography.fontSize.caption,
+    color: colors.foreground,
+    fontWeight: typography.fontWeight.medium,
+  },
+  section: {
+    padding: spacing.lg,
+    marginTop: spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: typography.fontSize.h3,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.foreground,
+  },
+  sectionLink: {
+    fontSize: typography.fontSize.body,
+    color: colors.primary,
+    fontWeight: typography.fontWeight.medium,
   },
 })
