@@ -4,19 +4,19 @@ import { useRouter } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { animalsService } from '../../../services/animals'
 import type { AnimalInsert } from '../../../services/animals'
+import { requestMediaLibraryPermissions, requestCameraPermissions } from '../../../lib/permissions'
 
 export default function AddAnimalScreen() {
   const [formData, setFormData] = useState<AnimalInsert>({
     identifier: '',
-    name: '',
+    name: null,
     category: 'fattening',
-    breed: '',
-    birth_date: '',
+    breed: null,
+    birth_date: null,
     weight: undefined,
     status: 'active',
-    health_status: 'healthy',
-    notes: '',
-    photo: null,
+    notes: null,
+    image_url: null,
   })
   const [photo, setPhoto] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -97,7 +97,7 @@ export default function AddAnimalScreen() {
 
   const removePhoto = () => {
     setPhoto(null)
-    setFormData({ ...formData, photo: null })
+    setFormData({ ...formData, image_url: null })
   }
 
   const handleSubmit = async () => {
@@ -113,15 +113,8 @@ export default function AddAnimalScreen() {
 
     setLoading(true)
     try {
-      // Convertir photo en image_url pour la table pigs
-      const animalData = {
-        ...formData,
-        image_url: photo || null,
-      }
-      // Supprimer photo si présent (pas dans AnimalInsert)
-      delete (animalData as any).photo
-
-      const { data, error } = await animalsService.create(animalData)
+      // formData contient déjà image_url (pas besoin de conversion)
+      const { data, error } = await animalsService.create(formData)
       if (error) {
         console.error('Error creating animal:', error)
         Alert.alert(
