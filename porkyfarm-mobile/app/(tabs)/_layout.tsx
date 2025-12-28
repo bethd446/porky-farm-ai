@@ -11,6 +11,7 @@ function TabIcon({ name, color }: { name: string; color: string }) {
     baby: '👶',
     calculator: '📊',
     ai: '🤖',
+    costs: '💰',
   }
   return <Text style={{ color, fontSize: 20 }}>{icons[name] || '📱'}</Text>
 }
@@ -75,6 +76,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <TabIcon name="ai" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="costs/index"
+        options={{
+          title: 'Coûts',
+          tabBarIcon: ({ color }) => <TabIcon name="calculator" color={color} />,
+        }}
+      />
       {/* Masquer les routes dynamiques et add de la tab bar */}
       <Tabs.Screen
         name="livestock/[id]"
@@ -115,6 +123,12 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="reproduction/[id]"
+        options={{
+          href: null, // Masquer de la tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="costs/add"
         options={{
           href: null, // Masquer de la tab bar
         }}
