@@ -98,8 +98,8 @@ export default function DashboardScreen() {
       </View>
 
       <View style={styles.content}>
-        {/* Widget Météo */}
-        <WeatherWidget />
+        {/* Widget Météo - Temporairement désactivé en attente de stabilisation backend */}
+        {/* <WeatherWidget /> */}
 
         {/* Stats Grid - Vue d'ensemble chiffrée */}
         <View style={styles.statsGrid}>
