@@ -65,7 +65,7 @@ export function ChatBot({ initialContext, userRole = "farmer" }: ChatBotProps) {
     },
   } as any) // Type assertion temporaire pour compatibilité API
 
-  const isLoading = status === "in_progress" || status === "streaming"
+  const isLoading = status === "submitted" || status === "streaming"
 
   return (
     <Card className="flex flex-col h-[600px]">
