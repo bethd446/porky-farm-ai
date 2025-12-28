@@ -123,11 +123,11 @@ export default function AddHealthCaseScreen() {
           )}
         </View>
 
-        <Text style={styles.label}>Problème *</Text>
+        <Text style={styles.label}>Titre du cas *</Text>
         <TextInput
           style={styles.input}
-          value={formData.issue}
-          onChangeText={(text) => setFormData({ ...formData, issue: text })}
+          value={formData.title}
+          onChangeText={(text) => setFormData({ ...formData, title: text })}
           placeholder="Ex: Fièvre, Toux..."
         />
 
@@ -141,21 +141,21 @@ export default function AddHealthCaseScreen() {
           numberOfLines={4}
         />
 
-        <Text style={styles.label}>Priorité</Text>
+        <Text style={styles.label}>Sévérité</Text>
         <View style={styles.priorityContainer}>
-          {(['low', 'medium', 'high'] as const).map((priority) => (
+          {(['low', 'medium', 'high', 'critical'] as const).map((severity) => (
             <TouchableOpacity
-              key={priority}
-              style={[styles.priorityButton, formData.priority === priority && styles.priorityButtonActive]}
-              onPress={() => setFormData({ ...formData, priority })}
+              key={severity}
+              style={[styles.priorityButton, formData.severity === severity && styles.priorityButtonActive]}
+              onPress={() => setFormData({ ...formData, severity })}
             >
               <Text
                 style={[
                   styles.priorityButtonText,
-                  formData.priority === priority && styles.priorityButtonTextActive,
+                  formData.severity === severity && styles.priorityButtonTextActive,
                 ]}
               >
-                {priority === 'low' ? 'Faible' : priority === 'medium' ? 'Moyenne' : 'Haute'}
+                {severity === 'low' ? 'Faible' : severity === 'medium' ? 'Moyenne' : severity === 'high' ? 'Haute' : 'Critique'}
               </Text>
             </TouchableOpacity>
           ))}

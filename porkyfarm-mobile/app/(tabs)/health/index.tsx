@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useRouter } from 'expo-router'
 import { healthCasesService, type HealthCase } from '../../../services/healthCases'
 
-const getPriorityColor = (priority: string) => {
-  switch (priority) {
+const getSeverityColor = (severity: string | null) => {
+  switch (severity) {
+    case 'critical':
+      return '#dc2626'
     case 'high':
       return '#ef4444'
     case 'medium':
@@ -18,9 +20,10 @@ const getPriorityColor = (priority: string) => {
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
-    active: 'Actif',
+    ongoing: 'En cours',
     resolved: 'Résolu',
-    monitoring: 'Surveillance',
+    scheduled: 'Planifié',
+    chronic: 'Chronique',
   }
   return labels[status] || status
 }
@@ -82,7 +85,7 @@ export default function HealthScreen() {
               style={styles.caseCard}
               onPress={() => {
                 // TODO: Implémenter l'écran de détail health/[id]
-                Alert.alert('Détail du cas', `Cas: ${item.issue}\nAnimal: ${item.animal_name || 'Inconnu'}\nDescription: ${item.description || 'Aucune'}`)
+                Alert.alert('Détail du cas', `Cas: ${item.title}\nAnimal: ${item.pig_name || item.pig_identifier || 'Inconnu'}\nDescription: ${item.description || 'Aucune'}`)
               }}
             >
               <View style={styles.caseHeader}>
