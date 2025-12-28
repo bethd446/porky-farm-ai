@@ -8,12 +8,11 @@ import { useSyncQueue } from '../../../hooks/useSyncQueue'
 
 export default function AddHealthCaseScreen() {
   const [formData, setFormData] = useState<HealthCaseInsert>({
-    animal_id: '',
-    animal_name: null,
-    issue: '',
+    pig_id: '',
+    title: '',
     description: '',
-    priority: 'medium',
-    status: 'active',
+    severity: 'medium',
+    status: 'ongoing',
     start_date: new Date().toISOString().split('T')[0],
   })
   const [animals, setAnimals] = useState<Animal[]>([])
@@ -34,14 +33,10 @@ export default function AddHealthCaseScreen() {
   }
 
   const handleSubmit = async () => {
-    if (!formData.animal_id || !formData.issue || !formData.description) {
+    if (!formData.pig_id || !formData.title || !formData.description) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires')
       return
     }
-
-    // Récupérer le nom de l'animal sélectionné
-    const selectedAnimal = animals.find((a) => a.id === formData.animal_id)
-    const animalName = selectedAnimal?.name || selectedAnimal?.identifier || null
 
     setLoading(true)
     try {
@@ -49,10 +44,7 @@ export default function AddHealthCaseScreen() {
         // Mode offline : enregistrer dans la queue
         await offlineQueue.enqueue({
           type: 'CREATE_HEALTH_CASE',
-          payload: {
-            ...formData,
-            animal_name: animalName,
-          },
+          payload: formData,
           endpoint: '/api/health-cases',
           method: 'POST',
         })
@@ -64,20 +56,14 @@ export default function AddHealthCaseScreen() {
         )
       } else {
         // Mode online : envoi direct
-        const { error } = await healthCasesService.create({
-          ...formData,
-          animal_name: animalName,
-        })
+        const { error } = await healthCasesService.create(formData)
 
         if (error) {
           // Si erreur réseau, essayer d'enregistrer dans la queue
           if (error.message?.includes('réseau') || error.message?.includes('network')) {
             await offlineQueue.enqueue({
               type: 'CREATE_HEALTH_CASE',
-              payload: {
-                ...formData,
-                animal_name: animalName,
-              },
+              payload: formData,
               endpoint: '/api/health-cases',
               method: 'POST',
             })
