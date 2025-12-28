@@ -198,6 +198,11 @@ export default function DashboardScreen() {
         </Text>
       </View>
 
+      {/* To-Do Liste du jour */}
+      <View style={{ marginBottom: spacing.lg }}>
+        <TodoList maxItems={5} showCompleted={false} />
+      </View>
+
       {/* Stats Row - 4 cartes */}
       <View style={dashboardStyles.statsRow}>
         <TouchableOpacity
