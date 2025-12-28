@@ -1,23 +1,16 @@
 /**
  * Service pour les transactions financières (Coûts & Finances)
  * Utilise la table Supabase `transactions`
+ * 
+ * Colonnes : type ('income','expense'),
+ *            category ('sale','feed','veterinary','equipment','labor','other'),
+ *            amount, description, transaction_date
  */
 
 import { supabase } from './supabase/client'
 
 export type CostType = 'expense' | 'income'
-export type CostCategory =
-  | 'pig_purchase'
-  | 'feed'
-  | 'vitamins'
-  | 'medication'
-  | 'transport'
-  | 'veterinary'
-  | 'labor'
-  | 'misc'
-  | 'sale'
-  | 'subsidy'
-  | 'other'
+export type CostCategory = 'sale' | 'feed' | 'veterinary' | 'equipment' | 'labor' | 'other'
 
 export interface CostEntry {
   id: string
@@ -25,7 +18,7 @@ export interface CostEntry {
   type: CostType
   category: CostCategory
   amount: number
-  description?: string | null
+  description: string | null
   transaction_date: string
   pig_id?: string | null
   notes?: string | null
@@ -36,20 +29,20 @@ export interface CostEntryInsert {
   type: CostType
   category: CostCategory
   amount: number
-  description?: string
+  description?: string | null
   transaction_date: string
-  pig_id?: string
-  notes?: string
+  pig_id?: string | null
+  notes?: string | null
 }
 
 export interface CostEntryUpdate {
   type?: CostType
   category?: CostCategory
   amount?: number
-  description?: string
+  description?: string | null
   transaction_date?: string
-  pig_id?: string
-  notes?: string
+  pig_id?: string | null
+  notes?: string | null
 }
 
 export interface CostSummary {
@@ -71,7 +64,7 @@ export interface CostsService {
     id: string,
     updates: CostEntryUpdate
   ) => Promise<{ data: CostEntry | null; error: Error | null }>
-  delete: (id: string) => Promise<{ data: null; error: Error | null }>
+  delete: (id: string) => Promise<{ error: Error | null }>
   getSummary: (
     period?: 'week' | 'month' | 'year'
   ) => Promise<{ data: CostSummary | null; error: Error | null }>
@@ -191,7 +184,7 @@ export const costsService: CostsService = {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!user) return { data: null, error: new Error('Non authentifié') }
+      if (!user) return { error: new Error('Non authentifié') }
 
       const { error } = await supabase
         .from('transactions')
@@ -201,13 +194,13 @@ export const costsService: CostsService = {
 
       if (error) {
         console.error('[Costs] delete error:', error)
-        return { data: null, error: error as Error }
+        return { error: error as Error }
       }
 
-      return { data: null, error: null }
+      return { error: null }
     } catch (err) {
       console.error('[Costs] delete exception:', err)
-      return { data: null, error: err as Error }
+      return { error: err as Error }
     }
   },
 
@@ -265,4 +258,3 @@ export const costsService: CostsService = {
     }
   },
 }
-

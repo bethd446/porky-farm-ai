@@ -2,21 +2,30 @@ import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
-import { animalsService } from '../../../services/animals'
-import type { AnimalInsert } from '../../../services/animals'
+import { animalsService, mapCategoryToSex, type AnimalInsert } from '../../../services/animals'
 import { requestMediaLibraryPermission, requestCameraPermission } from '../../../lib/permissions'
 
 export default function AddAnimalScreen() {
-  const [formData, setFormData] = useState<AnimalInsert>({
-    identifier: '',
+  const [formData, setFormData] = useState<{
+    tag_number: string
+    name: string | null
+    category: 'sow' | 'boar' | 'piglet' | 'fattening' // Pour l'UI
+    breed: string | null
+    birth_date: string | null
+    weight: number | null // Pour l'UI, sera converti en weight_history
+    status: string
+    notes: string | null
+    photo_url: string | null
+  }>({
+    tag_number: '',
     name: null,
     category: 'fattening',
     breed: null,
     birth_date: null,
-    weight: undefined,
+    weight: null,
     status: 'active',
     notes: null,
-    image_url: null,
+    photo_url: null,
   })
   const [photo, setPhoto] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -26,7 +35,6 @@ export default function AddAnimalScreen() {
   const handlePickImage = async () => {
     const permission = await requestMediaLibraryPermission()
     if (!permission.granted) {
-      // Le message d'erreur est déjà affiché dans requestMediaLibraryPermissions
       return
     }
 
@@ -41,14 +49,13 @@ export default function AddAnimalScreen() {
       if (!result.canceled && result.assets[0]) {
         setUploadingPhoto(true)
         const asset = result.assets[0]
-        // Convertir l'image en base64 (comme le web)
         const response = await fetch(asset.uri)
         const blob = await response.blob()
         const reader = new FileReader()
         reader.onloadend = () => {
           const base64 = reader.result as string
           setPhoto(base64)
-          setFormData({ ...formData, image_url: base64 })
+          setFormData({ ...formData, photo_url: base64 })
           setUploadingPhoto(false)
         }
         reader.readAsDataURL(blob)
@@ -63,7 +70,6 @@ export default function AddAnimalScreen() {
   const handleTakePhoto = async () => {
     const permission = await requestCameraPermission()
     if (!permission.granted) {
-      // Le message d'erreur est déjà affiché dans requestCameraPermissions
       return
     }
 
@@ -83,7 +89,7 @@ export default function AddAnimalScreen() {
         reader.onloadend = () => {
           const base64 = reader.result as string
           setPhoto(base64)
-          setFormData({ ...formData, image_url: base64 })
+          setFormData({ ...formData, photo_url: base64 })
           setUploadingPhoto(false)
         }
         reader.readAsDataURL(blob)
@@ -97,12 +103,12 @@ export default function AddAnimalScreen() {
 
   const removePhoto = () => {
     setPhoto(null)
-    setFormData({ ...formData, image_url: null })
+    setFormData({ ...formData, photo_url: null })
   }
 
   const handleSubmit = async () => {
-    if (!formData.identifier) {
-      Alert.alert('Erreur', 'L\'identifiant est obligatoire')
+    if (!formData.tag_number) {
+      Alert.alert('Erreur', 'Le numéro d\'identification est obligatoire')
       return
     }
 
@@ -113,8 +119,25 @@ export default function AddAnimalScreen() {
 
     setLoading(true)
     try {
-      // formData contient déjà image_url (pas besoin de conversion)
-      const { data, error } = await animalsService.create(formData)
+      // Mapper category vers sex et préparer weight_history
+      const sex = mapCategoryToSex(formData.category)
+      const weightHistory = formData.weight
+        ? [{ date: new Date().toISOString().split('T')[0], weight: formData.weight }]
+        : null
+
+      // Créer l'objet AnimalInsert avec les bonnes colonnes
+      const animalData: AnimalInsert = {
+        tag_number: formData.tag_number,
+        birth_date: formData.birth_date || null,
+        sex,
+        breed: formData.breed || null,
+        status: formData.status || 'active',
+        weight_history: weightHistory,
+        photo_url: formData.photo_url || null,
+        notes: formData.notes || null,
+      }
+
+      const { data, error } = await animalsService.create(animalData)
       if (error) {
         console.error('Error creating animal:', error)
         Alert.alert(
@@ -151,7 +174,7 @@ export default function AddAnimalScreen() {
             <View style={styles.photoPreview}>
               <Image source={{ uri: photo }} style={styles.photoImage} />
               <TouchableOpacity style={styles.removePhotoButton} onPress={removePhoto}>
-                <Text style={styles.removePhotoText}>✕</Text>
+                <Text style={styles.removePhotoText}>×</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -166,39 +189,31 @@ export default function AddAnimalScreen() {
               onPress={handlePickImage}
               disabled={uploadingPhoto}
             >
-              {uploadingPhoto ? (
-                <ActivityIndicator size="small" color="#2d6a4f" />
-              ) : (
-                <Text style={styles.photoButtonText}>📁 Galerie</Text>
-              )}
+              <Text style={styles.photoButtonText}>📁 Galerie</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.photoButton, uploadingPhoto && styles.photoButtonDisabled]}
               onPress={handleTakePhoto}
               disabled={uploadingPhoto}
             >
-              {uploadingPhoto ? (
-                <ActivityIndicator size="small" color="#2d6a4f" />
-              ) : (
-                <Text style={styles.photoButtonText}>📷 Prendre photo</Text>
-              )}
+              <Text style={styles.photoButtonText}>📷 Prendre photo</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <Text style={styles.label}>Identifiant *</Text>
+        <Text style={styles.label}>Numéro d'identification *</Text>
         <TextInput
           style={styles.input}
-          value={formData.identifier}
-          onChangeText={(text) => setFormData({ ...formData, identifier: text })}
+          value={formData.tag_number}
+          onChangeText={(text) => setFormData({ ...formData, tag_number: text })}
           placeholder="Ex: TRUIE-001"
         />
 
-        <Text style={styles.label}>Nom</Text>
+        <Text style={styles.label}>Nom (optionnel)</Text>
         <TextInput
           style={styles.input}
           value={formData.name || ''}
-          onChangeText={(text) => setFormData({ ...formData, name: text })}
+          onChangeText={(text) => setFormData({ ...formData, name: text || null })}
           placeholder="Ex: Bella"
         />
 
@@ -223,7 +238,7 @@ export default function AddAnimalScreen() {
         <TextInput
           style={styles.input}
           value={formData.breed || ''}
-          onChangeText={(text) => setFormData({ ...formData, breed: text })}
+          onChangeText={(text) => setFormData({ ...formData, breed: text || null })}
           placeholder="Ex: Large White"
         />
 
@@ -231,7 +246,7 @@ export default function AddAnimalScreen() {
         <TextInput
           style={styles.input}
           value={formData.birth_date || ''}
-          onChangeText={(text) => setFormData({ ...formData, birth_date: text })}
+          onChangeText={(text) => setFormData({ ...formData, birth_date: text || null })}
           placeholder="YYYY-MM-DD"
         />
 
@@ -240,7 +255,7 @@ export default function AddAnimalScreen() {
           style={styles.input}
           value={formData.weight?.toString() || ''}
           onChangeText={(text) =>
-            setFormData({ ...formData, weight: text ? parseFloat(text) : undefined })
+            setFormData({ ...formData, weight: text ? parseFloat(text) : null })
           }
           keyboardType="numeric"
           placeholder="Ex: 150"
@@ -250,7 +265,7 @@ export default function AddAnimalScreen() {
         <TextInput
           style={[styles.input, styles.textArea]}
           value={formData.notes || ''}
-          onChangeText={(text) => setFormData({ ...formData, notes: text })}
+          onChangeText={(text) => setFormData({ ...formData, notes: text || null })}
           placeholder="Notes supplémentaires..."
           multiline
           numberOfLines={3}

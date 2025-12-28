@@ -19,8 +19,15 @@ export interface OnboardingData {
   mainGoal?: 'health' | 'reproduction' | 'costs' | 'all'
 }
 
+export interface OnboardingStatus {
+  hasCompleted: boolean
+  onboardingData?: any
+  subscriptionTier?: string
+  error?: Error | null
+}
+
 export interface OnboardingService {
-  checkOnboardingStatus: () => Promise<{ hasCompleted: boolean; error?: Error | null }>
+  checkOnboardingStatus: () => Promise<OnboardingStatus>
   markOnboardingCompleted: () => Promise<{ error: Error | null }>
   saveOnboardingData: (data: OnboardingData) => Promise<{ error: Error | null }>
   completeOnboarding: (data: OnboardingData) => Promise<{ error: Error | null }>
@@ -36,6 +43,7 @@ export const onboardingService: OnboardingService = {
       } = await supabase.auth.getUser()
 
       if (authError) {
+        console.warn('[onboardingService] Auth error:', authError.message)
         return { hasCompleted: false, error: authError as Error }
       }
 
@@ -43,11 +51,11 @@ export const onboardingService: OnboardingService = {
         return { hasCompleted: false, error: new Error('Non authentifié') }
       }
 
-      // Requête Supabase : select has_completed_onboarding depuis profiles
-      // La table profiles existe, la colonne has_completed_onboarding doit exister
+      // Requête Supabase : SELECT id, has_completed_onboarding, onboarding_data, subscription_tier
+      // FROM public.profiles WHERE id = auth.uid()
       const { data, error } = await supabase
         .from('profiles')
-        .select('has_completed_onboarding')
+        .select('has_completed_onboarding, onboarding_data, subscription_tier')
         .eq('id', user.id)
         .single()
 
@@ -59,19 +67,25 @@ export const onboardingService: OnboardingService = {
 
         // Erreur réseau
         if (error.message?.includes('network') || error.message?.includes('fetch') || error.message?.includes('timeout')) {
+          console.warn('[onboardingService] Network error:', error.message)
           return { hasCompleted: false, error: new Error('Erreur réseau. Vérifiez votre connexion.') }
         }
 
-        // Autre erreur Supabase (y compris PGRST205 si colonne manquante)
-        // On retourne une erreur pour que le guard puisse gérer
+        // Autre erreur Supabase
+        console.warn('[onboardingService] Supabase error:', error.message)
         return { hasCompleted: false, error: error as Error }
       }
 
-      // Succès : retourner le statut
-      const hasCompleted = Boolean(data?.has_completed_onboarding)
-      return { hasCompleted, error: null }
+      // Succès : retourner le statut avec données
+      return {
+        hasCompleted: Boolean(data?.has_completed_onboarding),
+        onboardingData: data?.onboarding_data || null,
+        subscriptionTier: data?.subscription_tier || 'free',
+        error: null,
+      }
     } catch (err: any) {
       // Exception non catchée
+      console.warn('[onboardingService] Exception:', err?.message || 'Erreur inattendue')
       const error = err instanceof Error ? err : new Error('Erreur inattendue lors de la vérification')
       return { hasCompleted: false, error }
     }
@@ -88,6 +102,8 @@ export const onboardingService: OnboardingService = {
         return { error: new Error('Non authentifié') }
       }
 
+      // UPDATE public.profiles SET has_completed_onboarding = true, updated_at = now()
+      // WHERE id = auth.uid()
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -97,11 +113,13 @@ export const onboardingService: OnboardingService = {
         .eq('id', user.id)
 
       if (error) {
+        console.warn('[onboardingService] Error marking onboarding completed:', error.message)
         return { error: error as Error }
       }
 
       return { error: null }
     } catch (err: any) {
+      console.warn('[onboardingService] Exception marking onboarding completed:', err?.message)
       return { error: err instanceof Error ? err : new Error('Erreur lors de la mise à jour') }
     }
   },
@@ -113,17 +131,23 @@ export const onboardingService: OnboardingService = {
       } = await supabase.auth.getUser()
       if (!user) return { error: new Error('Non authentifié') }
 
+      // UPDATE profiles SET onboarding_data = data, has_completed_onboarding = true
       const { error } = await supabase
         .from('profiles')
         .update({
           onboarding_data: data as any,
+          has_completed_onboarding: true,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id)
 
-      if (error) return { error: error as Error }
+      if (error) {
+        console.warn('[onboardingService] Error saving onboarding data:', error.message)
+        return { error: error as Error }
+      }
       return { error: null }
     } catch (err) {
+      console.warn('[onboardingService] Exception saving onboarding data:', err)
       return { error: err as Error }
     }
   },
@@ -156,17 +180,17 @@ export const onboardingService: OnboardingService = {
           }[category]
 
           for (let i = 1; i <= count; i++) {
-            const identifier = `${categoryPrefix}-${String(i).padStart(3, '0')}`
+            const tagNumber = `${categoryPrefix}-${String(i).padStart(3, '0')}`
+            // Mapper category vers sex pour la table pigs
+            const sex = category === 'sow' ? 'female' : category === 'boar' ? 'male' : 'unknown'
+            
             await animalsService.create({
-              identifier,
-              category,
+              tag_number: tagNumber,
+              sex,
               breed: data.breeds[0] || null,
               status: 'active',
-              name: null,
               birth_date: null,
-              weight: null,
               notes: null,
-              image_url: null,
             })
           }
         }
@@ -175,16 +199,10 @@ export const onboardingService: OnboardingService = {
       // 3. Créer les tâches récurrentes quotidiennes
       await tasksService.createRecurringDailyTasks(data)
 
-      // 4. Marquer l'onboarding comme complété
-      const { error: updateError } = await onboardingService.markOnboardingCompleted()
-
-      if (updateError) return { error: updateError }
-      
-      // 5. Sauvegarder aussi les données d'onboarding
-      await onboardingService.saveOnboardingData(data)
-
+      // 4. Marquer l'onboarding comme complété (déjà fait dans saveOnboardingData)
       return { error: null }
     } catch (err) {
+      console.warn('[onboardingService] Exception completing onboarding:', err)
       return { error: err as Error }
     }
   },

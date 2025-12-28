@@ -15,6 +15,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
   const [hasTriedOnboardingCheck, setHasTriedOnboardingCheck] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isCheckingRef = useRef(false) // Protection contre appels multiples
+  const hasLoggedOnce = useRef(false) // Pour logger une seule fois
 
   // Fonction checkOnboarding avec toutes les protections
   const checkOnboarding = async () => {
@@ -28,6 +29,12 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       setHasTriedOnboardingCheck(true)
       isCheckingRef.current = false
       return
+    }
+
+    // Logger une seule fois
+    if (!hasLoggedOnce.current) {
+      console.log('[OnboardingGuard] Déclenchement checkOnboarding')
+      hasLoggedOnce.current = true
     }
 
     isCheckingRef.current = true
@@ -47,7 +54,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       const result = await Promise.race([
         onboardingPromise,
         timeoutPromise,
-      ]) as { hasCompleted: boolean; error?: Error | null }
+      ]) as { hasCompleted: boolean; onboardingData?: any; subscriptionTier?: string; error?: Error | null }
 
       // Nettoyage timeout
       if (timeoutRef.current) {
@@ -61,6 +68,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
         setNeedsOnboarding(false)
       } else {
         // Si succès : setNeedsOnboarding selon hasCompleted
+        console.log('[OnboardingGuard] Onboarding status:', result.hasCompleted ? 'completed' : 'not completed')
         setNeedsOnboarding(!result.hasCompleted)
       }
     } catch (err: any) {
@@ -92,6 +100,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       setHasTriedOnboardingCheck(true) // Marquer comme essayé pour éviter re-tentative
       setOnboardingError(null)
       isCheckingRef.current = false
+      hasLoggedOnce.current = false // Reset pour prochaine connexion
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, hasTriedOnboardingCheck])
@@ -111,6 +120,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       // Pour authError, on peut réessayer l'auth
       setOnboardingError(null)
       isCheckingRef.current = false
+      hasLoggedOnce.current = false // Reset pour permettre nouveau log
       // Ne pas remettre hasTriedOnboardingCheck à false ici
       await retryAuth()
     } else if (onboardingError) {
@@ -118,6 +128,7 @@ function OnboardingGuard({ children }: { children: ReactNode }) {
       // MAIS on ne remet PAS hasTriedOnboardingCheck à false pour éviter boucles
       setOnboardingError(null)
       isCheckingRef.current = false
+      hasLoggedOnce.current = false // Reset pour permettre nouveau log
       // Réessayer directement sans reset hasTriedOnboardingCheck
       await checkOnboarding()
     }

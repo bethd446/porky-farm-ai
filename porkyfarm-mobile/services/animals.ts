@@ -1,16 +1,17 @@
 import { supabase } from './supabase/client'
 
+// Interface alignée avec la table public.pigs
+// Colonnes : id, user_id, tag_number, birth_date, sex, breed, status, weight_history, photo_url, mother_id, father_id, notes, created_at, updated_at
 export interface Animal {
   id: string
   user_id: string
-  identifier: string
-  name: string | null
-  category: 'sow' | 'boar' | 'piglet' | 'fattening'
-  breed: string | null
+  tag_number: string // tag_number au lieu de identifier
   birth_date: string | null
-  weight: number | null
-  status: 'active' | 'sick' | 'pregnant' | 'nursing' | 'sold' | 'deceased'
-  image_url: string | null // La table pigs utilise image_url
+  sex: 'male' | 'female' | 'unknown' // sex au lieu de category
+  breed: string | null
+  status: string // status (active, sick, pregnant, nursing, sold, deceased, etc.)
+  weight_history: any | null // weight_history (JSONB) au lieu de weight
+  photo_url: string | null // photo_url au lieu de image_url
   mother_id: string | null
   father_id: string | null
   notes: string | null
@@ -18,29 +19,42 @@ export interface Animal {
   updated_at: string
 }
 
+// Helper pour mapper category (UI) vers sex (DB)
+export function mapCategoryToSex(category: 'sow' | 'boar' | 'piglet' | 'fattening'): 'male' | 'female' | 'unknown' {
+  if (category === 'sow') return 'female'
+  if (category === 'boar') return 'male'
+  return 'unknown' // piglet ou fattening
+}
+
+// Helper pour mapper sex (DB) vers category (UI) pour affichage
+export function mapSexToCategory(sex: string): 'sow' | 'boar' | 'piglet' | 'fattening' {
+  if (sex === 'female') return 'sow'
+  if (sex === 'male') return 'boar'
+  return 'fattening' // unknown par défaut
+}
+
+// Interface pour l'UI (garde category pour compatibilité)
 export interface AnimalInsert {
-  identifier: string
-  name?: string | null
-  category: 'sow' | 'boar' | 'piglet' | 'fattening'
-  breed?: string | null
+  tag_number: string
   birth_date?: string | null
-  weight?: number | null
-  status?: 'active' | 'sick' | 'pregnant' | 'nursing' | 'sold' | 'deceased'
-  image_url?: string | null // La table pigs utilise image_url, pas photo
+  sex: 'male' | 'female' | 'unknown' // Utiliser directement sex
+  breed?: string | null
+  status?: string
+  weight_history?: any | null // weight_history (JSONB)
+  photo_url?: string | null // photo_url
   mother_id?: string | null
   father_id?: string | null
   notes?: string | null
 }
 
 export interface AnimalUpdate {
-  identifier?: string
-  name?: string | null
-  category?: 'sow' | 'boar' | 'piglet' | 'fattening'
-  breed?: string | null
+  tag_number?: string
   birth_date?: string | null
-  weight?: number | null
-  status?: 'active' | 'sick' | 'pregnant' | 'nursing' | 'sold' | 'deceased'
-  image_url?: string | null
+  sex?: 'male' | 'female' | 'unknown'
+  breed?: string | null
+  status?: string
+  weight_history?: any | null
+  photo_url?: string | null
   mother_id?: string | null
   father_id?: string | null
   notes?: string | null
@@ -154,4 +168,3 @@ export const animalsService: AnimalsService = {
     }
   },
 }
-
