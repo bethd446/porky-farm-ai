@@ -3,9 +3,10 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Network } from 'expo-network'
+import * as Network from 'expo-network'
 import { offlineQueue } from '../lib/offlineQueue'
 import { apiClient } from '../lib/apiClient'
+import { NETWORK_CHECK_INTERVAL_MS, SYNC_COUNT_UPDATE_INTERVAL_MS } from '../lib/constants/config'
 
 interface SyncStatus {
   isOnline: boolean
@@ -22,6 +23,8 @@ export function useSyncQueue() {
     lastSyncError: null,
   })
   const isMounted = useRef(true)
+  // Ref pour éviter les race conditions avec isSyncing
+  const isSyncingRef = useRef(false)
 
   useEffect(() => {
     isMounted.current = true
@@ -55,7 +58,7 @@ export function useSyncQueue() {
     }
 
     checkNetwork()
-    const interval = setInterval(checkNetwork, 5000) // Vérifier toutes les 5 secondes
+    const interval = setInterval(checkNetwork, NETWORK_CHECK_INTERVAL_MS)
 
     return () => clearInterval(interval)
   }, [])
@@ -73,20 +76,23 @@ export function useSyncQueue() {
     }
 
     updatePendingCount()
-    const interval = setInterval(updatePendingCount, 2000)
+    const interval = setInterval(updatePendingCount, SYNC_COUNT_UPDATE_INTERVAL_MS)
 
     return () => clearInterval(interval)
   }, [])
 
   // Synchroniser la file d'attente
   const syncQueue = useCallback(async () => {
-    if (status.isSyncing) return
+    // Utiliser le ref pour éviter les race conditions
+    if (isSyncingRef.current) return
+    isSyncingRef.current = true
 
     setStatus((prev) => ({ ...prev, isSyncing: true, lastSyncError: null }))
 
     try {
       const queue = await offlineQueue.getAll()
       if (queue.length === 0) {
+        isSyncingRef.current = false
         setStatus((prev) => ({ ...prev, isSyncing: false }))
         return
       }
@@ -105,21 +111,24 @@ export function useSyncQueue() {
 
           // Supprimer l'action de la queue si succès
           await offlineQueue.remove(action.id)
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Error syncing action:', error)
           // Garder l'action dans la queue pour réessayer plus tard
         }
       }
 
+      isSyncingRef.current = false
       setStatus((prev) => ({ ...prev, isSyncing: false, lastSyncError: null }))
-    } catch (error: any) {
+    } catch (error: unknown) {
+      isSyncingRef.current = false
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la synchronisation'
       setStatus((prev) => ({
         ...prev,
         isSyncing: false,
-        lastSyncError: error.message || 'Erreur lors de la synchronisation',
+        lastSyncError: errorMessage,
       }))
     }
-  }, [status.isSyncing])
+  }, []) // Plus de dépendance sur status.isSyncing
 
   return {
     isOnline: status.isOnline,

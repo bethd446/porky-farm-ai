@@ -1,159 +1,271 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native'
+import { useState } from 'react'
+import { View, Text, StyleSheet, Alert, Switch } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useAuthContext } from '../../contexts/AuthContext'
+import { useTheme } from '../../contexts/ThemeContext'
+import { supabase } from '../../services/supabase/client'
+import { ScreenContainer, ScreenHeader, PrimaryButton, SecondaryButton } from '../../components/ui'
+import { ScalePress } from '../../components/animations'
+import { SaveAccountCard } from '../../components/SaveAccountCard'
+import { spacing, typography, radius } from '../../lib/designTokens'
+import { User, Settings, Mail, Moon, Sun, UserCheck } from 'lucide-react-native'
 
 export default function ProfileScreen() {
-  const { user, signOut } = useAuthContext()
+  const { user, isAnonymous, email, signOut } = useAuthContext()
+  const { colors, isDark, toggleTheme, mode, setMode } = useTheme()
   const router = useRouter()
+  const [loading, setLoading] = useState(false)
 
   const handleSignOut = async () => {
-    Alert.alert('Déconnexion', 'Êtes-vous sûr de vouloir vous déconnecter ?', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Déconnexion',
-        style: 'destructive',
-        onPress: async () => {
-          await signOut()
-          router.replace('/(auth)/login')
+    const message = isAnonymous
+      ? 'Attention : vos donnees seront perdues si vous n\'avez pas sauvegarde votre compte avec un email.'
+      : 'Etes-vous sur de vouloir vous deconnecter ?'
+
+    Alert.alert(
+      'Deconnexion',
+      message,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Deconnexion',
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true)
+            try {
+              await signOut()
+            } catch (error) {
+              console.error('Error signing out:', error)
+              Alert.alert('Erreur', 'Impossible de se deconnecter')
+            } finally {
+              setLoading(false)
+            }
+          },
         },
-      },
-    ])
+      ]
+    )
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Profil</Text>
-      </View>
+    <ScreenContainer scrollable>
+      <ScreenHeader title="Profil" showBack onBack={() => router.back()} />
 
-      <View style={styles.content}>
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.email?.charAt(0).toUpperCase() || 'U'}</Text>
+      <View style={[styles.content, { backgroundColor: colors.background }]}>
+        {/* Avatar Section */}
+        <View style={styles.avatarSection}>
+          <View style={[styles.avatarContainer, { backgroundColor: colors.primarySurface }]}>
+            {isAnonymous ? (
+              <User size={48} color={colors.primary} />
+            ) : (
+              <UserCheck size={48} color={colors.primary} />
+            )}
           </View>
-          <Text style={styles.userName}>{user?.email || 'Utilisateur'}</Text>
+          <Text style={[styles.userName, { color: colors.text }]}>
+            {email?.split('@')[0] || 'Utilisateur'}
+          </Text>
+          {isAnonymous ? (
+            <View style={[styles.anonymousBadge, { backgroundColor: colors.warningLight }]}>
+              <Text style={[styles.anonymousBadgeText, { color: colors.warning }]}>
+                Compte non sauvegarde
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.userEmail, { color: colors.textMuted }]}>{email}</Text>
+          )}
         </View>
 
+        {/* SaveAccountCard for anonymous users */}
+        <SaveAccountCard />
+
+        {/* Info Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informations</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Email</Text>
-            <Text style={styles.infoValue}>{user?.email}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>ID Utilisateur</Text>
-            <Text style={styles.infoValue}>{user?.id.substring(0, 8)}...</Text>
+          <View style={[styles.infoRow, { backgroundColor: colors.surface }]}>
+            <Mail size={20} color={colors.textMuted} />
+            <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Email</Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>
+              {user?.email || 'Non disponible'}
+            </Text>
           </View>
         </View>
 
+        {/* Theme Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Application</Text>
-          <Text style={styles.version}>Version 1.0.0</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Apparence</Text>
+
+          <View style={[styles.themeRow, { backgroundColor: colors.surface }]}>
+            {isDark ? (
+              <Moon size={20} color={colors.primary} />
+            ) : (
+              <Sun size={20} color={colors.warning} />
+            )}
+            <Text style={[styles.themeLabel, { color: colors.text }]}>Mode sombre</Text>
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              trackColor={{ false: colors.border, true: colors.primaryLight }}
+              thumbColor={isDark ? colors.primary : colors.surface}
+            />
+          </View>
+
+          {/* Theme Options */}
+          <View style={styles.themeOptions}>
+            {(['light', 'dark', 'system'] as const).map((themeMode) => (
+              <ScalePress
+                key={themeMode}
+                onPress={() => setMode(themeMode)}
+              >
+                <View
+                  style={[
+                    styles.themeOption,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    mode === themeMode && { borderColor: colors.primary, backgroundColor: colors.primarySurface },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.themeOptionText,
+                      { color: mode === themeMode ? colors.primary : colors.textMuted },
+                    ]}
+                  >
+                    {themeMode === 'light' ? 'Clair' : themeMode === 'dark' ? 'Sombre' : 'Systeme'}
+                  </Text>
+                </View>
+              </ScalePress>
+            ))}
+          </View>
         </View>
 
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Text style={styles.signOutButtonText}>Se déconnecter</Text>
-        </TouchableOpacity>
+        {/* Actions Section */}
+        <View style={styles.section}>
+          <SecondaryButton
+            title="Parametres"
+            onPress={() => router.push('/profile/settings')}
+            style={styles.actionButton}
+          />
+        </View>
+
+        {/* Logout Section */}
+        <View style={styles.section}>
+          <PrimaryButton
+            title="Se deconnecter"
+            onPress={handleSignOut}
+            disabled={loading}
+            loading={loading}
+            style={[styles.logoutButton, { backgroundColor: colors.error }]}
+          />
+        </View>
       </View>
-    </ScrollView>
+    </ScreenContainer>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#f5f5f5',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
   content: {
-    padding: 20,
+    padding: spacing.xl,
+    flex: 1,
   },
-  section: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  value: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  signOutButton: {
-    backgroundColor: '#ef4444',
-    borderRadius: 8,
-    padding: 16,
+  avatarSection: {
     alignItems: 'center',
-    marginTop: 32,
+    marginBottom: spacing.xl,
+    paddingVertical: spacing.xl,
   },
-  signOutButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  profileCard: {
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#007AFF',
+  avatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
+    marginBottom: spacing.base,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   userName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: typography.fontSize.h2,
+    fontWeight: typography.fontWeight.bold,
+    marginBottom: spacing.xs,
+  },
+  userEmail: {
+    fontSize: typography.fontSize.body,
+  },
+  anonymousBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    marginTop: spacing.xs,
+  },
+  anonymousBadgeText: {
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  section: {
+    marginBottom: spacing.xl,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#333',
+    fontSize: typography.fontSize.h3,
+    fontWeight: typography.fontWeight.semibold,
+    marginBottom: spacing.md,
   },
   infoRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    padding: spacing.base,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   infoLabel: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: typography.fontSize.body,
+    marginLeft: spacing.base,
+    flex: 1,
   },
   infoValue: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontSize: typography.fontSize.body,
+    fontWeight: typography.fontWeight.medium,
   },
-  version: {
-    fontSize: 14,
-    color: '#999',
-    fontStyle: 'italic',
+  themeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.base,
+    borderRadius: radius.md,
+    marginBottom: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  themeLabel: {
+    fontSize: typography.fontSize.body,
+    fontWeight: typography.fontWeight.medium,
+    marginLeft: spacing.base,
+    flex: 1,
+  },
+  themeOptions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  themeOption: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.base,
+    borderRadius: radius.md,
+    borderWidth: 2,
+    alignItems: 'center',
+  },
+  themeOptionText: {
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  actionButton: {
+    marginBottom: spacing.sm,
+  },
+  logoutButton: {
+    marginTop: spacing.lg,
   },
 })
-

@@ -6,7 +6,7 @@
 import { View, Text, StyleSheet, ViewStyle } from 'react-native'
 import { ScalePress } from '../animations'
 import { Badge } from './Badge'
-import { AnimalAvatar } from '../AnimalAvatar'
+import { AnimalAvatar } from '../animals/AnimalAvatar'
 import { colors, typography, spacing, radius, shadows } from '../../lib/designTokens'
 import { ChevronRight } from 'lucide-react-native'
 
@@ -84,8 +84,8 @@ export function AnimalCard({
         <AnimalAvatar
           photoUrl={photoUrl}
           category={category}
-          name={name || tagNumber}
-          size={52}
+          identifier={tagNumber}
+          size="lg"
         />
 
         {/* Info */}

@@ -139,9 +139,9 @@ DONNÉES DU MOIS ${targetMonth}/${targetYear}:
 - Stock d'aliments: ${stock.reduce((sum, s) => sum + (s.quantity_kg || 0), 0)} kg
 `
 
-    // Générer le rapport
+    // Générer le rapport (bypass type issues between AI SDK versions)
     const model = getModelForRequest("analysis")
-    const { text, usage } = await generateText({
+    const { text, usage } = await (generateText as Function)({
       model,
       system: systemPrompt,
       messages: [
@@ -167,9 +167,9 @@ DONNÉES DU MOIS ${targetMonth}/${targetYear}:
         year: targetYear,
         timestamp: new Date().toISOString(),
         usage: {
-          promptTokens: usage?.promptTokens || 0,
-          completionTokens: usage?.completionTokens || 0,
-          totalTokens: (usage?.promptTokens || 0) + (usage?.completionTokens || 0),
+          promptTokens: (usage as unknown as Record<string, number>)?.promptTokens || 0,
+          completionTokens: (usage as unknown as Record<string, number>)?.completionTokens || 0,
+          totalTokens: ((usage as unknown as Record<string, number>)?.promptTokens || 0) + ((usage as unknown as Record<string, number>)?.completionTokens || 0),
         },
       },
       { status: 200 }

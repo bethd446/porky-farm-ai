@@ -86,6 +86,7 @@ export const lightTheme = {
   primary: colors.brand[500],
   primaryLight: colors.brand[100],
   primaryDark: colors.brand[700],
+  primarySurface: colors.brand[50], // #ECFDF5
 
   // Glassmorphism
   glass: {
@@ -113,6 +114,7 @@ export const darkTheme = {
   primary: colors.brand[400],
   primaryLight: colors.brand[900],
   primaryDark: colors.brand[300],
+  primarySurface: colors.brand[900], // #064E3B
 
   // Glassmorphism
   glass: {
@@ -291,3 +293,9 @@ export const getStatusColor = (status: string, theme: ThemeColors): string => {
   }
   return map[status.toLowerCase()] || theme.textMuted
 }
+
+// ===========================================
+// ELEVATION (re-export from design folder)
+// ===========================================
+
+export { elevation } from '../design/elevation'

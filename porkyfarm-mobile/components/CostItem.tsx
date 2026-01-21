@@ -3,62 +3,72 @@
  */
 
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
-import { colors, spacing, typography, radius, commonStyles } from '../lib/designTokens'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { colors, spacing, typography, radius } from '../lib/designTokens'
+import { elevation } from '../lib/design/elevation'
 import type { CostEntry } from '../services/costs'
 
 interface CostItemProps {
   entry: CostEntry
   onPress?: () => void
+  onLongPress?: () => void
   isPending?: boolean
 }
 
-const getCategoryIcon = (category: string): string => {
-  const icons: Record<string, string> = {
-    pig_purchase: '🐷',
-    feed: '🌾',
-    vitamins: '💊',
-    medication: '💉',
-    transport: '🚚',
-    veterinary: '🏥',
-    labor: '👷',
-    misc: '📋',
-    sale: '💰',
-    subsidy: '🎁',
-    other: '📝',
+const getCategoryIcon = (category: string): keyof typeof MaterialCommunityIcons.glyphMap => {
+  const icons: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
+    feed: 'barley',
+    veterinary: 'hospital-box',
+    equipment: 'wrench',
+    labor: 'account-hard-hat',
+    sale: 'cash',
+    other: 'file-document-outline',
   }
-  return icons[category] || '📝'
+  return icons[category] || 'file-document-outline'
+}
+
+const getCategoryColor = (category: string): string => {
+  const categoryColors: Record<string, string> = {
+    feed: '#FF9800',
+    veterinary: '#E91E63',
+    equipment: '#607D8B',
+    labor: '#795548',
+    sale: '#4CAF50',
+    other: '#9E9E9E',
+  }
+  return categoryColors[category] || '#9E9E9E'
 }
 
 const getCategoryLabel = (category: string): string => {
   const labels: Record<string, string> = {
-    pig_purchase: 'Achat sujet',
     feed: 'Aliment',
-    vitamins: 'Vitamines',
-    medication: 'Médicament',
-    transport: 'Transport',
     veterinary: 'Vétérinaire',
+    equipment: 'Équipement',
     labor: 'Main d\'œuvre',
-    misc: 'Divers',
     sale: 'Vente',
-    subsidy: 'Subvention',
     other: 'Autre',
   }
   return labels[category] || category
 }
 
-export function CostItem({ entry, onPress, isPending = false }: CostItemProps) {
+export function CostItem({ entry, onPress, onLongPress, isPending = false }: CostItemProps) {
   const isExpense = entry.type === 'expense'
   const amountColor = isExpense ? colors.error : colors.success
 
   return (
     <TouchableOpacity
-      style={[commonStyles.listItem, isPending && styles.pending]}
+      style={[styles.listItem, isPending && styles.pending]}
       onPress={onPress}
+      onLongPress={onLongPress}
       activeOpacity={0.7}
     >
       {/* Icône catégorie */}
-      <View style={styles.iconContainer}>
-        <Text style={styles.icon}>{getCategoryIcon(entry.category)}</Text>
+      <View style={[styles.iconContainer, { backgroundColor: getCategoryColor(entry.category) + '20' }]}>
+        <MaterialCommunityIcons
+          name={getCategoryIcon(entry.category)}
+          size={24}
+          color={getCategoryColor(entry.category)}
+        />
       </View>
 
       {/* Contenu */}
@@ -77,11 +87,14 @@ export function CostItem({ entry, onPress, isPending = false }: CostItemProps) {
           </Text>
         )}
         <Text style={styles.date}>
-          {new Date(entry.transaction_date).toLocaleDateString('fr-FR', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-          })}
+          {entry.cost_date || entry.transaction_date
+            ? new Date(entry.cost_date || entry.transaction_date!).toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })
+            : '-'
+          }
         </Text>
       </View>
 
@@ -97,6 +110,15 @@ export function CostItem({ entry, onPress, isPending = false }: CostItemProps) {
 }
 
 const styles = StyleSheet.create({
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
+    ...elevation.xs,
+  },
   pending: {
     opacity: 0.7,
   },
@@ -104,13 +126,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: radius.md,
-    backgroundColor: colors.muted,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.base,
-  },
-  icon: {
-    fontSize: 24,
   },
   content: {
     flex: 1,
@@ -153,4 +171,3 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.bold,
   },
 })
-

@@ -318,7 +318,7 @@ export default function AnimalDetailPage() {
                 </CardContent>
               </Card>
 
-              {animalHealthCases.filter((hc) => hc.status === "active").length > 0 && (
+              {animalHealthCases.filter((hc) => hc.status === "open" || hc.status === "in_progress").length > 0 && (
                 <Card className="shadow-soft">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
@@ -329,7 +329,7 @@ export default function AnimalDetailPage() {
                   <CardContent>
                     <div className="flex items-center justify-between rounded-lg bg-amber-50 p-4">
                       <span className="text-amber-700">
-                        {animalHealthCases.filter((hc) => hc.status === "active").length} cas sanitaire(s) en cours
+                        {animalHealthCases.filter((hc) => hc.status === "open" || hc.status === "in_progress").length} cas sanitaire(s) en cours
                       </span>
                       <Link href="/dashboard/health">
                         <Button size="sm" className="bg-primary text-white">
@@ -414,8 +414,8 @@ export default function AnimalDetailPage() {
                               {new Date(hc.createdAt).toLocaleDateString("fr-FR")}
                             </p>
                           </div>
-                          <Badge variant={hc.status === "active" ? "destructive" : "secondary"}>
-                            {hc.status === "active" ? "En cours" : "Resolu"}
+                          <Badge variant={hc.status !== "resolved" ? "destructive" : "secondary"}>
+                            {hc.status !== "resolved" ? "En cours" : "Resolu"}
                           </Badge>
                         </div>
                       ))}

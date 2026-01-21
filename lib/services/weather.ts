@@ -66,7 +66,7 @@ export async function getWeatherForFarm(
     const currentData = await currentResponse.json()
 
     // Récupérer les alertes météo (One Call 3.0 - optionnel)
-    let alerts: WeatherData['alerts'] = []
+    let alerts: NonNullable<WeatherData['alerts']> = []
     try {
       const oneCallUrl = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&exclude=minutely,daily&units=metric&lang=fr`
       const oneCallResponse = await fetch(oneCallUrl, {

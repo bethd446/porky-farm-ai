@@ -5,7 +5,8 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
-import { colors, spacing, typography, radius, shadows } from '../../lib/designTokens'
+import { colors, spacing, typography, radius } from '../../lib/designTokens'
+import { elevation } from '../../lib/design/elevation'
 import { ArrowLeft, ArrowRight } from 'lucide-react-native'
 
 export default function OnboardingStep4Screen() {
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
     alignItems: 'center',
-    ...shadows.sm,
+    ...elevation.sm,
   },
   optionCardSelected: {
     backgroundColor: colors.primary,
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: radius.md,
     marginBottom: spacing.sm,
-    ...shadows.sm,
+    ...elevation.sm,
   },
   rationLabel: {
     fontSize: typography.fontSize.body,
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
     gap: spacing.sm,
-    ...shadows.md,
+    ...elevation.md,
   },
   buttonText: {
     fontSize: typography.fontSize.body,

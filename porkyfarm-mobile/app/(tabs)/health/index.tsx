@@ -1,60 +1,94 @@
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'
+import { useState } from 'react'
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, RefreshControl } from 'react-native'
 import { useRouter } from 'expo-router'
 import { healthCasesService, type HealthCase } from '../../../services/healthCases'
+import { colors, spacing, typography, radius, commonStyles } from '../../../lib/designTokens'
+import { elevation } from '../../../lib/design/elevation'
+import { LoadingSkeleton, AnimalCardSkeleton } from '../../../components/LoadingSkeleton'
+import { EmptyState } from '../../../components/EmptyState'
+import { ErrorState } from '../../../components/ui/ErrorState'
+import { useToast } from '../../../hooks/useToast'
+import { Toast } from '../../../components/Toast'
+import { Heart, Plus, ChevronRight } from 'lucide-react-native'
+import { useRefresh } from '../../../contexts/RefreshContext'
+import { useListData } from '../../../hooks/useFocusRefresh'
 
 const getSeverityColor = (severity: string | null) => {
   switch (severity) {
     case 'critical':
-      return '#dc2626'
+      return colors.error
     case 'high':
-      return '#ef4444'
+      return colors.error
     case 'medium':
-      return '#f59e0b'
+      return colors.warning
     case 'low':
-      return '#22c55e'
+      return colors.success
     default:
-      return '#6b7280'
+      return colors.mutedForeground
   }
 }
 
-const getStatusLabel = (status: string) => {
+// Status selon schéma V2.0: 'active', 'ongoing', 'resolved', 'chronic'
+const getStatusLabel = (status: string | null) => {
   const labels: Record<string, string> = {
+    active: 'Actif',
     ongoing: 'En cours',
     resolved: 'Résolu',
-    scheduled: 'Planifié',
     chronic: 'Chronique',
   }
-  return labels[status] || status
+  return labels[status || ''] || status || 'Inconnu'
+}
+
+const getSeverityLabel = (severity: string | null) => {
+  const labels: Record<string, string> = {
+    critical: 'Critique',
+    high: 'Haute',
+    medium: 'Moyenne',
+    low: 'Faible',
+  }
+  return labels[severity || ''] || 'Non définie'
 }
 
 export default function HealthScreen() {
-  const [cases, setCases] = useState<HealthCase[]>([])
-  const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const { toast, showError, hideToast } = useToast()
+  const { healthCasesVersion } = useRefresh()
 
-  useEffect(() => {
-    loadCases()
-  }, [])
-
-  const loadCases = async () => {
-    setLoading(true)
-    const { data, error } = await healthCasesService.getAll()
-    if (error) {
-      console.error('Error loading health cases:', error)
-      // Ne pas afficher d'alerte si c'est juste une liste vide
-      if (error.message && !error.message.includes('does not exist')) {
-        Alert.alert('Erreur', `Impossible de charger les cas de santé: ${error.message}`)
-      }
-    }
-    setCases(data || [])
-    setLoading(false)
-  }
+  const {
+    data: cases,
+    loading,
+    error,
+    refreshing,
+    refresh: onRefresh,
+  } = useListData(() => healthCasesService.getAll(), [healthCasesVersion])
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2d6a4f" />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Suivi Sanitaire</Text>
+        </View>
+        <ScrollView style={styles.content} contentContainerStyle={styles.listContent}>
+          {[1, 2, 3].map((i) => (
+            <AnimalCardSkeleton key={i} />
+          ))}
+        </ScrollView>
+      </View>
+    )
+  }
+
+  if (error && cases.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Suivi Sanitaire</Text>
+        </View>
+        <ErrorState
+          title="Erreur de chargement"
+          message={error || 'Impossible de charger les cas de santé'}
+          onRetry={onRefresh}
+          retryLabel="Réessayer"
+        />
       </View>
     )
   }
@@ -62,63 +96,124 @@ export default function HealthScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Suivi Sanitaire</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => router.push('/(tabs)/health/add')}>
-          <Text style={styles.addButtonText}>+ Nouveau cas</Text>
+        <View style={styles.headerContent}>
+          <Heart size={24} color={colors.primary} />
+          <Text style={styles.title}>Suivi Sanitaire</Text>
+        </View>
+        <TouchableOpacity
+          style={[commonStyles.button, commonStyles.buttonPrimary]}
+          onPress={() => router.push('/(tabs)/health/add')}
+        >
+          <Plus size={18} color="#ffffff" />
+          <Text style={commonStyles.buttonText}>Nouveau cas</Text>
         </TouchableOpacity>
       </View>
 
       {cases.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyText}>Aucun cas de santé enregistré</Text>
-          <Text style={styles.emptySubtext}>Commencez par ajouter un cas de santé pour suivre la santé de vos animaux</Text>
-          <TouchableOpacity style={styles.addButton} onPress={() => router.push('/(tabs)/health/add')}>
-            <Text style={styles.addButtonText}>Ajouter un cas</Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          icon="medical"
+          title="Aucun cas de santé enregistré"
+          description="Commencez par ajouter un cas de santé pour suivre la santé de vos animaux et recevoir des alertes importantes."
+          actionLabel="Ajouter un cas"
+          onAction={() => router.push('/(tabs)/health/add')}
+        />
       ) : (
         <FlatList
           data={cases}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.caseCard}
-              onPress={() => {
-                // TODO: Implémenter l'écran de détail health/[id]
-                Alert.alert('Détail du cas', `Cas: ${item.title}\nAnimal: ${item.pig_name || item.pig_identifier || 'Inconnu'}\nDescription: ${item.description || 'Aucune'}`)
-              }}
+              style={[commonStyles.card, styles.caseCard, elevation.sm]}
+              onPress={() => router.push(`/(tabs)/health/${item.id}` as any)}
+              activeOpacity={0.7}
             >
               <View style={styles.caseHeader}>
-                <Text style={styles.caseTitle}>{item.title}</Text>
+                <View style={styles.caseTitleContainer}>
+                  <Text style={styles.caseTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.caseAnimal}>
+                    {item.animal_name || item.animal_identifier || 'Animal inconnu'}
+                  </Text>
+                </View>
                 {item.severity && (
                   <View
-                    style={[styles.priorityBadge, { backgroundColor: getSeverityColor(item.severity) }]}
+                    style={[
+                      styles.severityBadge,
+                      { backgroundColor: getSeverityColor(item.severity) },
+                    ]}
                   >
-                    <Text style={styles.priorityText}>
-                      {item.severity === 'critical' ? 'Critique' : item.severity === 'high' ? 'Haute' : item.severity === 'medium' ? 'Moyenne' : 'Faible'}
-                    </Text>
+                    <Text style={styles.severityText}>{getSeverityLabel(item.severity)}</Text>
                   </View>
                 )}
               </View>
-              <Text style={styles.caseAnimal}>
-                {item.pig_name || item.pig_identifier || 'Animal inconnu'}
-              </Text>
-              <Text style={styles.caseDescription} numberOfLines={2}>
-                {item.description || 'Aucune description'}
-              </Text>
-              <View style={styles.caseFooter}>
-                <Text style={styles.caseStatus}>{getStatusLabel(item.status)}</Text>
-                <Text style={styles.caseDate}>
-                  {item.start_date ? new Date(item.start_date).toLocaleDateString('fr-FR') : 'Date inconnue'}
+
+              {item.description && (
+                <Text style={styles.caseDescription} numberOfLines={2}>
+                  {item.description}
                 </Text>
+              )}
+
+              <View style={styles.caseFooter}>
+                <View style={styles.caseFooterLeft}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor:
+                          item.status === 'resolved'
+                            ? colors.successLight
+                            : item.status === 'ongoing' || item.status === 'active'
+                              ? colors.warningLight
+                              : item.status === 'chronic'
+                                ? colors.errorLight
+                                : colors.infoLight,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        {
+                          color:
+                            item.status === 'resolved'
+                              ? colors.success
+                              : item.status === 'ongoing' || item.status === 'active'
+                                ? colors.warning
+                                : item.status === 'chronic'
+                                  ? colors.error
+                                  : colors.info,
+                        },
+                      ]}
+                    >
+                      {getStatusLabel(item.status)}
+                    </Text>
+                  </View>
+                  {item.start_date && (
+                    <Text style={styles.caseDate}>
+                      {new Date(item.start_date).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                    </Text>
+                  )}
+                </View>
+                <ChevronRight size={20} color={colors.mutedForeground} />
               </View>
             </TouchableOpacity>
           )}
-          refreshing={loading}
-          onRefresh={loadCases}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           contentContainerStyle={styles.listContent}
         />
       )}
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={hideToast}
+      />
     </View>
   )
 }
@@ -126,117 +221,99 @@ export default function HealthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    backgroundColor: colors.background,
   },
   header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#fff',
+    padding: spacing.base,
+    paddingTop: spacing['4xl'],
+    backgroundColor: colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.border,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontSize: typography.fontSize.h2,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.foreground,
   },
-  addButton: {
-    backgroundColor: '#2d6a4f',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#374151',
-    marginBottom: 8,
-    fontWeight: '600',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 20,
+  content: {
+    flex: 1,
   },
   listContent: {
-    padding: 16,
+    padding: spacing.base,
   },
   caseCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    marginBottom: spacing.base,
+    minHeight: 100,
   },
   caseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  caseTitleContainer: {
+    flex: 1,
   },
   caseTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    flex: 1,
-    marginRight: 8,
-  },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  priorityText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: typography.fontSize.h4,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.foreground,
+    marginBottom: spacing.xs,
   },
   caseAnimal: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
+    fontSize: typography.fontSize.bodySmall,
+    color: colors.mutedForeground,
+  },
+  severityBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: radius.sm,
+  },
+  severityText: {
+    color: '#ffffff',
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.semibold,
   },
   caseDescription: {
-    fontSize: 14,
-    color: '#374151',
-    marginBottom: 12,
-    lineHeight: 20,
+    fontSize: typography.fontSize.bodySmall,
+    color: colors.foreground,
+    marginBottom: spacing.sm,
+    lineHeight: typography.fontSize.bodySmall * typography.lineHeight.normal,
   },
   caseFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 8,
+    paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.border,
   },
-  caseStatus: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '500',
+  caseFooterLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: radius.sm,
+  },
+  statusText: {
+    fontSize: typography.fontSize.caption,
+    fontWeight: typography.fontWeight.medium,
   },
   caseDate: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: typography.fontSize.caption,
+    color: colors.mutedForeground,
   },
 })

@@ -71,21 +71,30 @@ export default function AdminDashboard() {
       }
 
       // Check admin status via RPC
-      const { data: isAdminResult } = await supabase.rpc("is_admin")
-      const { data: isSuperAdminResult } = await supabase.rpc("is_super_admin")
-      const { data: roleResult } = await supabase.rpc("get_user_role")
+      // Vérifier is_admin depuis profiles
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin, role')
+        .eq('id', user.id)
+        .single()
 
-      // Fallback to email check if RPC fails (tables not set up yet)
-      const adminByEmail = user.email === "openformac@gmail.com"
-
-      if (!isAdminResult && !adminByEmail) {
+      if (profileError) {
+        console.error('[AdminPage] Erreur chargement profil:', profileError)
         router.push("/dashboard")
         return
       }
 
-      setIsAdmin(isAdminResult || adminByEmail)
-      setIsSuperAdmin(isSuperAdminResult || adminByEmail)
-      setUserRole(roleResult || (adminByEmail ? "super_admin" : "user"))
+      const isAdmin = Boolean(profileData?.is_admin)
+      const role = profileData?.role || 'user'
+
+      if (!isAdmin) {
+        router.push("/dashboard")
+        return
+      }
+
+      setIsAdmin(isAdmin)
+      setIsSuperAdmin(role === 'super_admin' || isAdmin)
+      setUserRole(role)
 
       await loadAdminData()
     } catch (error) {

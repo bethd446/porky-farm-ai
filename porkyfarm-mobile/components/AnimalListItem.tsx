@@ -58,16 +58,37 @@ const calculateAge = (birthDate: string | null): string => {
 
 export function AnimalListItem({ animal, onPress, premium = true }: AnimalListItemProps) {
   const animalUI = animalToUI(animal)
-  const badge = getStatusBadge(animal.status, animal.sex)
-  const age = calculateAge(animal.birth_date)
+  const badge = getStatusBadge(animal.status, animal.sex || 'unknown')
+  const age = calculateAge(animal.birth_date ?? null)
   const identifier = animalUI.identifier || `Porc #${animal.id.slice(0, 6)}`
 
+  // Valeur par défaut sécurisée
+  const DEFAULT_GRADIENT = ['#10B981', '#059669'] as const
+  
   const getBadgeGradient = (): readonly [string, string, ...string[]] => {
-    if (badge.color === colors.success) return premiumGradients.success.icon
-    if (badge.color === colors.warning) return premiumGradients.warning.icon
-    if (badge.color === colors.info) return premiumGradients.info.icon
-    if (badge.color === colors.error) return premiumGradients.error.icon
-    return [badge.bgColor, badge.bgColor] as const
+    let gradient: readonly [string, string, ...string[]] | undefined
+    
+    if (badge.color === colors.success) {
+      gradient = premiumGradients.success?.icon
+    } else if (badge.color === colors.warning) {
+      gradient = premiumGradients.warning?.icon
+    } else if (badge.color === colors.info) {
+      gradient = premiumGradients.info?.icon
+    } else if (badge.color === colors.error) {
+      gradient = premiumGradients.error?.icon
+    }
+    
+    // Vérifier que le gradient est valide (tableau avec au moins 2 éléments)
+    if (gradient && Array.isArray(gradient) && gradient.length >= 2) {
+      return gradient
+    }
+    
+    // Fallback : utiliser la couleur du badge ou valeur par défaut
+    if (badge.bgColor) {
+      return [badge.bgColor, badge.bgColor] as const
+    }
+    
+    return DEFAULT_GRADIENT
   }
 
   return (

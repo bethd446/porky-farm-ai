@@ -5,7 +5,8 @@
 
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Pressable } from 'react-native'
 import { useRouter } from 'expo-router'
-import { colors, spacing, typography, radius, shadows } from '../lib/designTokens'
+import { colors, spacing, typography, radius } from '../lib/designTokens'
+import { elevation } from '../lib/design/elevation'
 import { PiggyBank, Heart, Baby, Package, X } from 'lucide-react-native'
 
 interface ActionsModalProps {
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     width: '90%',
     maxWidth: 400,
-    ...shadows.lg,
+    ...elevation.lg,
   },
   header: {
     flexDirection: 'row',

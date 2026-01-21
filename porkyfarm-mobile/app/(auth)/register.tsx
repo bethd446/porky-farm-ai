@@ -1,128 +1,493 @@
+/**
+ * Register Screen - Inscription avec email/password
+ * Création de compte avec confirmation email
+ */
+
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native'
-import { useRouter } from 'expo-router'
+import { View, Text, StyleSheet, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { LinearGradient } from 'expo-linear-gradient'
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
+import { router } from 'expo-router'
 import { useAuthContext } from '../../contexts/AuthContext'
+import { useTheme } from '../../contexts/ThemeContext'
+import { logger } from '../../lib/logger'
+import * as Haptics from 'expo-haptics'
+import { ArrowLeft, Mail, Lock, UserPlus, CheckCircle, Eye, EyeOff } from 'lucide-react-native'
+import { LoadingInline } from '../../components/ui'
 
 export default function RegisterScreen() {
+  const { signUp, loading } = useAuthContext()
+  const { colors, isDark } = useTheme()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-  const { signUp } = useAuthContext()
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isRegistering, setIsRegistering] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
+
+  const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+  const isValidPassword = (p: string) => p.length >= 6
 
   const handleRegister = async () => {
-    if (!email || !password || !fullName) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs')
+    if (!isValidEmail(email)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+      Alert.alert('Email invalide', 'Veuillez entrer une adresse email valide.')
       return
     }
 
-    if (password.length < 8) {
-      Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 8 caractères')
+    if (!isValidPassword(password)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+      Alert.alert('Mot de passe trop court', 'Le mot de passe doit contenir au moins 6 caractères.')
       return
     }
 
-    setLoading(true)
-    try {
-      const { error } = await signUp(email, password, fullName)
-      if (error) {
-        Alert.alert('Erreur', error.message || 'Erreur d\'inscription')
+    if (password !== confirmPassword) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+      Alert.alert('Mots de passe différents', 'Les mots de passe ne correspondent pas.')
+      return
+    }
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    setIsRegistering(true)
+
+    const { error } = await signUp(email, password)
+
+    if (error) {
+      logger.error('[Register] Register error:', error)
+      setIsRegistering(false)
+      
+      if (error.message?.includes('already registered')) {
+        Alert.alert(
+          'Compte existant',
+          'Cet email est déjà enregistré. Voulez-vous vous connecter ?',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Se connecter', onPress: () => router.push('/(auth)/login') },
+          ]
+        )
       } else {
-        Alert.alert('Succès', 'Compte créé avec succès', [
-          { text: 'OK', onPress: () => router.replace('/(tabs)') },
-        ])
+        Alert.alert(
+          'Erreur',
+          error.message || 'Impossible de créer le compte. Vérifiez votre connexion.',
+          [{ text: 'OK' }]
+        )
       }
-    } catch (err) {
-      Alert.alert('Erreur', 'Une erreur est survenue')
-    } finally {
-      setLoading(false)
+      return
     }
+
+    setEmailSent(true)
+    setIsRegistering(false)
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+  }
+
+  const handleBack = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    router.back()
+  }
+
+  // Écran de confirmation après inscription
+  if (emailSent) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <LinearGradient
+          colors={isDark ? [colors.primarySurface, colors.background] : [colors.primarySurface, colors.background]}
+          style={StyleSheet.absoluteFill}
+        />
+
+        <Animated.View entering={FadeInDown.springify()} style={styles.successContainer}>
+          <View style={[styles.successIcon, { backgroundColor: colors.successLight }]}>
+            <CheckCircle size={48} color={colors.success} />
+          </View>
+
+          <Text style={[styles.successTitle, { color: colors.text }]}>
+            Compte créé !
+          </Text>
+
+          <Text style={[styles.successText, { color: colors.textSecondary }]}>
+            Un email de confirmation a été envoyé à{'\n'}
+            <Text style={{ fontWeight: '600', color: colors.primary }}>{email}</Text>
+          </Text>
+
+          <View style={[styles.tipBox, { backgroundColor: colors.surface }]}>
+            <Mail size={20} color={colors.primary} />
+            <Text style={[styles.tipText, { color: colors.textSecondary }]}>
+              Consultez votre boîte mail et cliquez sur le lien pour confirmer votre compte.
+              Vous pourrez ensuite vous connecter.
+            </Text>
+          </View>
+
+          <Pressable
+            onPress={() => router.push('/(auth)/login')}
+            style={({ pressed }) => [
+              styles.loginButton,
+              { backgroundColor: colors.primary },
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <Text style={styles.loginButtonText}>
+              Aller à la connexion
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBack}
+            style={({ pressed }) => [
+              styles.backLink,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <ArrowLeft size={18} color={colors.textMuted} />
+            <Text style={[styles.backLinkText, { color: colors.textMuted }]}>
+              Retour à l'accueil
+            </Text>
+          </Pressable>
+        </Animated.View>
+      </SafeAreaView>
+    )
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Créer un compte</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Nom complet"
-        value={fullName}
-        onChangeText={setFullName}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <LinearGradient
+        colors={isDark ? [colors.primarySurface, colors.background] : [colors.primarySurface, colors.background]}
+        style={StyleSheet.absoluteFill}
       />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Mot de passe"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleRegister}
-        disabled={loading}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
       >
-        <Text style={styles.buttonText}>{loading ? 'Inscription...' : 'S\'inscrire'}</Text>
-      </TouchableOpacity>
+        {/* Header avec bouton retour */}
+        <Animated.View entering={FadeInDown.delay(50).springify()} style={styles.header}>
+          <Pressable
+            onPress={handleBack}
+            style={({ pressed }) => [
+              styles.backButton,
+              { backgroundColor: colors.surface },
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <ArrowLeft size={22} color={colors.text} />
+          </Pressable>
+        </Animated.View>
 
-      <TouchableOpacity onPress={() => router.back()}>
-        <Text style={styles.link}>Déjà un compte ? Se connecter</Text>
-      </TouchableOpacity>
-    </View>
+        {/* Titre */}
+        <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.titleSection}>
+          <View style={[styles.iconContainer, { backgroundColor: colors.surface }]}>
+            <UserPlus size={32} color={colors.primary} />
+          </View>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Créer un compte
+          </Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            Inscrivez-vous pour sauvegarder{'\n'}vos données en toute sécurité
+          </Text>
+        </Animated.View>
+
+        {/* Formulaire */}
+        <Animated.View entering={FadeInUp.delay(200).springify()} style={styles.form}>
+          {/* Email */}
+          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Mail size={20} color={colors.textMuted} />
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              placeholder="votre@email.com"
+              placeholderTextColor={colors.textMuted}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+              editable={!isRegistering && !loading}
+            />
+          </View>
+
+          {/* Mot de passe */}
+          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Lock size={20} color={colors.textMuted} />
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              placeholder="Mot de passe (min. 6 caractères)"
+              placeholderTextColor={colors.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="password-new"
+              editable={!isRegistering && !loading}
+            />
+            <Pressable
+              onPress={() => setShowPassword(!showPassword)}
+              style={styles.eyeButton}
+            >
+              {showPassword ? (
+                <EyeOff size={20} color={colors.textMuted} />
+              ) : (
+                <Eye size={20} color={colors.textMuted} />
+              )}
+            </Pressable>
+          </View>
+
+          {/* Confirmation mot de passe */}
+          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Lock size={20} color={colors.textMuted} />
+            <TextInput
+              style={[styles.input, { color: colors.text }]}
+              placeholder="Confirmer le mot de passe"
+              placeholderTextColor={colors.textMuted}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="password-new"
+              editable={!isRegistering && !loading}
+            />
+            <Pressable
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              style={styles.eyeButton}
+            >
+              {showConfirmPassword ? (
+                <EyeOff size={20} color={colors.textMuted} />
+              ) : (
+                <Eye size={20} color={colors.textMuted} />
+              )}
+            </Pressable>
+          </View>
+
+          {/* Bouton d'inscription */}
+          <Pressable
+            onPress={handleRegister}
+            disabled={isRegistering || loading || !email.trim() || !password.trim() || !confirmPassword.trim()}
+            style={({ pressed }) => [
+              styles.submitButton,
+              pressed && styles.buttonPressed,
+              (!email.trim() || !password.trim() || !confirmPassword.trim() || isRegistering || loading) && styles.buttonDisabled,
+            ]}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.primaryLight]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.submitButtonGradient}
+            >
+              {isRegistering || loading ? (
+                <LoadingInline size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <UserPlus size={20} color="#FFFFFF" />
+                  <Text style={styles.submitButtonText}>Créer mon compte</Text>
+                </>
+              )}
+            </LinearGradient>
+          </Pressable>
+        </Animated.View>
+
+        {/* Lien vers connexion */}
+        <Animated.View entering={FadeInUp.delay(300).springify()} style={styles.linkSection}>
+          <Text style={[styles.linkText, { color: colors.textMuted }]}>
+            Vous avez déjà un compte ?{' '}
+          </Text>
+          <Pressable onPress={() => router.push('/(auth)/login')}>
+            <Text style={[styles.link, { color: colors.primary }]}>
+              Se connecter
+            </Text>
+          </Pressable>
+        </Animated.View>
+
+        {/* Info */}
+        <Animated.View entering={FadeInUp.delay(400).springify()} style={styles.infoSection}>
+          <Text style={[styles.infoText, { color: colors.textMuted }]}>
+            En créant un compte, vous acceptez nos conditions d'utilisation.
+            Un email de confirmation vous sera envoyé.
+          </Text>
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  titleSection: {
+    alignItems: 'center',
+    paddingTop: 40,
+    paddingHorizontal: 24,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    shadowColor: '#2D6A4F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 16,
     textAlign: 'center',
-    marginBottom: 32,
+    lineHeight: 24,
+  },
+  form: {
+    paddingHorizontal: 24,
+    paddingTop: 40,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    marginBottom: 16,
+    gap: 12,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    fontSize: 16,
+    flex: 1,
+    fontSize: 17,
+    paddingVertical: 16,
   },
-  button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
+  eyeButton: {
+    padding: 4,
+  },
+  submitButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
     marginTop: 8,
+  },
+  submitButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 10,
+  },
+  submitButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  buttonPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.9,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  linkSection: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+  },
+  linkText: {
+    fontSize: 15,
   },
   link: {
-    color: '#007AFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  infoSection: {
+    paddingHorizontal: 32,
+    paddingTop: 24,
+  },
+  infoText: {
+    fontSize: 13,
     textAlign: 'center',
-    marginTop: 16,
+    lineHeight: 18,
+  },
+  // Success screen
+  successContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  successIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  successTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  successText: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  tipBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
+    marginBottom: 32,
+  },
+  tipText: {
+    flex: 1,
     fontSize: 14,
+    lineHeight: 20,
+  },
+  loginButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  loginButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  backLinkText: {
+    fontSize: 15,
   },
 })
-

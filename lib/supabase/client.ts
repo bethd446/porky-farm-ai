@@ -5,6 +5,20 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 
+// Log de diagnostic en développement
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  if (SUPABASE_URL) {
+    try {
+      const projectId = new URL(SUPABASE_URL).hostname.split(".")[0]
+      console.log("[SupabaseClient] Initialisation avec projet:", projectId)
+      console.log("[SupabaseClient] URL:", SUPABASE_URL.substring(0, 40) + "...")
+      console.log("[SupabaseClient] Key présente:", !!SUPABASE_ANON_KEY)
+    } catch (e) {
+      console.warn("[SupabaseClient] URL invalide:", SUPABASE_URL)
+    }
+  }
+}
+
 // Singleton pattern
 let supabaseInstance: SupabaseClient | null = null
 

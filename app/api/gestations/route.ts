@@ -69,35 +69,30 @@ export async function POST(request: NextRequest) {
 
     const validatedData = validation.data
 
-    // Calcul de la date prevue (114 jours pour les porcs)
-    const breedingDate = new Date(validatedData.breeding_date)
-    const expectedDueDate = new Date(breedingDate)
-    expectedDueDate.setDate(expectedDueDate.getDate() + 114)
-
+    // Créer la gestation - colonnes alignées sur Supabase gestations
     const { data, error } = await supabase
       .from("gestations")
       .insert({
         user_id: user.id,
         sow_id: validatedData.sow_id,
-        sow_name: validatedData.sow_name,
         boar_id: validatedData.boar_id,
-        boar_name: validatedData.boar_name,
-        breeding_date: validatedData.breeding_date,
-        expected_due_date: expectedDueDate.toISOString().split("T")[0],
-        status: "active",
+        mating_date: validatedData.mating_date,
+        expected_farrowing_date: validatedData.expected_farrowing_date,
+        status: "en_cours",
         notes: validatedData.notes,
       })
       .select()
       .single()
 
     if (error) {
-      return NextResponse.json({ error: "Erreur lors de la creation de la gestation" }, { status: 500 })
+      console.error('[API Gestations] Insert error:', error)
+      return NextResponse.json({ error: "Erreur lors de la création de la gestation" }, { status: 500 })
     }
 
     // Tracker l'événement analytics
     await trackEvent(user.id, AnalyticsEvents.GESTATION_CREATED, {
       sowId: validatedData.sow_id,
-      expectedDueDate: expectedDueDate.toISOString().split('T')[0],
+      expectedFarrowingDate: validatedData.expected_farrowing_date,
     })
 
     return NextResponse.json({ data }, { status: 201 })

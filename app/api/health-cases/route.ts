@@ -70,94 +70,75 @@ export async function POST(request: NextRequest) {
 
     const validatedData = validation.data
 
-    // Mapper les champs du schéma validation vers health_records
-    const { data, error } = await supabase
+    // Créer le cas de santé - colonnes alignées sur Supabase health_records
+    const { data: healthCase, error } = await supabase
       .from("health_records")
       .insert({
         user_id: user.id,
-        pig_id: validatedData.animal_id, // animal_id → pig_id
-        priority:
-          validatedData.priority === 'critical'
-            ? 'high'
-            : validatedData.priority === 'low'
-            ? 'low'
-            : validatedData.priority === 'medium'
-            ? 'medium'
-            : 'medium', // Assure un mapping correct même si la valeur n'est pas attendue
-        status: validatedData.status || 'ongoing',
-        treatment: validatedData.treatment,
-        veterinarian: validatedData.veterinarian,
-        image_url: validatedData.photo,
-        cost: validatedData.cost,
-        start_date: validatedData.start_date || new Date().toISOString().split('T')[0],
-        issue: validatedData.issue || validatedData.title,
+        pig_id: validatedData.pig_id,
+        record_type: validatedData.record_type,
+        title: validatedData.title,
         description: validatedData.description,
-      })
-      })
-      .select()
-      .single()
-              ? 'low'
-              : 'medium',
-            : 'medium', // 'critical' is not a valid value for priority, keep proper mapping
-        status: validatedData.status || 'ongoing',
+        diagnosis: validatedData.diagnosis,
         treatment: validatedData.treatment,
+        medication: validatedData.medication,
+        dosage: validatedData.dosage,
         veterinarian: validatedData.veterinarian,
-        image_url: validatedData.photo, // Only use photo; remove .image_url as it may not exist
         cost: validatedData.cost,
-        start_date: validatedData.start_date || new Date().toISOString().split('T')[0],
-        // Remove type, as it does not exist in schema/type definition
+        photo_url: validatedData.photo_url,
+        severity: validatedData.severity,
+        status: validatedData.status,
+        start_date: validatedData.start_date,
+        end_date: validatedData.end_date,
+        next_checkup: validatedData.next_checkup,
+      })
       .select()
       .single()
 
     if (error) {
-      return NextResponse.json({ error: "Erreur lors de la creation du cas de sante" }, { status: 500 })
+      console.error('[API Health Cases] Insert error:', error)
+      return NextResponse.json({ error: "Erreur lors de la création du cas de santé" }, { status: 500 })
     }
 
     // Tracker l'événement analytics
-    const isCritical = validatedData.priority === 'high' || validatedData.priority === 'critical'
+    const isCritical = validatedData.severity === 'critique' || validatedData.severity === 'grave'
     await trackEvent(
       user.id,
       isCritical ? AnalyticsEvents.HEALTH_CASE_CRITICAL : AnalyticsEvents.HEALTH_CASE_CREATED,
       {
-        priority: validatedData.priority,
-        animalId: validatedData.animal_id,
+        severity: validatedData.severity,
+        pigId: validatedData.pig_id,
       },
     )
 
     // Envoyer SMS si cas critique et numéro disponible
     if (isCritical) {
       try {
-        // Get the user profile to retrieve the phone number
-        const { data: profile, error: profileError } = await supabaseClient
-          const { data: profile, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('phone')
-            .eq('id', user.id)
-            .single();
-
-          if (profileError) {
-            throw profileError;
-          }
-        }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('phone')
+          .eq('id', user.id)
+          .single()
 
         if (profile?.phone) {
-          const formattedPhone = formatPhoneNumber(profile.phone);
+          const formattedPhone = formatPhoneNumber(profile.phone)
           if (formattedPhone) {
-            const smsMessage = `🚨 Alerte PorkyFarm: Cas santé critique - ${validatedData.issue || validatedData.title || 'Cas de santé'} - ${validatedData.animal_name || 'Animal'}. Détails: ${validatedData.description ? validatedData.description.substring(0, 100) : ''}`;
-            await sendAlertSms(formattedPhone, smsMessage);
+            const smsMessage = `🚨 Alerte PorkyFarm: Cas santé critique - ${validatedData.title}. Détails: ${validatedData.description ? validatedData.description.substring(0, 100) : ''}`
+            await sendAlertSms(formattedPhone, smsMessage)
             await trackEvent(user.id, AnalyticsEvents.SMS_SENT, {
               alertType: 'health_critical',
-            });
+            })
           }
+        }
       } catch (smsError) {
         // Ne pas bloquer la création si SMS échoue
         console.error('[API Health Cases] SMS error:', smsError)
       }
     }
 
-    // Assume the variable storing the main query's result is named 'healthCase'
-    if (healthCase) {
-      return NextResponse.json({ data: healthCase }, { status: 201 });
-    } else {
-      return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
-    }
+    return NextResponse.json({ data: healthCase }, { status: 201 })
+  } catch (error) {
+    console.error('[API Health Cases] Server error:', error)
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
+  }
+}

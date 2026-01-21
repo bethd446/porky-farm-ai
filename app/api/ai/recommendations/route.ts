@@ -138,7 +138,7 @@ export async function GET(req: Request) {
     // Générer l'analyse avec modèle d'analyse structurée
     const model = getModelForRequest("analysis")
     const { text, usage } = await generateText({
-      model,
+      model: model as Parameters<typeof generateText>[0]["model"],
       system: systemPrompt,
       messages: [
         {
@@ -179,9 +179,9 @@ export async function GET(req: Request) {
         farmData,
         timestamp: new Date().toISOString(),
         usage: {
-          promptTokens: usage?.promptTokens || 0,
-          completionTokens: usage?.completionTokens || 0,
-          totalTokens: (usage?.promptTokens || 0) + (usage?.completionTokens || 0),
+          promptTokens: (usage as unknown as Record<string, number>)?.promptTokens || 0,
+          completionTokens: (usage as unknown as Record<string, number>)?.completionTokens || 0,
+          totalTokens: ((usage as unknown as Record<string, number>)?.promptTokens || 0) + ((usage as unknown as Record<string, number>)?.completionTokens || 0),
         },
       },
       { status: 200 }

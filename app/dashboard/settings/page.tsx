@@ -144,7 +144,7 @@ export default function SettingsPage() {
         verrats: animals.filter((a) => a.category === "verrat").length,
         porcelets: animals.filter((a) => a.category === "porcelet").length,
         activeGestations: gestations.filter((g) => g.status === "active").length,
-        activeHealthCases: healthCases.filter((hc) => hc.status === "open" || hc.status === "active").length,
+        activeHealthCases: healthCases.filter((hc) => hc.status === "open" || hc.status === "in_progress").length,
       },
     }
 

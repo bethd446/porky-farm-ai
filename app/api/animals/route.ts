@@ -69,21 +69,22 @@ export async function POST(request: NextRequest) {
 
     const validatedData = validation.data
 
+    // Insert animal - colonnes alignées sur Supabase
     const { data, error } = await supabase
       .from("pigs")
       .insert({
         user_id: user.id,
-        identifier: validatedData.identifier,
+        tag_number: validatedData.tag_number,
         name: validatedData.name,
         category: validatedData.category,
         breed: validatedData.breed,
         birth_date: validatedData.birth_date,
         weight: validatedData.weight,
         status: validatedData.status,
-        health_status: validatedData.health_status,
-        photo: validatedData.photo,
         mother_id: validatedData.mother_id,
         father_id: validatedData.father_id,
+        acquisition_date: validatedData.acquisition_date,
+        acquisition_price: validatedData.acquisition_price,
         notes: validatedData.notes,
       })
       .select()
@@ -96,7 +97,6 @@ export async function POST(request: NextRequest) {
     // Tracker l'événement analytics
     await trackEvent(user.id, AnalyticsEvents.ANIMAL_CREATED, {
       category: validatedData.category,
-      hasPhoto: !!validatedData.photo,
     })
 
     return NextResponse.json({ data }, { status: 201 })

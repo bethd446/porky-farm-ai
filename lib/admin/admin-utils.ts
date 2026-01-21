@@ -5,29 +5,34 @@ import { supabase } from "@/lib/supabase/client"
  */
 export async function checkIsAdmin(): Promise<boolean> {
   try {
-    const { data, error } = await supabase.rpc("is_admin")
-    if (error) throw error
-    return data === true
-  } catch {
-    // Fallback: vérifier par email
-    const { data: session } = await supabase.auth.getSession()
-    return session?.session?.user?.email === "openformac@gmail.com"
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single()
+
+    if (error) {
+      console.warn('[checkIsAdmin] Erreur requête profiles:', error.message)
+      return false
+    }
+
+    return Boolean(data?.is_admin)
+  } catch (err) {
+    console.warn('[checkIsAdmin] Exception:', err)
+    return false
   }
 }
 
 /**
  * Vérifie si l'utilisateur connecté est super admin
+ * Pour l'instant, super_admin = admin (is_admin = true)
  */
 export async function checkIsSuperAdmin(): Promise<boolean> {
-  try {
-    const { data, error } = await supabase.rpc("is_super_admin")
-    if (error) throw error
-    return data === true
-  } catch {
-    // Fallback: vérifier par email
-    const { data: session } = await supabase.auth.getSession()
-    return session?.session?.user?.email === "openformac@gmail.com"
-  }
+  // Pour l'instant, super_admin = admin
+  return checkIsAdmin()
 }
 
 /**
@@ -35,14 +40,28 @@ export async function checkIsSuperAdmin(): Promise<boolean> {
  */
 export async function getUserRole(): Promise<string> {
   try {
-    const { data, error } = await supabase.rpc("get_user_role")
-    if (error) throw error
-    return data || "user"
-  } catch {
-    const { data: session } = await supabase.auth.getSession()
-    if (session?.session?.user?.email === "openformac@gmail.com") {
-      return "super_admin"
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return "user"
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('is_admin, role')
+      .eq('id', user.id)
+      .single()
+
+    if (error) {
+      console.warn('[getUserRole] Erreur requête profiles:', error.message)
+      return "user"
     }
+
+    // Si is_admin = true, retourner "admin" (ou "super_admin" si role existe)
+    if (data?.is_admin) {
+      return data.role === 'super_admin' ? 'super_admin' : 'admin'
+    }
+
+    return data?.role || "user"
+  } catch (err) {
+    console.warn('[getUserRole] Exception:', err)
     return "user"
   }
 }

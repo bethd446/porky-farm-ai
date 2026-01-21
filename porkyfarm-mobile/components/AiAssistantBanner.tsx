@@ -47,7 +47,11 @@ export function AiAssistantBanner({ onPress, premium = true }: AiAssistantBanner
       activeOpacity={0.85}
     >
       <LinearGradient
-        colors={premiumGradients.ai.purple}
+        colors={
+          (premiumGradients.ai?.purple && Array.isArray(premiumGradients.ai.purple) && premiumGradients.ai.purple.length >= 2)
+            ? premiumGradients.ai.purple
+            : ['#8B5CF6', '#7C3AED'] // Valeur par défaut sécurisée
+        }
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.gradient}

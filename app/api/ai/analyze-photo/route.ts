@@ -18,21 +18,26 @@ const analyzePhotoSchema = z.object({
   context: z.string().max(1000).optional(),
 })
 
+async function getSupabaseClient() {
+  const cookieStore = await cookies()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) return null
+
+  return createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+    },
+  })
+}
+
 async function getUserId(): Promise<string | null> {
   try {
-    const cookieStore = await cookies()
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) return null
-
-    const supabase = createServerClient(supabaseUrl, supabaseKey, {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-      },
-    })
+    const supabase = await getSupabaseClient()
+    if (!supabase) return null
 
     const {
       data: { user },
@@ -69,10 +74,10 @@ export async function POST(req: Request) {
       )
     }
 
-    // Rate limiting
+    // Rate limiting - plus strict pour les images
     const rateLimitResult = checkRateLimit(`photo:${userId}`, {
-      ...CHAT_RATE_LIMIT,
-      limit: 10, // Limite plus stricte pour les images (plus coûteuses)
+      maxRequests: 10,
+      windowMs: CHAT_RATE_LIMIT.windowMs,
     })
 
     if (!rateLimitResult.success) {
@@ -136,7 +141,7 @@ export async function POST(req: Request) {
 
     // Générer l'analyse
     const { text, usage } = await generateText({
-      model,
+      model: model as Parameters<typeof generateText>[0]["model"],
       system: systemPrompt,
       messages: [
         {
@@ -157,25 +162,16 @@ export async function POST(req: Request) {
 
     // Enregistrer l'utilisation
     try {
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              return (await cookies()).get(name)?.value
-            },
-          },
-        },
-      )
+      const supabase = await getSupabaseClient()
+      if (supabase) {
+        const estimatedCost = 0.01 // Vision IA plus coûteuse
 
-      const estimatedCost = 0.01 // Vision IA plus coûteuse
-
-      await supabase.rpc("increment_ai_usage", {
-        p_user_id: userId,
-        p_cost_estimate: estimatedCost,
-        p_has_image: true,
-      })
+        await supabase.rpc("increment_ai_usage", {
+          p_user_id: userId,
+          p_cost_estimate: estimatedCost,
+          p_has_image: true,
+        })
+      }
     } catch (usageError) {
       console.warn("[AI] Usage tracking failed:", usageError)
     }
@@ -188,14 +184,19 @@ export async function POST(req: Request) {
       animalType,
     })
 
+    // Extraire les tokens de l'objet usage
+    const usageAny = usage as unknown as Record<string, number>
+    const promptTokens = usageAny?.promptTokens || usageAny?.input || 0
+    const completionTokens = usageAny?.completionTokens || usageAny?.output || 0
+
     return Response.json(
       {
         analysis: text,
         timestamp: new Date().toISOString(),
         usage: {
-          promptTokens: usage?.promptTokens || 0,
-          completionTokens: usage?.completionTokens || 0,
-          totalTokens: (usage?.promptTokens || 0) + (usage?.completionTokens || 0),
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
         },
       },
       {
@@ -206,12 +207,15 @@ export async function POST(req: Request) {
     )
   } catch (error: unknown) {
     const err = error as Error
+    console.error("[AI Analyze Photo] Error:", err.message)
 
     const userId = await getUserId()
-    await trackEvent(userId, AnalyticsEvents.AI_CHAT_ERROR, {
-      error: err.message,
-      endpoint: "analyze-photo",
-    })
+    if (userId) {
+      await trackEvent(userId, AnalyticsEvents.AI_CHAT_ERROR, {
+        error: err.message,
+        endpoint: "analyze-photo",
+      })
+    }
 
     return Response.json(
       {
@@ -221,4 +225,3 @@ export async function POST(req: Request) {
     )
   }
 }
-

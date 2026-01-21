@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { useAuthContext } from '../contexts/AuthContext'
 import { tasksService, type Task } from '../services/tasks'
-import { colors, spacing, typography, radius, shadows } from '../lib/designTokens'
+import { colors, spacing, typography, radius } from '../lib/designTokens'
+import { logger } from '../lib/logger'
+import { elevation } from '../lib/design/elevation'
 import { EmptyState } from './EmptyState'
 import { CheckCircle2, Circle } from 'lucide-react-native'
 
@@ -19,19 +21,25 @@ export function TodoList() {
 
   const loadTasks = async () => {
     setLoading(true)
-    const { data, error } = await tasksService.getTodayTasks()
+    const { data, error } = await tasksService.getToday()
     if (error) {
-      console.error('Error loading tasks:', error)
-    } else {
-      setTasks(data || [])
+      // Ne pas logger les erreurs PGRST205 (table introuvable) comme des erreurs critiques
+      // Le service retourne déjà [] avec error: null pour ces cas
+      if (error.message?.includes('PGRST205') || error.message?.includes('not found')) {
+        logger.warn('[TodoList] Table tasks not available, showing empty state')
+      } else {
+        logger.error('[TodoList] Error loading tasks:', error)
+      }
     }
+    // Toujours définir les tâches, même si vide (le service retourne [] pour PGRST205)
+    setTasks(data || [])
     setLoading(false)
   }
 
   const toggleTask = async (taskId: string, isCompleted: boolean) => {
-    const { error } = await tasksService.update(taskId, { is_completed: !isCompleted })
+    const { error } = await tasksService.update(taskId, { completed: !isCompleted })
     if (error) {
-      console.error('Error updating task:', error)
+      logger.error('[TodoList] Error updating task:', error)
     } else {
       loadTasks()
     }
@@ -66,9 +74,9 @@ export function TodoList() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.taskItem}
-            onPress={() => toggleTask(item.id, item.is_completed)}
+            onPress={() => toggleTask(item.id, item.completed)}
           >
-            {item.is_completed ? (
+            {item.completed ? (
               <CheckCircle2 size={24} color={colors.success} />
             ) : (
               <Circle size={24} color={colors.mutedForeground} />
@@ -77,7 +85,7 @@ export function TodoList() {
               <Text
                 style={[
                   styles.taskTitle,
-                  item.is_completed && styles.taskTitleCompleted,
+                  item.completed && styles.taskTitleCompleted,
                 ]}
               >
                 {item.title}
@@ -99,7 +107,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.md,
-    ...shadows.sm,
+    ...elevation.sm,
   },
   title: {
     fontSize: typography.fontSize.h4,

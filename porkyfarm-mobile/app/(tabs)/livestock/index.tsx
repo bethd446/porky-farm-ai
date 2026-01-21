@@ -28,7 +28,7 @@ import {
 import { EmptyState } from '../../../components/EmptyState'
 import { SkeletonCard } from '../../../components/animations'
 import { ScalePress } from '../../../components/animations'
-import { colors, spacing, typography, radius } from '../../../lib/designTokens'
+import { spacing, typography, radius } from '../../../lib/designTokens'
 import { Plus, Filter, SlidersHorizontal } from 'lucide-react-native'
 import { Wording } from '../../../lib/constants/wording'
 

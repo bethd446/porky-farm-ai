@@ -81,7 +81,7 @@ export default function HealthPage() {
     }
   }
 
-  const handleAddCase = () => {
+  const handleAddCase = async () => {
     setCaseErrors({})
     setCaseErrorMessage("")
 

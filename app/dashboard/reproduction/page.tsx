@@ -48,7 +48,7 @@ export default function ReproductionPage() {
     }
   }
 
-  const handleAddGestation = () => {
+  const handleAddGestation = async () => {
     setErrors({})
     setErrorMessage("")
 

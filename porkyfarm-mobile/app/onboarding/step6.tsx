@@ -5,9 +5,10 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
-import { colors, spacing, typography, radius, shadows } from '../../lib/designTokens'
+import { colors, spacing, typography, radius } from '../../lib/designTokens'
+import { elevation } from '../../lib/design/elevation'
 import { ArrowLeft, CheckCircle } from 'lucide-react-native'
-import { onboardingService } from '../../services/onboarding'
+import { useOnboardingState } from '../../lib/onboarding/hooks/useOnboardingState'
 
 const GOALS = [
   { value: 'health', label: 'Suivi santé' },
@@ -21,6 +22,7 @@ export default function OnboardingStep6Screen() {
   const params = useLocalSearchParams()
   const [mainGoal, setMainGoal] = useState<string>('all')
   const [loading, setLoading] = useState(false)
+  const { complete, cachedData } = useOnboardingState()
 
   const handleComplete = async () => {
     setLoading(true)
@@ -43,16 +45,21 @@ export default function OnboardingStep6Screen() {
         mainGoal: mainGoal as any,
       }
 
-      // Compléter l'onboarding (crée animaux + tâches)
-      const { error } = await onboardingService.completeOnboarding(onboardingData)
+      // Compléter l'onboarding (appelle RPC complete_onboarding)
+      const { error, persisted } = await complete(onboardingData)
 
-      if (error) {
-        Alert.alert('Erreur', `Impossible de finaliser la configuration: ${error.message}`)
+      if (error || !persisted) {
+        const errorMessage = error?.message || 'Les données n\'ont pas été correctement sauvegardées'
+        Alert.alert(
+          'Erreur de sauvegarde',
+          `Impossible de finaliser la configuration: ${errorMessage}\n\nVeuillez réessayer ou contacter le support si le problème persiste.`,
+          [{ text: 'OK' }]
+        )
         setLoading(false)
         return
       }
 
-      // Rediriger vers le dashboard
+      // Rediriger vers le dashboard (le guard vérifiera automatiquement l'état)
       router.replace('/(tabs)')
     } catch (err: any) {
       console.error('Error completing onboarding:', err)
@@ -206,7 +213,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 2,
     borderColor: colors.border,
-    ...shadows.sm,
+    ...elevation.sm,
   },
   goalCardSelected: {
     backgroundColor: colors.primary,
@@ -225,7 +232,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: radius.lg,
     marginBottom: spacing.lg,
-    ...shadows.md,
+    ...elevation.md,
   },
   summaryTitle: {
     fontSize: typography.fontSize.h4,
@@ -265,7 +272,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
     gap: spacing.sm,
-    ...shadows.md,
+    ...elevation.md,
   },
   buttonDisabled: {
     opacity: 0.7,

@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native'
+import React, { useState, useEffect, useCallback } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { useAuthContext } from '../../../contexts/AuthContext'
 import { animalsService } from '../../../services/animals'
 import { healthCasesService } from '../../../services/healthCases'
 import { gestationsService } from '../../../services/gestations'
 import { costsService } from '../../../services/costs'
-import { colors, spacing, typography, radius, shadows } from '../../../lib/designTokens'
+import { colors, spacing, typography, radius } from '../../../lib/designTokens'
+import { elevation } from '../../../lib/design/elevation'
+import { ScreenHeader, ScreenContainer, Card, LoadingScreen } from '../../../components/ui'
 import { EmptyState } from '../../../components/EmptyState'
-import { ErrorState } from '../../../components/ErrorState'
+import { ErrorState } from '../../../components/ui/ErrorState'
 import { PiggyBank, Heart, AlertTriangle, Baby, TrendingUp } from 'lucide-react-native'
+import { Wording } from '../../../lib/constants/wording'
+import { logger } from '../../../lib/logger'
 
 export default function ReportsScreen() {
   const { user } = useAuthContext()
@@ -23,13 +27,7 @@ export default function ReportsScreen() {
     totalIncome: 0,
   })
 
-  useEffect(() => {
-    if (user) {
-      loadReportsData()
-    }
-  }, [user])
-
-  const loadReportsData = async () => {
+  const loadReportsData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -45,20 +43,37 @@ export default function ReportsScreen() {
         costsService.getAll(),
       ])
 
-      if (animalsError || healthCasesError || gestationsError || costsError) {
-        throw new Error(
-          animalsError?.message ||
-            healthCasesError?.message ||
-            gestationsError?.message ||
-            costsError?.message ||
-            'Erreur lors du chargement des rapports',
-        )
+      // Ne pas bloquer pour les erreurs PGRST205 (tables non disponibles)
+      // Les services retournent déjà [] avec error: null pour ces cas
+      if (animalsError && !animalsError.message?.includes('PGRST205') && !animalsError.message?.includes('does not exist')) {
+        logger.error('[Reports] Animals error:', animalsError)
+      }
+      if (healthCasesError && !healthCasesError.message?.includes('PGRST205') && !healthCasesError.message?.includes('does not exist')) {
+        logger.error('[Reports] Health cases error:', healthCasesError)
+      }
+      if (gestationsError && !gestationsError.message?.includes('PGRST205') && !gestationsError.message?.includes('does not exist')) {
+        logger.error('[Reports] Gestations error:', gestationsError)
+      }
+      if (costsError && !costsError.message?.includes('PGRST205') && !costsError.message?.includes('does not exist')) {
+        logger.error('[Reports] Costs error:', costsError)
       }
 
+      // Ne lancer une erreur que si c'est une erreur critique (non-PGRST205)
+      const criticalError = 
+        (animalsError && !animalsError.message?.includes('PGRST205') && !animalsError.message?.includes('does not exist')) ||
+        (healthCasesError && !healthCasesError.message?.includes('PGRST205') && !healthCasesError.message?.includes('does not exist')) ||
+        (gestationsError && !gestationsError.message?.includes('PGRST205') && !gestationsError.message?.includes('does not exist')) ||
+        (costsError && !costsError.message?.includes('PGRST205') && !costsError.message?.includes('does not exist'))
+
+      if (criticalError) {
+        throw new Error('Erreur lors du chargement des rapports')
+      }
+
+      // Schéma V2.0: animaux ('actif', 'vendu', 'mort', 'reforme'), gestations ('en_cours', 'terminee', 'avortee')
       const totalAnimals = animalsData?.length || 0
-      const healthyCount = animalsData?.filter((a) => a.status === 'active').length || 0
-      const careRequired = animalsData?.filter((a) => a.status === 'sick').length || 0
-      const activeGestations = gestationsData?.filter((g) => g.status === 'pregnant').length || 0
+      const healthyCount = animalsData?.filter((a) => a.status === 'actif').length || 0
+      const careRequired = animalsData?.filter((a) => a.status === 'reforme').length || 0
+      const activeGestations = gestationsData?.filter((g) => g.status === 'en_cours').length || 0
 
       const totalExpenses =
         costsData
@@ -77,21 +92,22 @@ export default function ReportsScreen() {
         totalExpenses,
         totalIncome,
       })
-    } catch (e: any) {
-      console.error('Error loading reports:', e)
-      setError(e)
+    } catch (e: unknown) {
+      logger.error('[Reports] Error loading reports:', e)
+      setError(e instanceof Error ? e : new Error('Erreur de chargement des rapports'))
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      loadReportsData()
+    }
+  }, [user, loadReportsData])
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Chargement des rapports...</Text>
-      </View>
-    )
+    return <LoadingScreen message="Chargement des rapports..." />
   }
 
   if (error) {
@@ -113,26 +129,23 @@ export default function ReportsScreen() {
         <EmptyState
           title="Aucune donnée de rapport"
           description="Ajoutez des animaux, des cas de santé ou des transactions pour voir vos rapports ici."
-          emoji="📊"
+          icon="bar-chart"
         />
       </View>
     )
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Rapports & Statistiques</Text>
-        <Text style={styles.subtitle}>Vue d'ensemble de votre élevage</Text>
-      </View>
+    <ScreenContainer scrollable>
+      <ScreenHeader title={Wording.tabs.reports} subtitle="Vue d'ensemble de votre élevage" />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Statistiques du Cheptel</Text>
         <View style={styles.statsGrid}>
-          <StatCard icon={PiggyBank} label="Total Animaux" value={stats.totalAnimals} color={colors.primary} />
-          <StatCard icon={Heart} label="Animaux en Santé" value={stats.healthyCount} color={colors.success} />
-          <StatCard icon={AlertTriangle} label="Soins Requis" value={stats.careRequired} color={colors.warning} />
-          <StatCard icon={Baby} label="Gestations Actives" value={stats.activeGestations} color={colors.info} />
+          <StatCard icon={PiggyBank} label="Total animaux" value={stats.totalAnimals} color={colors.primary} />
+          <StatCard icon={Heart} label="En santé" value={stats.healthyCount} color={colors.success} />
+          <StatCard icon={AlertTriangle} label="Soins requis" value={stats.careRequired} color={colors.warning} />
+          <StatCard icon={Baby} label="Gestations actives" value={stats.activeGestations} color={colors.info} />
         </View>
       </View>
 
@@ -141,21 +154,21 @@ export default function ReportsScreen() {
         <View style={styles.financialCard}>
           <View style={styles.financialRow}>
             <TrendingUp size={20} color={colors.error} />
-            <Text style={styles.financialLabel}>Dépenses :</Text>
+            <Text style={styles.financialLabel}>{Wording.costs.expenses} :</Text>
             <Text style={[styles.financialValue, { color: colors.error }]}>
               {stats.totalExpenses.toLocaleString('fr-FR')} FCFA
             </Text>
           </View>
           <View style={styles.financialRow}>
             <TrendingUp size={20} color={colors.success} />
-            <Text style={styles.financialLabel}>Revenus :</Text>
+            <Text style={styles.financialLabel}>{Wording.costs.revenue} :</Text>
             <Text style={[styles.financialValue, { color: colors.success }]}>
               {stats.totalIncome.toLocaleString('fr-FR')} FCFA
             </Text>
           </View>
           <View style={styles.financialRow}>
             <PiggyBank size={20} color={colors.primary} />
-            <Text style={styles.financialLabel}>Solde :</Text>
+            <Text style={styles.financialLabel}>{Wording.costs.balance} :</Text>
             <Text style={[styles.financialValue, { color: colors.primary }]}>
               {(stats.totalIncome - stats.totalExpenses).toLocaleString('fr-FR')} FCFA
             </Text>
@@ -175,7 +188,7 @@ export default function ReportsScreen() {
           <Text style={styles.reportLinkText}>Voir les rapports d'alimentation</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </ScreenContainer>
   )
 }
 
@@ -187,13 +200,13 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, color }) => (
-  <View style={[styles.statCard, { borderColor: color }]}>
+  <Card style={[styles.statCard, { borderColor: color }]}>
     <View style={[styles.statIconContainer, { backgroundColor: color + '20' }]}>
       <Icon size={24} color={color} />
     </View>
     <Text style={styles.statLabel}>{label}</Text>
     <Text style={styles.statValue}>{value}</Text>
-  </View>
+  </Card>
 )
 
 const styles = StyleSheet.create({
@@ -207,30 +220,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background,
     padding: spacing.lg,
-  },
-  loadingText: {
-    marginTop: spacing.md,
-    fontSize: typography.fontSize.body,
-    color: colors.mutedForeground,
-  },
-  header: {
-    padding: spacing.lg,
-    paddingTop: spacing['2xl'],
-    backgroundColor: colors.card,
-    borderBottomLeftRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
-    ...shadows.sm,
-    marginBottom: spacing.md,
-  },
-  title: {
-    fontSize: typography.fontSize.h3,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.foreground,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    fontSize: typography.fontSize.body,
-    color: colors.mutedForeground,
   },
   section: {
     padding: spacing.lg,
@@ -248,14 +237,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   statCard: {
-    backgroundColor: colors.card,
     borderRadius: radius.md,
     padding: spacing.md,
     width: '48%',
     marginBottom: spacing.md,
     alignItems: 'center',
     borderLeftWidth: 4,
-    ...shadows.sm,
   },
   statIconContainer: {
     borderRadius: radius.full,
@@ -277,7 +264,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: radius.md,
     padding: spacing.lg,
-    ...shadows.sm,
+    ...elevation.sm,
   },
   financialRow: {
     flexDirection: 'row',
@@ -299,7 +286,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.sm,
-    ...shadows.sm,
+    ...elevation.sm,
   },
   reportLinkText: {
     fontSize: typography.fontSize.body,

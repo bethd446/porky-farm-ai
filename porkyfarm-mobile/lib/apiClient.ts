@@ -3,7 +3,7 @@
  * Gestion centralisée des erreurs, offline, timeouts
  */
 
-import { Network } from 'expo-network'
+import * as Network from 'expo-network'
 import { colors } from './designTokens'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'
@@ -79,10 +79,11 @@ class ApiClient {
 
       const data = await response.json()
       return { data }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur réseau. Vérifiez votre connexion.'
       return {
         error: {
-          message: error.message || 'Erreur réseau. Vérifiez votre connexion.',
+          message: errorMessage,
           code: 'NETWORK_ERROR',
         },
       }
@@ -99,7 +100,7 @@ class ApiClient {
   /**
    * POST request
    */
-  async post<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, body?: Record<string, unknown>): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
@@ -109,7 +110,7 @@ class ApiClient {
   /**
    * PUT request
    */
-  async put<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, body?: Record<string, unknown>): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: body ? JSON.stringify(body) : undefined,

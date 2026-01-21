@@ -3,7 +3,7 @@
  * Utilise la table `transactions` existante
  */
 
-import { supabase } from "../client"
+import { supabase } from "./client"
 
 export type CostType = "expense" | "income"
 export type CostCategory =
@@ -251,7 +251,7 @@ export async function getCostSummary(
 
     const { data, error } = await supabase
       .from("transactions")
-      .select("type, amount")
+      .select("transaction_type, amount")
       .eq("user_id", user.id)
       .gte("transaction_date", startDate.toISOString().split("T")[0])
       .lte("transaction_date", endDate.toISOString().split("T")[0])
@@ -261,15 +261,19 @@ export async function getCostSummary(
       return { data: null, error: error as Error }
     }
 
+    // Supabase transaction_type: "achat" | "vente" | "depense" | "revenu"
+    // Dépenses: achat, depense
+    // Revenus: vente, revenu
+    type TransactionRow = { transaction_type: string | null; amount: number | null }
     const totalExpenses =
       data
-        ?.filter((t) => t.type === "expense")
-        .reduce((sum, t) => sum + Number(t.amount || 0), 0) || 0
+        ?.filter((t: TransactionRow) => t.transaction_type === "depense" || t.transaction_type === "achat")
+        .reduce((sum: number, t: TransactionRow) => sum + Number(t.amount || 0), 0) || 0
 
     const totalIncome =
       data
-        ?.filter((t) => t.type === "income")
-        .reduce((sum, t) => sum + Number(t.amount || 0), 0) || 0
+        ?.filter((t: TransactionRow) => t.transaction_type === "vente" || t.transaction_type === "revenu")
+        .reduce((sum: number, t: TransactionRow) => sum + Number(t.amount || 0), 0) || 0
 
     return {
       data: {

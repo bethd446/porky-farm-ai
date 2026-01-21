@@ -3,15 +3,15 @@
  * Pour afficher un skeleton loader pendant le chargement
  */
 
-import { View, StyleSheet, Animated } from 'react-native'
+import { View, StyleSheet, Animated, ViewStyle, DimensionValue } from 'react-native'
 import { useEffect, useRef } from 'react'
 import { colors, spacing, radius } from '../lib/designTokens'
 
 interface LoadingSkeletonProps {
-  width?: number | string
+  width?: DimensionValue
   height?: number
   borderRadius?: number
-  style?: any
+  style?: ViewStyle
 }
 
 export function LoadingSkeleton({

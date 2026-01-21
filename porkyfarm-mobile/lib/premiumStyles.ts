@@ -5,57 +5,64 @@
 
 import { colors } from './designTokens'
 
-// Palettes de gradients basées sur les couleurs du design system
+// Palettes de gradients premium alinees sur le design system
 export const premiumGradients = {
   primary: {
-    icon: ['#2d6a4f', '#1e4d3a'] as const,
-    card: ['#f0fdf4', '#dcfce7'] as const,
+    icon: ['#2D6A4F', '#52B788'] as const,
+    card: ['#D8F3DC', '#F1F8F4'] as const,
+    button: ['#2D6A4F', '#40916C'] as const,
   },
   success: {
-    icon: ['#10b981', '#059669'] as const,
-    card: ['#ecfdf5', '#d1fae5'] as const,
+    icon: ['#40916C', '#74C69D'] as const,
+    card: ['#D1FAE5', '#ECFDF5'] as const,
+    button: ['#40916C', '#52B788'] as const,
   },
   warning: {
-    icon: ['#f59e0b', '#d97706'] as const,
-    card: ['#fffbeb', '#fef3c7'] as const,
+    icon: ['#E9C46A', '#F4E4BA'] as const,
+    card: ['#FEF3C7', '#FFFBEB'] as const,
+    button: ['#E9C46A', '#D97706'] as const,
   },
   error: {
-    icon: ['#ef4444', '#dc2626'] as const,
-    card: ['#fef2f2', '#fee2e2'] as const,
+    icon: ['#E76F51', '#F4A261'] as const,
+    card: ['#FEE2E2', '#FEF2F2'] as const,
+    button: ['#E76F51', '#DC2626'] as const,
   },
   info: {
-    icon: ['#3b82f6', '#2563eb'] as const,
-    card: ['#eff6ff', '#dbeafe'] as const,
+    icon: ['#457B9D', '#6B9AC4'] as const,
+    card: ['#DBEAFE', '#EFF6FF'] as const,
+    button: ['#457B9D', '#3B82F6'] as const,
   },
-  violet: {
-    icon: ['#8b5cf6', '#7c3aed'] as const,
-    card: ['#f5f3ff', '#ede9fe'] as const,
+  accent: {
+    icon: ['#E9C46A', '#E76F51'] as const,
+    card: ['#F4E4BA', '#FEF3C7'] as const,
+    button: ['#E9C46A', '#D97706'] as const,
   },
   ai: {
-    purple: ['#8b5cf6', '#7c3aed'] as const,
+    purple: ['#8B5CF6', '#7C3AED'] as const,
+    icon: ['#8B5CF6', '#A78BFA'] as const,
   },
 } as const
 
-// Ombres douces pour profondeur
+// Ombres premium avec teinte verte subtile
 export const premiumShadows = {
   card: {
     soft: {
-      shadowColor: '#000',
+      shadowColor: '#2D6A4F',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.04,
       shadowRadius: 8,
       elevation: 2,
     },
     medium: {
-      shadowColor: '#000',
+      shadowColor: '#2D6A4F',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.08,
       shadowRadius: 12,
       elevation: 4,
     },
     strong: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 6 },
+      shadowColor: '#2D6A4F',
+      shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.12,
       shadowRadius: 16,
       elevation: 6,
@@ -63,21 +70,21 @@ export const premiumShadows = {
   },
   icon: {
     soft: {
-      shadowColor: '#000',
+      shadowColor: '#1B4332',
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.03,
       shadowRadius: 4,
       elevation: 1,
     },
     medium: {
-      shadowColor: '#000',
+      shadowColor: '#1B4332',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.06,
       shadowRadius: 6,
       elevation: 2,
     },
     strong: {
-      shadowColor: '#000',
+      shadowColor: '#1B4332',
       shadowOffset: { width: 0, height: 3 },
       shadowOpacity: 0.1,
       shadowRadius: 8,
@@ -86,34 +93,34 @@ export const premiumShadows = {
   },
   button: {
     default: {
-      shadowColor: '#000',
+      shadowColor: '#2D6A4F',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    pressed: {
+      shadowColor: '#2D6A4F',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 2,
     },
-    pressed: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
-    },
   },
   fab: {
     default: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
-      elevation: 6,
+      shadowColor: '#2D6A4F',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 8,
     },
     pressed: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowColor: '#2D6A4F',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.12,
+      shadowRadius: 6,
+      elevation: 4,
     },
   },
 } as const
@@ -162,7 +169,7 @@ export const premiumStyles = {
 export function getPremiumShadow(
   variant: 'card' | 'icon' | 'button' | 'fab' = 'card',
   intensity: 'soft' | 'medium' | 'strong' = 'soft'
-): typeof premiumShadows.card.soft {
+) {
   if (variant === 'card' || variant === 'icon') {
     return premiumShadows[variant][intensity]
   }

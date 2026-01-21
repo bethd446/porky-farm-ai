@@ -5,7 +5,8 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
-import { colors, spacing, typography, radius, shadows } from '../../lib/designTokens'
+import { colors, spacing, typography, radius } from '../../lib/designTokens'
+import { elevation } from '../../lib/design/elevation'
 import { ArrowLeft, ArrowRight } from 'lucide-react-native'
 
 export default function OnboardingStep2Screen() {
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     backgroundColor: colors.card,
     borderRadius: radius.md,
-    ...shadows.sm,
+    ...elevation.sm,
   },
   categoryLabel: {
     fontSize: typography.fontSize.body,
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
     gap: spacing.sm,
-    ...shadows.md,
+    ...elevation.md,
   },
   buttonDisabled: {
     backgroundColor: colors.mutedForeground,

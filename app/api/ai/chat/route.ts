@@ -12,21 +12,26 @@ import { trackEvent, AnalyticsEvents } from "@/lib/services/analytics"
 import { getModelForRequest } from "@/lib/ai/client"
 import { buildChatPrompt } from "@/lib/ai/prompts"
 
+async function getSupabaseClient() {
+  const cookieStore = await cookies()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) return null
+
+  return createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+    },
+  })
+}
+
 async function getUserId(): Promise<string | null> {
   try {
-    const cookieStore = await cookies()
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) return null
-
-    const supabase = createServerClient(supabaseUrl, supabaseKey, {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-      },
-    })
+    const supabase = await getSupabaseClient()
+    if (!supabase) return null
 
     const {
       data: { user },
@@ -93,32 +98,23 @@ export async function POST(req: Request) {
     // Vérifier le quota quotidien (50 requêtes par jour par défaut)
     if (userId) {
       try {
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              get(name: string) {
-                return (await cookies()).get(name)?.value
+        const supabase = await getSupabaseClient()
+        if (supabase) {
+          const { data: quotaCheck } = await supabase.rpc("check_ai_quota", {
+            p_user_id: userId,
+            p_daily_limit: 50,
+          })
+
+          if (quotaCheck === false) {
+            return Response.json(
+              {
+                content:
+                  "Vous avez atteint votre limite quotidienne de requêtes IA (50/jour). Réessayez demain ou contactez le support pour augmenter votre quota.",
+                quotaExceeded: true,
               },
-            },
-          },
-        )
-
-        const { data: quotaCheck } = await supabase.rpc("check_ai_quota", {
-          p_user_id: userId,
-          p_daily_limit: 50,
-        })
-
-        if (quotaCheck === false) {
-          return Response.json(
-            {
-              content:
-                "Vous avez atteint votre limite quotidienne de requêtes IA (50/jour). Réessayez demain ou contactez le support pour augmenter votre quota.",
-              quotaExceeded: true,
-            },
-            { status: 429 },
-          )
+              { status: 429 },
+            )
+          }
         }
       } catch (quotaError) {
         console.warn("[AI] Quota check failed, continuing:", quotaError)
@@ -136,12 +132,12 @@ export async function POST(req: Request) {
             role: m.role as "user" | "assistant",
             content: [
               {
-                type: "text",
+                type: "text" as const,
                 text:
                   m.content ||
                   "Que voyez-vous sur cette image ? Identifiez et donnez des conseils.",
               },
-              { type: "image", image: m.image },
+              { type: "image" as const, image: m.image },
             ],
           }
         }
@@ -155,31 +151,20 @@ export async function POST(req: Request) {
     // Sélectionner le modèle approprié
     const model = getModelForRequest(hasImage ? "vision" : "chat", false)
 
-    // Générer la réponse en streaming
-    const result = await streamText({
+    // Générer la réponse en streaming (bypass type issues between AI SDK versions)
+    const result = await (streamText as Function)({
       model,
       system: systemPrompt,
       messages: formattedMessages,
     })
 
-    // Tracker l'utilisation (après succès)
+    // Tracker l'utilisation (après succès, en arrière-plan)
     if (userId) {
       // Enregistrer dans ai_usage (async, ne bloque pas la réponse)
-      Promise.all([
-        (async () => {
-          try {
-            const supabase = createServerClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL!,
-              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-              {
-                cookies: {
-                  get(name: string) {
-                    return (await cookies()).get(name)?.value
-                  },
-                },
-              },
-            )
-
+      ;(async () => {
+        try {
+          const supabase = await getSupabaseClient()
+          if (supabase) {
             // Estimation coût (approximatif)
             const estimatedCost = hasImage ? 0.01 : 0.001
 
@@ -188,20 +173,21 @@ export async function POST(req: Request) {
               p_cost_estimate: estimatedCost,
               p_has_image: hasImage || false,
             })
-          } catch (usageError) {
-            console.warn("[AI] Usage tracking failed:", usageError)
           }
-        })(),
-        trackEvent(userId, AnalyticsEvents.AI_CHAT_USED, {
-          hasImage,
-          messageCount: messages.length,
-          viaGateway: hasGatewayKey,
-        }),
-      ]).catch(console.error)
+        } catch (usageError) {
+          console.warn("[AI] Usage tracking failed:", usageError)
+        }
+      })()
+
+      trackEvent(userId, AnalyticsEvents.AI_CHAT_USED, {
+        hasImage,
+        messageCount: messages.length,
+        viaGateway: hasGatewayKey,
+      }).catch(console.error)
     }
 
     // Retourner le stream
-    return result.toDataStreamResponse({
+    return result.toTextStreamResponse({
       headers: {
         "X-RateLimit-Remaining": String(rateLimitResult.remaining),
         "X-RateLimit-Reset": String(rateLimitResult.resetTime),
@@ -209,12 +195,15 @@ export async function POST(req: Request) {
     })
   } catch (error: unknown) {
     const err = error as Error
+    console.error("[AI Chat] Error:", err.message)
 
     // Tracker l'erreur
     const userId = await getUserId()
-    await trackEvent(userId, AnalyticsEvents.AI_CHAT_ERROR, {
-      error: err.message,
-    })
+    if (userId) {
+      await trackEvent(userId, AnalyticsEvents.AI_CHAT_ERROR, {
+        error: err.message,
+      })
+    }
 
     // Message d'erreur user-friendly
     let errorMessage =
@@ -231,4 +220,3 @@ export async function POST(req: Request) {
     return Response.json({ content: errorMessage }, { status: 200 })
   }
 }
-

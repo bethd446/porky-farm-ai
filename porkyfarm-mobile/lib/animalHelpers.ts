@@ -11,14 +11,28 @@ import { mapSexToCategory as mapSexToCategoryFromService } from '../services/ani
 // Réexporter mapSexToCategory pour usage dans les composants
 export { mapSexToCategoryFromService as mapSexToCategory }
 
-// Extension de l'interface Animal pour compatibilité UI
-export interface AnimalUI extends Animal {
-  // Propriétés calculées pour compatibilité avec l'UI existante
-  identifier: string // alias de tag_number
-  category: 'sow' | 'boar' | 'piglet' | 'fattening' // calculé depuis sex
-  image_url: string | null // alias de photo_url
-  weight: number | null // extrait de weight_history
-  name?: string | null // optionnel, peut être dans notes ou autre
+// Interface UI pour affichage (sans conflit avec Animal)
+export interface AnimalUI {
+  // Toutes les propriétés de Animal
+  id: string
+  farm_id: string
+  identifier: string
+  name?: string | null
+  category: 'sow' | 'boar' | 'piglet' | 'fattening' // Version UI des catégories
+  breed?: string | null
+  gender?: 'male' | 'female' | null
+  birth_date?: string | null
+  acquisition_date?: string | null
+  weight_kg?: number | null
+  status: string
+  photo_url?: string | null
+  tags?: string[] | null
+  notes?: string | null
+  created_at: string
+  updated_at: string
+  // Propriétés UI calculées
+  image_url: string | null
+  weight: number | null
 }
 
 /**
@@ -36,10 +50,23 @@ export function animalToUI(animal: Animal): AnimalUI {
   }
 
   return {
-    ...animal,
-    identifier: animal.tag_number,
-    category: mapSexToCategoryFromService(animal.sex),
-    image_url: animal.photo_url,
+    id: animal.id,
+    farm_id: animal.farm_id,
+    identifier: animal.tag_number || animal.identifier || 'N/A',
+    name: animal.name,
+    category: mapSexToCategoryFromService(animal.sex || 'unknown'),
+    breed: animal.breed,
+    gender: animal.gender,
+    birth_date: animal.birth_date,
+    acquisition_date: animal.acquisition_date,
+    weight_kg: animal.weight_kg,
+    status: animal.status,
+    photo_url: animal.photo_url,
+    tags: animal.tags,
+    notes: animal.notes,
+    created_at: animal.created_at,
+    updated_at: animal.updated_at,
+    image_url: animal.photo_url ?? null,
     weight,
   }
 }

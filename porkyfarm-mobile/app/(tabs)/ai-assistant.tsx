@@ -1,9 +1,13 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { apiClient } from '../../lib/apiClient'
-import { colors, spacing, typography, radius, commonStyles } from '../../lib/designTokens'
+import { colors, spacing, typography, radius } from '../../lib/designTokens'
+import { ScreenHeader, TextField, PrimaryButton } from '../../components/ui'
+import { EmptyState } from '../../components/EmptyState'
 import { Brain, Send } from 'lucide-react-native'
+import { Wording } from '../../lib/constants/wording'
+import { logger } from '../../lib/logger'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -70,22 +74,15 @@ export default function AiAssistantScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Brain size={24} color={colors.primary} />
-        <Text style={styles.title}>Assistant IA</Text>
-      </View>
+      <ScreenHeader title={Wording.tabs.assistant} subtitle="Posez vos questions sur la gestion de votre élevage" />
 
       <ScrollView style={styles.messagesContainer} contentContainerStyle={styles.messagesContent}>
         {messages.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Brain size={48} color={colors.mutedForeground} />
-            <Text style={styles.emptyText}>
-              Posez vos questions sur la gestion de votre élevage porcin
-            </Text>
-            <Text style={styles.emptySubtext}>
-              Exemples : "Comment prévenir les maladies ?", "Quand vacciner mes porcs ?"
-            </Text>
-          </View>
+          <EmptyState
+            icon="bulb-outline"
+            title="Assistant IA"
+            description="Posez vos questions sur la gestion de votre élevage porcin. Exemples : 'Comment prévenir les maladies ?', 'Quand vacciner mes porcs ?'"
+          />
         ) : (
           messages.map((msg, index) => (
             <View
@@ -104,25 +101,23 @@ export default function AiAssistantScreen() {
       </ScrollView>
 
       <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
+        <TextField
           value={input}
           onChangeText={setInput}
           placeholder="Posez votre question..."
           multiline
           editable={!loading}
+          containerStyle={styles.inputWrapper}
         />
-        <TouchableOpacity
-          style={[styles.sendButton, loading && styles.sendButtonDisabled]}
+        <PrimaryButton
+          title="Envoyer"
           onPress={handleSend}
           disabled={loading || !input.trim()}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Send size={20} color="#fff" />
-          )}
-        </TouchableOpacity>
+          loading={loading}
+          fullWidth={false}
+          style={styles.sendButton}
+          icon={<Send size={18} color="#ffffff" />}
+        />
       </View>
     </View>
   )
@@ -133,20 +128,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.lg,
-    paddingTop: spacing['2xl'],
-    backgroundColor: colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    gap: spacing.sm,
-  },
-  title: {
-    fontSize: typography.fontSize.h2,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.foreground,
+  inputWrapper: {
+    flex: 1,
+    marginBottom: 0,
   },
   messagesContainer: {
     flex: 1,
@@ -154,24 +138,6 @@ const styles = StyleSheet.create({
   messagesContent: {
     padding: spacing.lg,
     gap: spacing.md,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing['4xl'],
-  },
-  emptyText: {
-    fontSize: typography.fontSize.body,
-    color: colors.foreground,
-    textAlign: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  emptySubtext: {
-    fontSize: typography.fontSize.bodySmall,
-    color: colors.mutedForeground,
-    textAlign: 'center',
   },
   message: {
     maxWidth: '80%',
@@ -202,27 +168,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     alignItems: 'flex-end',
   },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    fontSize: typography.fontSize.body,
-    backgroundColor: colors.background,
-    color: colors.foreground,
-    maxHeight: 100,
-    minHeight: 44,
-  },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonDisabled: {
-    opacity: 0.5,
+    minWidth: 100,
   },
 })

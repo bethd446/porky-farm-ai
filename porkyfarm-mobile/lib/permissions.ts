@@ -5,8 +5,22 @@
 
 import { Alert, Linking, Platform } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
-import * as Camera from 'expo-camera'
+import { Camera } from 'expo-camera'
+// Expo SDK 53+ : expo-notifications nécessite une configuration explicite
+// En Expo Go, certaines fonctionnalités sont limitées
 import * as Notifications from 'expo-notifications'
+
+// Configuration des notifications (best practice Expo SDK ≥53)
+// Cette configuration est ignorée en Expo Go mais nécessaire pour les builds standalone
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+})
 
 export interface PermissionResult {
   granted: boolean
@@ -16,11 +30,14 @@ export interface PermissionResult {
 
 /**
  * Demande la permission caméra avec message explicite
+ * Note: expo-camera utilise maintenant useCameraPermissions hook
+ * Pour usage dans composants, utiliser le hook directement
+ * Cette fonction est pour usage dans fonctions utilitaires
  */
 export async function requestCameraPermission(): Promise<PermissionResult> {
   try {
     // Vérifier d'abord le statut actuel
-    const { status: existingStatus } = await Camera.requestCameraPermissionsAsync()
+    const { status: existingStatus } = await Camera.getCameraPermissionsAsync()
 
     if (existingStatus === 'granted') {
       return { granted: true, canAskAgain: true }

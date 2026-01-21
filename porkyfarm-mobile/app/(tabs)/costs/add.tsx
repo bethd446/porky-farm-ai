@@ -11,7 +11,6 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -19,28 +18,30 @@ import { costsService, type CostEntryInsert, type CostCategory } from '../../../
 import { offlineQueue } from '../../../lib/offlineQueue'
 import { useSyncQueue } from '../../../hooks/useSyncQueue'
 import { colors, spacing, typography, radius, commonStyles } from '../../../lib/designTokens'
+import { LoadingInline } from '../../../components/ui'
+import { getTodayISO, toISODateString } from '../../../lib/dateUtils'
+import { useRefresh } from '../../../contexts/RefreshContext'
 
-// Catégories alignées sur le schéma Supabase : 'sale','feed','veterinary','equipment','labor','other'
-// Mapping des catégories UI vers DB
+// Catégories alignées sur le schéma Supabase V2.0
 const CATEGORIES: { value: CostCategory; label: string; icon: string }[] = [
-  { value: 'feed', label: 'Aliment', icon: '🌾' },
-  { value: 'veterinary', label: 'Vétérinaire', icon: '🏥' },
-  { value: 'equipment', label: 'Équipement', icon: '🔧' },
-  { value: 'labor', label: 'Main d\'œuvre', icon: '👷' },
-  { value: 'sale', label: 'Vente', icon: '💰' },
-  { value: 'other', label: 'Autre', icon: '📝' },
+  { value: 'alimentation', label: 'Aliment', icon: '🌾' },
+  { value: 'veterinaire', label: 'Vétérinaire', icon: '🏥' },
+  { value: 'equipement', label: 'Équipement', icon: '🔧' },
+  { value: 'main_oeuvre', label: 'Main d\'œuvre', icon: '👷' },
+  { value: 'vente', label: 'Vente', icon: '💰' },
+  { value: 'autre', label: 'Autre', icon: '📝' },
 ]
 
 export default function AddCostScreen() {
   const router = useRouter()
   const { isOnline } = useSyncQueue()
+  const { refreshCosts } = useRefresh()
   const [formData, setFormData] = useState<CostEntryInsert>({
     type: 'expense',
-    category: 'other',
+    category: 'autre', // Schéma V2.0
     amount: 0,
     description: null,
-    transaction_date: new Date().toISOString().split('T')[0],
-    notes: null,
+    transaction_date: getTodayISO(),
   })
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -94,6 +95,7 @@ export default function AddCostScreen() {
             Alert.alert('Erreur', error.message || 'Erreur lors de la création')
           }
         } else {
+          refreshCosts()
           Alert.alert('Succès', 'Transaction enregistrée avec succès', [
             { text: 'OK', onPress: () => router.back() },
           ])
@@ -150,11 +152,11 @@ export default function AddCostScreen() {
         <Text style={styles.label}>Catégorie *</Text>
         <View style={styles.categoryGrid}>
           {CATEGORIES.filter((cat) => {
-            // Filtrer selon le type
+            // Filtrer selon le type - valeurs V2.0 françaises
             if (formData.type === 'expense') {
-              return cat.value !== 'sale' // Les dépenses ne peuvent pas être 'sale'
+              return cat.value !== 'vente' // Les dépenses ne peuvent pas être 'vente'
             } else {
-              return cat.value === 'sale' || cat.value === 'other' // Les entrées sont 'sale' ou 'other'
+              return cat.value === 'vente' || cat.value === 'autre' // Les entrées sont 'vente' ou 'autre'
             }
           }).map((cat) => (
             <TouchableOpacity
@@ -201,7 +203,7 @@ export default function AddCostScreen() {
         </TouchableOpacity>
         {showDatePicker && (
           <DateTimePicker
-            value={new Date(formData.transaction_date)}
+            value={formData.transaction_date ? new Date(formData.transaction_date) : new Date()}
             mode="date"
             display="default"
             onChange={(event, date) => {
@@ -209,33 +211,22 @@ export default function AddCostScreen() {
               if (date) {
                 setFormData({
                   ...formData,
-                  transaction_date: date.toISOString().split('T')[0],
+                  transaction_date: toISODateString(date),
                 })
               }
             }}
           />
         )}
 
-        {/* Description */}
+        {/* Description - aligné sur colonne Supabase 'description' */}
         <Text style={styles.label}>Description</Text>
         <TextInput
           style={[commonStyles.input, styles.textArea]}
           value={formData.description || ''}
           onChangeText={(text) => setFormData({ ...formData, description: text || null })}
-          placeholder="Description optionnelle"
+          placeholder="Description optionnelle (ex: Achat 10 sacs de maïs)"
           multiline
           numberOfLines={3}
-        />
-
-        {/* Notes */}
-        <Text style={styles.label}>Notes</Text>
-        <TextInput
-          style={[commonStyles.input, styles.textArea]}
-          value={formData.notes || ''}
-          onChangeText={(text) => setFormData({ ...formData, notes: text || null })}
-          placeholder="Notes optionnelles"
-          multiline
-          numberOfLines={2}
         />
 
         {/* Bouton Enregistrer */}
@@ -245,7 +236,7 @@ export default function AddCostScreen() {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <LoadingInline size="small" color="#fff" />
           ) : (
             <Text style={commonStyles.buttonText}>Enregistrer</Text>
           )}

@@ -8,16 +8,21 @@ export interface Animal {
   category: "truie" | "verrat" | "porcelet" | "porc"
   breed: string
   birthDate: string
+  age?: string
   weight: number
+  healthScore?: number
   status: "actif" | "vendu" | "mort" | "malade"
   healthStatus: "bon" | "moyen" | "mauvais"
   photo?: string
   motherId?: string
   fatherId?: string
   notes?: string
+  location?: string
+  lastWeightDate?: string
+  lastVaccinationDate?: string
   createdAt: string
   updatedAt: string
-  userId?: string // Ajout du userId pour filtrage
+  userId?: string
 }
 
 export interface HealthCase {
@@ -58,14 +63,17 @@ export interface Gestation {
 export interface Vaccination {
   id: string
   name: string
-  targetAnimals: string
-  scheduledDate: string
+  animalId?: string
+  targetAnimals?: string
+  scheduledDate?: string
+  date?: string
+  nextDueDate?: string
   completedDate?: string
   status: "pending" | "completed" | "overdue"
   completedCount?: number
   notes?: string
   createdAt: string
-  userId?: string // Ajout du userId pour filtrage
+  userId?: string
 }
 
 export interface Activity {

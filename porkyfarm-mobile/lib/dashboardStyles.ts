@@ -4,7 +4,8 @@
  */
 
 import { StyleSheet } from 'react-native'
-import { colors, spacing, typography, radius, shadows } from './designTokens'
+import { colors, spacing, typography, radius } from './designTokens'
+import { elevation } from './design/elevation'
 
 export const dashboardStyles = StyleSheet.create({
   container: {
@@ -66,7 +67,7 @@ export const dashboardStyles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    ...shadows.md,
+    ...elevation.md,
   },
   statCardPrimary: {
     borderLeftWidth: 4,
@@ -117,7 +118,7 @@ export const dashboardStyles = StyleSheet.create({
     borderColor: colors.border,
     minHeight: spacing.touchTarget,
     justifyContent: 'center',
-    ...shadows.sm,
+    ...elevation.sm,
   },
   quickActionButtonPrimary: {
     backgroundColor: colors.primary,

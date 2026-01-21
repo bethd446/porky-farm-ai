@@ -10,21 +10,26 @@ const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
+async function getSupabaseClient() {
+  const cookieStore = await cookies()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) return null
+
+  return createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+    },
+  })
+}
+
 async function getUserId(): Promise<string | null> {
   try {
-    const cookieStore = await cookies()
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) return null
-
-    const supabase = createServerClient(supabaseUrl, supabaseKey, {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-      },
-    })
+    const supabase = await getSupabaseClient()
+    if (!supabase) return null
 
     const {
       data: { user },
@@ -85,34 +90,24 @@ export async function POST(req: Request) {
     // Vérifier le quota quotidien (50 requêtes par jour par défaut)
     if (userId) {
       try {
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              get(name: string) {
-                return (await cookies()).get(name)?.value
+        const supabase = await getSupabaseClient()
+        if (supabase) {
+          const { data: quotaCheck } = await supabase.rpc('check_ai_quota', {
+            p_user_id: userId,
+            p_daily_limit: 50,
+          })
+
+          if (quotaCheck === false) {
+            return Response.json(
+              {
+                content: 'Vous avez atteint votre limite quotidienne de requêtes IA (50/jour). Réessayez demain ou contactez le support pour augmenter votre quota.',
+                quotaExceeded: true,
               },
-            },
-          },
-        )
-
-        const { data: quotaCheck } = await supabase.rpc('check_ai_quota', {
-          p_user_id: userId,
-          p_daily_limit: 50, // Limite quotidienne (configurable)
-        })
-
-        if (quotaCheck === false) {
-          return Response.json(
-            {
-              content: 'Vous avez atteint votre limite quotidienne de requêtes IA (50/jour). Réessayez demain ou contactez le support pour augmenter votre quota.',
-              quotaExceeded: true,
-            },
-            { status: 429 },
-          )
+              { status: 429 },
+            )
+          }
         }
       } catch (quotaError) {
-        // Si la fonction RPC n'existe pas encore, continuer (pour compatibilité)
         console.warn('[AI] Quota check failed, continuing:', quotaError)
       }
     }
@@ -172,8 +167,8 @@ REGLES DE REPONSE:
         return {
           role: m.role as "user" | "assistant",
           content: [
-            { type: "text", text: m.content || "Que voyez-vous sur cette image ? Identifiez et donnez des conseils." },
-            { type: "image", image: m.image },
+            { type: "text" as const, text: m.content || "Que voyez-vous sur cette image ? Identifiez et donnez des conseils." },
+            { type: "image" as const, image: m.image },
           ],
         }
       }
@@ -184,43 +179,38 @@ REGLES DE REPONSE:
     })
 
     const model = hasImage ? openai("gpt-4o") : openai("gpt-4o-mini")
-    const { text, usage } = await generateText({
+
+    // Bypass type issues between AI SDK versions
+    const { text, usage } = await (generateText as Function)({
       model,
       system: systemPrompt,
       messages: formattedMessages,
     })
 
+    // Extraire les tokens
+    const usageAny = usage as unknown as Record<string, number>
+    const promptTokens = usageAny?.promptTokens || 0
+    const completionTokens = usageAny?.completionTokens || 0
+
     // Estimer le coût (approximatif)
-    // GPT-4o-mini : ~$0.15/1M tokens input, ~$0.60/1M tokens output
-    // GPT-4o : ~$2.50/1M tokens input, ~$10/1M tokens output
     const costPer1MInput = hasImage ? 2.5 : 0.15
     const costPer1MOutput = hasImage ? 10 : 0.6
     const estimatedCost =
-      ((usage?.promptTokens || 0) / 1_000_000) * costPer1MInput +
-      ((usage?.completionTokens || 0) / 1_000_000) * costPer1MOutput
+      (promptTokens / 1_000_000) * costPer1MInput +
+      (completionTokens / 1_000_000) * costPer1MOutput
 
     // Enregistrer l'utilisation dans la table ai_usage
     if (userId) {
       try {
-        const supabaseForUsage = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              get(name: string) {
-                return (await cookies()).get(name)?.value
-              },
-            },
-          },
-        )
-
-        await supabaseForUsage.rpc('increment_ai_usage', {
-          p_user_id: userId,
-          p_cost_estimate: estimatedCost,
-          p_has_image: hasImage || false,
-        })
+        const supabase = await getSupabaseClient()
+        if (supabase) {
+          await supabase.rpc('increment_ai_usage', {
+            p_user_id: userId,
+            p_cost_estimate: estimatedCost,
+            p_has_image: hasImage || false,
+          })
+        }
       } catch (usageError) {
-        // Si la fonction RPC n'existe pas encore, continuer (pour compatibilité)
         console.warn('[AI] Usage tracking failed:', usageError)
       }
     }
@@ -230,16 +220,16 @@ REGLES DE REPONSE:
       hasImage,
       messageCount: messages.length,
       estimatedCost,
-      tokensUsed: (usage?.promptTokens || 0) + (usage?.completionTokens || 0),
+      tokensUsed: promptTokens + completionTokens,
     })
 
     return Response.json(
       {
         content: text,
         usage: {
-          promptTokens: usage?.promptTokens || 0,
-          completionTokens: usage?.completionTokens || 0,
-          totalTokens: (usage?.promptTokens || 0) + (usage?.completionTokens || 0),
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
           estimatedCost,
         },
       },
@@ -252,12 +242,15 @@ REGLES DE REPONSE:
     )
   } catch (error: unknown) {
     const err = error as Error
+    console.error('[AI Chat] Error:', err.message)
 
     // Tracker l'erreur
     const userId = await getUserId()
-    await trackEvent(userId, AnalyticsEvents.AI_CHAT_ERROR, {
-      error: err.message,
-    })
+    if (userId) {
+      await trackEvent(userId, AnalyticsEvents.AI_CHAT_ERROR, {
+        error: err.message,
+      })
+    }
 
     // Determine error type for appropriate user message
     let errorMessage = "Desole, je rencontre des difficultes techniques. Veuillez reessayer."

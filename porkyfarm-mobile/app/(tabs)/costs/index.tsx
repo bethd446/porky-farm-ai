@@ -2,40 +2,32 @@
  * Écran liste des transactions financières (Coûts & Finances)
  */
 
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { useState } from 'react'
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native'
 import { useRouter } from 'expo-router'
 import { costsService, type CostEntry } from '../../../services/costs'
 import { CostItem } from '../../../components/CostItem'
-import { EmptyState } from '../../../components/EmptyState'
-import { ErrorState } from '../../../components/ErrorState'
-import { LoadingSkeleton, AnimalCardSkeleton } from '../../../components/LoadingSkeleton'
+import { ScreenWrapper } from '../../../components/ui/ScreenWrapper'
+import { Button } from '../../../components/ui/Button'
 import { colors, spacing, typography, commonStyles } from '../../../lib/designTokens'
+import { useRefresh } from '../../../contexts/RefreshContext'
+import { useListData } from '../../../hooks/useData'
 
 type FilterType = 'all' | 'expense' | 'income'
 
 export default function CostsScreen() {
   const router = useRouter()
-  const [costs, setCosts] = useState<CostEntry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
   const [filter, setFilter] = useState<FilterType>('all')
+  const { costsVersion } = useRefresh()
 
-  useEffect(() => {
-    loadCosts()
-  }, [])
-
-  const loadCosts = async () => {
-    setLoading(true)
-    setError(null)
-    const { data, error: err } = await costsService.getAll()
-    if (err) {
-      setError(err)
-    } else {
-      setCosts(data || [])
-    }
-    setLoading(false)
-  }
+  const {
+    data: costs,
+    loading,
+    error,
+    refreshing,
+    isEmpty,
+    refresh: onRefresh,
+  } = useListData(() => costsService.getAll(), [costsVersion])
 
   const filteredCosts = costs.filter((cost) => {
     if (filter === 'all') return true
@@ -54,34 +46,25 @@ export default function CostsScreen() {
       .reduce((sum, c) => sum + Number(c.amount), 0)
   }
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Coûts & Finances</Text>
-        </View>
-        <View style={styles.content}>
-          {[1, 2, 3].map((i) => (
-            <AnimalCardSkeleton key={i} />
-          ))}
-        </View>
-      </View>
-    )
-  }
-
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Coûts & Finances</Text>
-        </View>
-        <ErrorState message={error.message} onRetry={loadCosts} />
-      </View>
-    )
-  }
-
   return (
-    <View style={styles.container}>
+    <ScreenWrapper
+      loading={loading}
+      error={error}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      isEmpty={isEmpty}
+      emptyIcon="wallet-outline"
+      emptyTitle="Aucune transaction"
+      emptyMessage="Commencez par enregistrer vos premières dépenses et entrées pour suivre vos finances."
+      emptyAction={
+        <Button
+          title="Ajouter une transaction"
+          onPress={() => router.push('/(tabs)/costs/add')}
+          variant="primary"
+        />
+      }
+      scrollable={false}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Coûts & Finances</Text>
@@ -172,30 +155,49 @@ export default function CostsScreen() {
 
       {/* Liste */}
       {filteredCosts.length === 0 ? (
-        <EmptyState
-          emoji="💰"
-          title={filter === 'all' ? 'Aucune transaction' : filter === 'expense' ? 'Aucune dépense' : 'Aucune entrée'}
-          description={
-            filter === 'all'
-              ? 'Commencez par enregistrer vos premières dépenses et entrées pour suivre vos finances.'
-              : filter === 'expense'
-                ? 'Aucune dépense enregistrée. Ajoutez vos premières dépenses pour commencer le suivi.'
-                : 'Aucune entrée enregistrée. Ajoutez vos premières entrées pour commencer le suivi.'
-          }
-          actionLabel="Ajouter une transaction"
-          onAction={() => router.push('/(tabs)/costs/add')}
-        />
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            {filter === 'all' ? 'Aucune transaction' : filter === 'expense' ? 'Aucune dépense' : 'Aucune entrée'}
+          </Text>
+        </View>
       ) : (
         <FlatList
           data={filteredCosts}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <CostItem entry={item} />}
-          refreshing={loading}
-          onRefresh={loadCosts}
+          renderItem={({ item }) => (
+            <CostItem
+              entry={item}
+              onPress={() => router.push(`/(tabs)/costs/${item.id}`)}
+              onLongPress={() => {
+                const { Alert } = require('react-native')
+                Alert.alert(
+                  'Supprimer',
+                  `Supprimer "${item.description || 'cette transaction'}" ?`,
+                  [
+                    { text: 'Annuler', style: 'cancel' },
+                    {
+                      text: 'Supprimer',
+                      style: 'destructive',
+                      onPress: async () => {
+                        const { error } = await costsService.delete(item.id)
+                        if (error) {
+                          Alert.alert('Erreur', error.message)
+                        } else {
+                          onRefresh()
+                        }
+                      },
+                    },
+                  ]
+                )
+              }}
+            />
+          )}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           contentContainerStyle={styles.listContent}
         />
       )}
-    </View>
+    </ScreenWrapper>
   )
 }
 
@@ -272,6 +274,17 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: spacing.base,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  emptyText: {
+    fontSize: typography.fontSize.body,
+    color: colors.mutedForeground,
+    textAlign: 'center',
   },
 })
 

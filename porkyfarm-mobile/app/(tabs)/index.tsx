@@ -8,12 +8,11 @@
  * - Cheptel récent
  */
 
-import { useMemo, useCallback } from 'react'
-import { View, Text, StyleSheet, Pressable, Dimensions, ScrollView, RefreshControl } from 'react-native'
+import { useMemo, useCallback, useEffect } from 'react'
+import { View, Text, StyleSheet, Pressable, Dimensions, ScrollView, RefreshControl, Animated } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { MotiView } from 'moti'
 import { useFocusEffect } from '@react-navigation/native'
 
 import { useAuthContext } from '../../contexts/AuthContext'
@@ -33,6 +32,7 @@ import { colors } from '../../constants/theme'
 import { colors as tokenColors } from '../../lib/theme/tokens'
 import { useTheme } from '../../contexts/ThemeContext'
 import { logger } from '../../lib/logger'
+import { useSlideIn, useFadeIn, useCombinedAnimation } from '../../hooks/useAnimations'
 
 const { width } = Dimensions.get('window')
 const CARD_WIDTH = (width - 48 - 12) / 2
@@ -69,6 +69,75 @@ const defaultDashboardData: DashboardData = {
   },
   recentAnimals: [],
   gestationAlerts: [],
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Animated Wrapper Components
+// ═══════════════════════════════════════════════════════════════
+
+// Header animation wrapper (slide from top with fade)
+function AnimatedHeader({ children, style }: { children: React.ReactNode; style?: any }) {
+  const { slideIn, animatedStyle } = useSlideIn('top', 20, 400, 0)
+
+  useEffect(() => {
+    slideIn()
+  }, [slideIn])
+
+  return (
+    <Animated.View style={[style, animatedStyle]}>
+      {children}
+    </Animated.View>
+  )
+}
+
+// Scale and fade animation wrapper (for AlertCards)
+function AnimatedScaleFade({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const { animateIn, animatedStyle } = useCombinedAnimation({
+    fade: true,
+    scale: true,
+    duration: 400,
+    delay,
+  })
+
+  useEffect(() => {
+    animateIn()
+  }, [animateIn])
+
+  return (
+    <Animated.View style={animatedStyle}>
+      {children}
+    </Animated.View>
+  )
+}
+
+// Fade animation wrapper (for empty state)
+function AnimatedFade({ children, style }: { children: React.ReactNode; style?: any }) {
+  const { fadeIn, animatedStyle } = useFadeIn(300, 0)
+
+  useEffect(() => {
+    fadeIn()
+  }, [fadeIn])
+
+  return (
+    <Animated.View style={[style, animatedStyle]}>
+      {children}
+    </Animated.View>
+  )
+}
+
+// Slide from left animation wrapper (for AnimalCard)
+function AnimatedSlideLeft({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const { slideIn, animatedStyle } = useSlideIn('left', 20, 300, delay)
+
+  useEffect(() => {
+    slideIn()
+  }, [slideIn])
+
+  return (
+    <Animated.View style={animatedStyle}>
+      {children}
+    </Animated.View>
+  )
 }
 
 export default function DashboardScreen() {
@@ -148,8 +217,8 @@ export default function DashboardScreen() {
           overdueTasks,
         }
 
-        console.log('[Dashboard] Stats calculées:', stats)
-        console.log('[Dashboard] Alertes gestations:', gestationAlerts.length)
+        logger.debug('[Dashboard] Stats calculées:', stats)
+        logger.debug('[Dashboard] Alertes gestations:', gestationAlerts.length)
 
         return {
           data: {
@@ -235,12 +304,7 @@ export default function DashboardScreen() {
       contentStyle={styles.scrollContent}
     >
       {/* Header */}
-      <MotiView
-        from={{ opacity: 0, translateY: -20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: 'timing', duration: 400 }}
-        style={styles.header}
-      >
+      <AnimatedHeader style={styles.header}>
         <View>
           <Text style={styles.greeting}>{getGreeting()}</Text>
           <Text style={styles.userName}>{userName}</Text>
@@ -254,7 +318,7 @@ export default function DashboardScreen() {
         >
           <Ionicons name="person" size={22} color={colors.primary[500]} />
         </Pressable>
-      </MotiView>
+      </AnimatedHeader>
 
       {/* Stats Grid */}
       <View style={styles.statsGrid}>
@@ -297,11 +361,7 @@ export default function DashboardScreen() {
 
       {/* Overdue Tasks - AlertCard warning */}
       {stats.overdueTasks > 0 && (
-        <MotiView
-          from={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'timing', duration: 400, delay: 350 }}
-        >
+        <AnimatedScaleFade delay={350}>
           <AlertCard
             level="warning"
             title="Taches en retard"
@@ -310,16 +370,12 @@ export default function DashboardScreen() {
             icon="time-outline"
             onPress={() => router.push('/(tabs)/plus/taches' as any)}
           />
-        </MotiView>
+        </AnimatedScaleFade>
       )}
 
       {/* Pending Tasks - AlertCard info */}
       {stats.pendingTasks > 0 && stats.overdueTasks === 0 && (
-        <MotiView
-          from={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'timing', duration: 400, delay: 400 }}
-        >
+        <AnimatedScaleFade delay={400}>
           <AlertCard
             level="info"
             title="Taches en attente"
@@ -328,7 +384,7 @@ export default function DashboardScreen() {
             icon="checkbox-outline"
             onPress={() => router.push('/(tabs)/plus/taches' as any)}
           />
-        </MotiView>
+        </AnimatedScaleFade>
       )}
 
       {/* Quick Actions */}
@@ -358,11 +414,7 @@ export default function DashboardScreen() {
         </View>
 
         {recentAnimals.length === 0 && !loading ? (
-          <MotiView
-            from={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={styles.emptyState}
-          >
+          <AnimatedFade style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
               <Ionicons name="paw" size={48} color={colors.gray[300]} />
             </View>
@@ -375,7 +427,7 @@ export default function DashboardScreen() {
               <Ionicons name="add" size={20} color="#FFF" />
               <Text style={styles.addButtonText}>Ajouter</Text>
             </Pressable>
-          </MotiView>
+          </AnimatedFade>
         ) : (
           recentAnimals.map((animal, index) => (
             <AnimalCard key={animal.id} animal={animal} index={index} />
@@ -412,11 +464,7 @@ function AnimalCard({ animal, index }: { animal: Animal; index: number }) {
   const statusLabel = statusLabels[animal.status] || animal.status
 
   return (
-    <MotiView
-      from={{ opacity: 0, translateX: -20 }}
-      animate={{ opacity: 1, translateX: 0 }}
-      transition={{ type: 'timing', duration: 300, delay: 450 + index * 50 }}
-    >
+    <AnimatedSlideLeft delay={450 + index * 50}>
       <Pressable
         style={({ pressed }) => [
           styles.animalCard,
@@ -444,7 +492,7 @@ function AnimalCard({ animal, index }: { animal: Animal; index: number }) {
           </Text>
         </View>
       </Pressable>
-    </MotiView>
+    </AnimatedSlideLeft>
   )
 }
 

@@ -1,9 +1,18 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, ActivityIndicator } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native'
 import { useRouter } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
-import { animalsService, mapCategoryToSex, type AnimalInsert } from '../../../services/animals'
+import { animalsService, mapUICategoryToDBCategory, type AnimalInsert } from '../../../services/animals'
 import { requestMediaLibraryPermission, requestCameraPermission } from '../../../lib/permissions'
+import { ScreenContainer, TextField, AnimalCategoryGrid, PrimaryButton, SecondaryButton, ScreenHeader, DatePicker } from '../../../components/ui'
+import { colors, spacing, typography, radius } from '../../../lib/designTokens'
+import { elevation } from '../../../lib/design/elevation'
+import { Wording } from '../../../lib/constants/wording'
+import { useToast } from '../../../hooks/useToast'
+import { useRefresh } from '../../../contexts/RefreshContext'
+import { Image as ImageIcon, Camera } from 'lucide-react-native'
+import { getTodayISO, toISODateString } from '../../../lib/dateUtils'
+import { logger } from '../../../lib/logger'
 
 export default function AddAnimalScreen() {
   const [formData, setFormData] = useState<{
@@ -23,14 +32,17 @@ export default function AddAnimalScreen() {
     breed: null,
     birth_date: null,
     weight: null,
-    status: 'active',
+    status: 'actif',
     notes: null,
     photo_url: null,
   })
+
   const [photo, setPhoto] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const router = useRouter()
+  const { toast, showError, showSuccess, hideToast } = useToast()
+  const { refreshAnimals } = useRefresh()
 
   const handlePickImage = async () => {
     const permission = await requestMediaLibraryPermission()
@@ -40,7 +52,7 @@ export default function AddAnimalScreen() {
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -61,8 +73,8 @@ export default function AddAnimalScreen() {
         reader.readAsDataURL(blob)
       }
     } catch (err) {
-      console.error('Error picking image:', err)
-      Alert.alert('Erreur', 'Impossible de charger la photo')
+      logger.error('Error picking image:', err)
+      showError('Impossible de charger la photo')
       setUploadingPhoto(false)
     }
   }
@@ -95,8 +107,8 @@ export default function AddAnimalScreen() {
         reader.readAsDataURL(blob)
       }
     } catch (err) {
-      console.error('Error taking photo:', err)
-      Alert.alert('Erreur', 'Impossible de prendre la photo')
+      logger.error('Error taking photo:', err)
+      showError('Impossible de prendre la photo')
       setUploadingPhoto(false)
     }
   }
@@ -107,74 +119,114 @@ export default function AddAnimalScreen() {
   }
 
   const handleSubmit = async () => {
-    if (!formData.tag_number) {
-      Alert.alert('Erreur', 'Le numéro d\'identification est obligatoire')
+    // Validation stricte
+    const trimmedTagNumber = formData.tag_number.trim()
+    if (!trimmedTagNumber || trimmedTagNumber.length === 0) {
+      showError('Le numéro d\'identification est obligatoire')
+      return
+    }
+
+    if (trimmedTagNumber.length > 50) {
+      showError('Le numéro d\'identification ne peut pas dépasser 50 caractères')
       return
     }
 
     if (!formData.category) {
-      Alert.alert('Erreur', 'La catégorie est obligatoire')
+      showError('La catégorie est obligatoire')
       return
+    }
+
+    // Validation du poids si fourni
+    if (formData.weight !== null && formData.weight !== undefined) {
+      if (isNaN(formData.weight) || formData.weight < 0 || formData.weight > 1000) {
+        showError('Le poids doit être un nombre entre 0 et 1000 kg')
+        return
+      }
     }
 
     setLoading(true)
     try {
-      // Mapper category vers sex et préparer weight_history
-      const sex = mapCategoryToSex(formData.category)
+      // Mapper category UI vers category DB (français)
+      const dbCategory = mapUICategoryToDBCategory(formData.category)
+
+      // Déterminer le sex basé sur la catégorie (DB n'accepte que male/female)
+      let sex: 'male' | 'female' = 'male' // Défaut
+      if (formData.category === 'sow') {
+        sex = 'female'
+      } else if (formData.category === 'boar') {
+        sex = 'male'
+      }
+      // Pour piglet et fattening, on garde 'male' par défaut
+
       const weightHistory = formData.weight
-        ? [{ date: new Date().toISOString().split('T')[0], weight: formData.weight }]
+        ? [{ date: getTodayISO(), weight: formData.weight }]
         : null
 
       // Créer l'objet AnimalInsert avec les bonnes colonnes
       const animalData: AnimalInsert = {
-        tag_number: formData.tag_number,
+        tag_number: trimmedTagNumber,
+        identifier: trimmedTagNumber, // Identifier = tag_number pour compatibilité
+        name: formData.name?.trim() || null,
         birth_date: formData.birth_date || null,
-        sex,
-        breed: formData.breed || null,
-        status: formData.status || 'active',
+        category: dbCategory,
+        sex: sex, // DB n'accepte que 'male' ou 'female'
+        gender: sex, // Même valeur que sex
+        breed: formData.breed?.trim() || null,
+        status: formData.status || 'actif',
+        weight_kg: formData.weight || null, // Ajouter weight_kg directement
         weight_history: weightHistory,
         photo_url: formData.photo_url || null,
-        notes: formData.notes || null,
+        notes: formData.notes?.trim() || null,
       }
 
       const { data, error } = await animalsService.create(animalData)
       if (error) {
-        console.error('Error creating animal:', error)
-        Alert.alert(
-          'Erreur',
-          error.message || 'Impossible d\'enregistrer l\'animal. Vérifiez votre connexion ou réessayez.'
-        )
+        logger.error('[AddAnimal] Error creating animal:', error)
+        
+        // Messages d'erreur plus explicites
+        let errorMessage = 'Impossible d\'enregistrer l\'animal.'
+        if (error.message) {
+          if (error.message.includes('duplicate') || error.message.includes('unique') || error.message.includes('violates unique')) {
+            errorMessage = 'Ce numéro d\'identification existe déjà. Veuillez en choisir un autre.'
+          } else if (error.message.includes('null value') || error.message.includes('NOT NULL')) {
+            errorMessage = 'Certaines informations obligatoires sont manquantes. Veuillez vérifier le formulaire.'
+          } else if (error.message.includes('permission') || error.message.includes('RLS') || error.message.includes('42501')) {
+            errorMessage = 'Erreur de permissions. Veuillez vous reconnecter.'
+          } else if (error.message.includes('check constraint') || error.message.includes('CHECK')) {
+            errorMessage = 'Une valeur saisie n\'est pas valide. Veuillez vérifier les données.'
+          } else {
+            errorMessage = error.message.length > 100 ? error.message.substring(0, 100) + '...' : error.message
+          }
+        }
+        
+        showError(errorMessage)
       } else {
-        Alert.alert('Succès', 'Animal ajouté avec succès', [
-          { text: 'OK', onPress: () => router.back() },
-        ])
+        showSuccess('Animal ajouté avec succès')
+        refreshAnimals()
+        setTimeout(() => router.back(), 1000)
       }
-    } catch (err: any) {
-      console.error('Uncaught error creating animal:', err)
-      Alert.alert(
-        'Erreur',
-        err?.message || 'Une erreur est survenue lors de l\'ajout de l\'animal. Vérifiez votre connexion ou réessayez.'
-      )
+    } catch (err: unknown) {
+      logger.error('Uncaught error creating animal:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'ajout de l\'animal.'
+      showError(errorMessage)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Ajouter un animal</Text>
-      </View>
+    <ScreenContainer scrollable>
+      <ScreenHeader title="Ajouter un animal" showBack onBack={() => router.back()} />
 
       <View style={styles.form}>
         {/* Photo */}
         <Text style={styles.label}>Photo de l'animal</Text>
         <View style={styles.photoSection}>
           {photo ? (
-            <View style={styles.photoPreview}>
-              <Image source={{ uri: photo }} style={styles.photoImage} />
+            <View style={styles.photoContainer}>
+              <Image source={{ uri: photo }} style={styles.photo} />
               <TouchableOpacity style={styles.removePhotoButton} onPress={removePhoto}>
-                <Text style={styles.removePhotoText}>×</Text>
+                <Text style={styles.removePhotoText}>✕</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -184,260 +236,178 @@ export default function AddAnimalScreen() {
             </View>
           )}
           <View style={styles.photoButtons}>
-            <TouchableOpacity
-              style={[styles.photoButton, uploadingPhoto && styles.photoButtonDisabled]}
+            <SecondaryButton
+              title="Galerie"
               onPress={handlePickImage}
-              disabled={uploadingPhoto}
-            >
-              <Text style={styles.photoButtonText}>📁 Galerie</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.photoButton, uploadingPhoto && styles.photoButtonDisabled]}
+              disabled={uploadingPhoto || loading}
+              loading={uploadingPhoto}
+              fullWidth={false}
+              style={styles.photoButton}
+              icon={<ImageIcon size={18} color={colors.primary} />}
+            />
+            <SecondaryButton
+              title="Prendre photo"
               onPress={handleTakePhoto}
-              disabled={uploadingPhoto}
-            >
-              <Text style={styles.photoButtonText}>📷 Prendre photo</Text>
-            </TouchableOpacity>
+              disabled={uploadingPhoto || loading}
+              loading={uploadingPhoto}
+              fullWidth={false}
+              style={styles.photoButton}
+              icon={<Camera size={18} color={colors.primary} />}
+            />
           </View>
         </View>
 
-        <Text style={styles.label}>Numéro d'identification *</Text>
-        <TextInput
-          style={styles.input}
+        <TextField
+          label="Numéro d'identification *"
           value={formData.tag_number}
           onChangeText={(text) => setFormData({ ...formData, tag_number: text })}
           placeholder="Ex: TRUIE-001"
+          maxLength={50}
         />
 
-        <Text style={styles.label}>Nom (optionnel)</Text>
-        <TextInput
-          style={styles.input}
+        <TextField
+          label="Nom (optionnel)"
           value={formData.name || ''}
-          onChangeText={(text) => setFormData({ ...formData, name: text || null })}
+          onChangeText={(text) => setFormData({ ...formData, name: text.trim() || null })}
           placeholder="Ex: Bella"
+          maxLength={100}
         />
 
-        <Text style={styles.label}>Catégorie *</Text>
-        <View style={styles.categoryContainer}>
-          {(['sow', 'boar', 'piglet', 'fattening'] as const).map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.categoryButton, formData.category === cat && styles.categoryButtonActive]}
-              onPress={() => setFormData({ ...formData, category: cat })}
-            >
-              <Text
-                style={[styles.categoryButtonText, formData.category === cat && styles.categoryButtonTextActive]}
-              >
-                {cat === 'sow' ? 'Truie' : cat === 'boar' ? 'Verrat' : cat === 'piglet' ? 'Porcelet' : 'Porc d\'engraissement'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <AnimalCategoryGrid
+          label="Catégorie *"
+          options={[
+            { label: Wording.categories.sow, value: 'sow' },
+            { label: Wording.categories.boar, value: 'boar' },
+            { label: Wording.categories.piglet, value: 'piglet' },
+            { label: Wording.categories.fattening, value: 'fattening' },
+          ]}
+          value={formData.category}
+          onChange={(value) => setFormData({ ...formData, category: value as typeof formData.category })}
+        />
 
-        <Text style={styles.label}>Race</Text>
-        <TextInput
-          style={styles.input}
+        <TextField
+          label="Race"
           value={formData.breed || ''}
-          onChangeText={(text) => setFormData({ ...formData, breed: text || null })}
+          onChangeText={(text) => setFormData({ ...formData, breed: text.trim() || null })}
           placeholder="Ex: Large White"
+          maxLength={100}
         />
 
-        <Text style={styles.label}>Date de naissance</Text>
-        <TextInput
-          style={styles.input}
-          value={formData.birth_date || ''}
-          onChangeText={(text) => setFormData({ ...formData, birth_date: text || null })}
-          placeholder="YYYY-MM-DD"
+        <DatePicker
+          label="Date de naissance"
+          value={formData.birth_date}
+          onChange={(date) => setFormData({ ...formData, birth_date: date ? toISODateString(date) : null })}
+          maximumDate={new Date()}
+          helperText="Sélectionnez la date de naissance de l'animal"
         />
 
-        <Text style={styles.label}>Poids (kg)</Text>
-        <TextInput
-          style={styles.input}
+        <TextField
+          label="Poids (kg)"
           value={formData.weight?.toString() || ''}
-          onChangeText={(text) =>
-            setFormData({ ...formData, weight: text ? parseFloat(text) : null })
-          }
-          keyboardType="numeric"
+          onChangeText={(text) => {
+            const trimmed = text.trim()
+            if (trimmed === '') {
+              setFormData({ ...formData, weight: null })
+            } else {
+              const num = parseFloat(trimmed)
+              if (!isNaN(num) && num >= 0 && num <= 1000) {
+                setFormData({ ...formData, weight: num })
+              }
+            }
+          }}
+          keyboardType="decimal-pad"
           placeholder="Ex: 150"
         />
 
-        <Text style={styles.label}>Notes</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
+        <TextField
+          label="Notes"
           value={formData.notes || ''}
-          onChangeText={(text) => setFormData({ ...formData, notes: text || null })}
+          onChangeText={(text) => setFormData({ ...formData, notes: text.trim() || null })}
           placeholder="Notes supplémentaires..."
           multiline
-          numberOfLines={3}
+          numberOfLines={4}
+          maxLength={500}
         />
 
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+        <PrimaryButton
+          title={loading ? 'Enregistrement...' : 'Enregistrer'}
           onPress={handleSubmit}
           disabled={loading}
-        >
-          <Text style={styles.submitButtonText}>
-            {loading ? 'Enregistrement...' : 'Enregistrer'}
-          </Text>
-        </TouchableOpacity>
+          loading={loading}
+          style={styles.submitButton}
+        />
       </View>
-    </ScrollView>
+    </ScreenContainer>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#f9fafb',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
   form: {
-    padding: 20,
+    padding: spacing.xl,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
+    fontSize: typography.fontSize.body,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.foreground,
+    marginBottom: spacing.sm,
   },
   photoSection: {
-    marginBottom: 16,
+    marginBottom: spacing.xl,
   },
-  photoPreview: {
+  photoContainer: {
+    position: 'relative',
     width: 120,
     height: 120,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     overflow: 'hidden',
-    marginBottom: 12,
-    position: 'relative',
-    borderWidth: 2,
-    borderColor: '#2d6a4f',
+    marginBottom: spacing.md,
+    ...elevation.sm,
   },
-  photoImage: {
+  photo: {
     width: '100%',
     height: '100%',
   },
   removePhotoButton: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   removePhotoText: {
-    color: '#fff',
-    fontSize: 14,
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: 'bold',
   },
   photoPlaceholder: {
     width: 120,
     height: 120,
-    borderRadius: 12,
-    backgroundColor: '#f3f4f6',
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    borderStyle: 'dashed',
+    borderRadius: radius.lg,
+    backgroundColor: colors.muted,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   photoPlaceholderText: {
-    fontSize: 32,
-    marginBottom: 4,
+    fontSize: 48,
+    marginBottom: spacing.xs,
   },
   photoPlaceholderLabel: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: typography.fontSize.small,
+    color: colors.textMuted,
   },
   photoButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.md,
   },
   photoButton: {
     flex: 1,
-    backgroundColor: '#2d6a4f',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  photoButtonDisabled: {
-    opacity: 0.5,
-  },
-  photoButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  categoryContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  categoryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
-  },
-  categoryButtonActive: {
-    backgroundColor: '#2d6a4f',
-    borderColor: '#2d6a4f',
-  },
-  categoryButtonText: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  categoryButtonTextActive: {
-    color: '#fff',
   },
   submitButton: {
-    backgroundColor: '#2d6a4f',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    marginTop: spacing.lg,
   },
 })

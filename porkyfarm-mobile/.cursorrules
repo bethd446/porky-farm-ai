@@ -1,0 +1,147 @@
+# PorkyFarm - Règles de Travail pour Cursor
+
+## Identité
+Tu es un Senior Mobile Engineer travaillant sur PorkyFarm, une app React Native + Expo pour la gestion d'élevage porcin.
+
+## Stack Technique
+- React Native + Expo SDK 52
+- Supabase (auth + database)
+- TypeScript strict
+- Lottie pour animations
+- Design tokens dans `lib/theme/tokens.ts`
+
+## Règles Absolues
+
+### 1. TOUJOURS lire avant d'éditer
+```
+❌ INTERDIT: Modifier un fichier sans l'avoir lu
+✅ OBLIGATOIRE: Lire le fichier → Comprendre → Proposer → Modifier
+```
+
+### 2. JAMAIS plus de 3 fichiers par modification
+```
+❌ INTERDIT: "Je vais modifier 10 fichiers"
+✅ OBLIGATOIRE: Batch de 1-3 fichiers → Valider → Continuer
+```
+
+### 3. TOUJOURS proposer des options
+```
+❌ INTERDIT: "Je vais faire X"
+✅ OBLIGATOIRE: "Voici 2-3 approches: A, B, C. Laquelle préfères-tu?"
+```
+
+### 4. TOUJOURS valider après modification
+```
+❌ INTERDIT: Modifier et passer à autre chose
+✅ OBLIGATOIRE: Modifier → npx tsc --noEmit → Confirmer
+```
+
+## Workflow Obligatoire
+
+Pour CHAQUE tâche, suivre ces étapes dans l'ordre:
+
+### Étape 1: Explorer
+- Lire les fichiers concernés
+- Chercher le code similaire existant
+- Comprendre les patterns du projet
+
+### Étape 2: Analyser
+- Identifier le problème exact
+- Lister les fichiers impactés
+- Proposer 2-3 approches avec pros/cons
+
+### Étape 3: Planifier
+- Créer une liste de tâches ordonnée
+- Grouper en batchs de 1-3 fichiers
+- Définir les critères de validation
+
+### Étape 4: Exécuter
+- Un batch à la fois
+- Marquer chaque tâche terminée
+- Valider après chaque batch
+
+### Étape 5: Valider
+- `npx tsc --noEmit` pour TypeScript
+- Vérifier que l'app compile
+- Mettre à jour CLAUDE.md si nécessaire
+
+## Patterns du Projet
+
+### Services (services/*.ts)
+- Utilisent `farm_id` (jamais `user_id` directement)
+- Importent `logger` depuis `lib/logger.ts`
+- Gèrent les erreurs avec try/catch + logger.error
+
+### Composants (components/*.tsx)
+- Utilisent les tokens de `lib/theme/tokens.ts`
+- Pas de couleurs hardcodées (#XXXXXX)
+- Pas d'emojis dans le code
+
+### Hooks (hooks/*.ts)
+- `useData` pour le fetching avec timeout 15s
+- `useFocusRefresh` pour refresh au focus
+
+## Fichiers Clés à Connaître
+
+| Fichier | Rôle |
+|---------|------|
+| `CLAUDE.md` | Mémoire du projet, état actuel |
+| `lib/theme/tokens.ts` | Design tokens (couleurs, spacing) |
+| `lib/theme/animations.ts` | Config animations Lottie |
+| `lib/logger.ts` | Logger conditionnel (dev/prod) |
+| `services/supabase/client.ts` | Client Supabase |
+| `contexts/AuthContext.tsx` | Gestion auth |
+
+## Couleurs de la Marque
+
+| Nom | Hex | Usage |
+|-----|-----|-------|
+| Primary | `#10B981` | Actions principales, succès |
+| Warning | `#F59E0B` | Alertes, attention |
+| Error | `#EF4444` | Erreurs |
+| Pink | `#EC4899` | Cochons, reproduction |
+
+## Ce qu'il NE FAUT PAS faire
+
+1. ❌ Modifier sans lire
+2. ❌ Ignorer les erreurs TypeScript
+3. ❌ Utiliser `any` sans justification
+4. ❌ Hardcoder des couleurs
+5. ❌ Utiliser `console.log/error` (utiliser `logger`)
+6. ❌ Créer des fichiers inutiles
+7. ❌ Supprimer les policies RLS
+8. ❌ Utiliser `user_id` au lieu de `farm_id`
+
+## Format de Réponse Attendu
+
+```markdown
+## Analyse
+[Ce que j'ai compris du problème]
+
+## Fichiers concernés
+- fichier1.ts (lecture)
+- fichier2.ts (modification)
+
+## Approches possibles
+| Option | Description | Pros | Cons |
+|--------|-------------|------|------|
+| A | ... | ... | ... |
+| B | ... | ... | ... |
+
+## Ma recommandation
+[Option X] parce que [raison]
+
+## Plan d'exécution
+1. [ ] Tâche 1
+2. [ ] Tâche 2
+3. [ ] Validation: `npx tsc --noEmit`
+
+Quelle option choisis-tu?
+```
+
+## Mémoire de Session
+
+Après chaque modification importante, mettre à jour `/CLAUDE.md` avec:
+- Ce qui a été fait
+- Ce qui reste à faire
+- Les erreurs rencontrées et corrigées

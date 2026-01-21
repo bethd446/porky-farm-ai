@@ -1,180 +1,196 @@
+/**
+ * TabsLayout - Navigation principale avec 5 onglets
+ * ==================================================
+ * Accueil | Cheptel | + | Aliment | Plus
+ */
+
 import { Tabs, Redirect } from 'expo-router'
-import { TouchableOpacity, StyleSheet } from 'react-native'
+import { TouchableOpacity, StyleSheet, View, Platform } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuthContext } from '../../contexts/AuthContext'
-import { colors, spacing, typography } from '../../lib/designTokens'
-import { Home, PiggyBank, Plus, FileText, Brain } from 'lucide-react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
 import { ActionsModal } from '../../components/ActionsModal'
+import { LinearGradient } from 'expo-linear-gradient'
 
-function TabIcon({ name, color, focused }: { name: string; color: string; focused: boolean }) {
-  const iconSize = 24
-  const iconColor = focused ? colors.primary : color
-
-  switch (name) {
-    case 'index':
-      return <Home size={iconSize} color={iconColor} />
-    case 'livestock':
-      return <PiggyBank size={iconSize} color={iconColor} />
-    case 'add':
-      return <Plus size={iconSize} color={iconColor} />
-    case 'reports':
-      return <FileText size={iconSize} color={iconColor} />
-    case 'ai-assistant':
-      return <Brain size={iconSize} color={iconColor} />
-    default:
-      return null
-  }
+// Composant FAB central avec gradient
+function FABButton({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.85}
+      style={styles.fabWrapper}
+    >
+      <LinearGradient
+        colors={['#10B981', '#059669']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.fabGradient}
+      >
+        <Ionicons name="add" size={32} color="#FFFFFF" />
+      </LinearGradient>
+    </TouchableOpacity>
+  )
 }
 
 export default function TabsLayout() {
   const { user } = useAuthContext()
   const [actionsModalVisible, setActionsModalVisible] = useState(false)
+  const insets = useSafeAreaInsets()
 
   if (!user) {
     return <Redirect href="/(auth)/login" />
   }
+
+  const tabBarHeight = 65 + Math.max(insets.bottom, 8)
 
   return (
     <>
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.mutedForeground,
+          tabBarActiveTintColor: '#10B981',
+          tabBarInactiveTintColor: '#9CA3AF',
           tabBarStyle: {
-            backgroundColor: colors.card,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
-            height: 60,
-            paddingBottom: spacing.sm,
-            paddingTop: spacing.sm,
+            backgroundColor: '#FFFFFF',
+            borderTopWidth: 0,
+            height: tabBarHeight,
+            paddingBottom: Math.max(insets.bottom, 8),
+            paddingTop: 8,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.06,
+                shadowRadius: 12,
+              },
+              android: {
+                elevation: 8,
+              },
+            }),
           },
           tabBarLabelStyle: {
-            fontSize: typography.fontSize.caption,
-            fontWeight: typography.fontWeight.medium,
+            fontSize: 11,
+            fontWeight: '600',
+            marginTop: 2,
+          },
+          tabBarIconStyle: {
+            marginTop: 4,
           },
         }}
       >
+        {/* ========== ONGLETS VISIBLES ========== */}
+
+        {/* 1. Accueil */}
         <Tabs.Screen
           name="index"
           options={{
             title: 'Accueil',
-            tabBarIcon: ({ color, focused }) => <TabIcon name="index" color={color} focused={focused} />,
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'home' : 'home-outline'}
+                size={24}
+                color={color}
+              />
+            ),
           }}
         />
+
+        {/* 2. Cheptel */}
         <Tabs.Screen
           name="livestock/index"
           options={{
-            title: 'Animaux',
-            tabBarIcon: ({ color, focused }) => <TabIcon name="livestock" color={color} focused={focused} />,
+            title: 'Cheptel',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'paw' : 'paw-outline'}
+                size={24}
+                color={color}
+              />
+            ),
           }}
         />
+
+        {/* 3. FAB Central (+) */}
         <Tabs.Screen
           name="livestock/add"
           options={{
             title: '',
-            tabBarIcon: ({ color, focused }) => <TabIcon name="add" color={color} focused={focused} />,
-            tabBarButton: (props) => {
-              const { delayLongPress, ...restProps } = props
-              return (
-                <TouchableOpacity
-                  {...restProps}
-                  style={[styles.fabButton, restProps.style]}
-                  onPress={() => setActionsModalVisible(true)}
-                >
-                  <Plus size={28} color="#fff" />
-                </TouchableOpacity>
-              )
-            },
+            tabBarLabel: () => null,
+            tabBarIcon: () => null,
+            tabBarButton: () => (
+              <View style={styles.fabContainer}>
+                <FABButton onPress={() => setActionsModalVisible(true)} />
+              </View>
+            ),
           }}
         />
+
+        {/* 4. Alimentation (dossier avec _layout.tsx = navigateur imbriqué) */}
         <Tabs.Screen
-          name="reports/index"
+          name="alimentation"
           options={{
-            title: 'Rapports',
-            tabBarIcon: ({ color, focused }) => <TabIcon name="reports" color={color} focused={focused} />,
+            title: 'Aliment',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'leaf' : 'leaf-outline'}
+                size={24}
+                color={color}
+              />
+            ),
           }}
         />
+
+        {/* 5. Plus (Menu) */}
         <Tabs.Screen
-          name="ai-assistant"
+          name="plus/index"
           options={{
-            title: 'Assistant IA',
-            tabBarIcon: ({ color, focused }) => <TabIcon name="ai-assistant" color={color} focused={focused} />,
+            title: 'Plus',
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? 'grid' : 'grid-outline'}
+                size={24}
+                color={color}
+              />
+            ),
           }}
         />
-        {/* Cacher les autres routes du tab bar */}
-        <Tabs.Screen
-          name="livestock/[id]"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="health/index"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="health/add"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="health/[id]"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="reproduction/index"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="reproduction/add"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="reproduction/[id]"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="feeding/index"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="feeding/add-stock"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="costs/index"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="costs/add"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="costs/[id]"
-          options={{
-            href: null,
-          }}
-        />
+
+        {/* ========== ROUTES CACHÉES (avec header) ========== */}
+
+        {/* Livestock - Detail avec header pour edit/delete */}
+        <Tabs.Screen name="livestock/[id]" options={{ href: null, headerShown: true }} />
+
+        {/* Health */}
+        <Tabs.Screen name="health/index" options={{ href: null, headerShown: true }} />
+        <Tabs.Screen name="health/add" options={{ href: null, headerShown: true }} />
+        <Tabs.Screen name="health/[id]" options={{ href: null, headerShown: true }} />
+
+        {/* Reproduction */}
+        <Tabs.Screen name="reproduction/index" options={{ href: null, headerShown: true }} />
+        <Tabs.Screen name="reproduction/add" options={{ href: null, headerShown: true }} />
+        <Tabs.Screen name="reproduction/[id]" options={{ href: null, headerShown: true }} />
+
+        {/* Feeding (legacy) */}
+        <Tabs.Screen name="feeding/index" options={{ href: null, headerShown: true }} />
+        <Tabs.Screen name="feeding/add-stock" options={{ href: null, headerShown: true }} />
+        <Tabs.Screen name="feeding/formulate" options={{ href: null, headerShown: true }} />
+
+        {/* Note: Les sous-routes alimentation sont gérées par alimentation/_layout.tsx */}
+
+        {/* Costs */}
+        <Tabs.Screen name="costs/index" options={{ href: null, headerShown: true }} />
+        <Tabs.Screen name="costs/add" options={{ href: null, headerShown: true }} />
+        <Tabs.Screen name="costs/[id]" options={{ href: null, headerShown: true }} />
+
+        {/* Reports */}
+        <Tabs.Screen name="reports/index" options={{ href: null, headerShown: true }} />
+
+        {/* Plus (sous-routes) */}
+        <Tabs.Screen name="plus/taches" options={{ href: null, headerShown: true }} />
+
+        {/* IA - Masqué (ancienne route) */}
+        <Tabs.Screen name="ai-assistant" options={{ href: null }} />
       </Tabs>
 
       <ActionsModal visible={actionsModalVisible} onClose={() => setActionsModalVisible(false)} />
@@ -183,18 +199,30 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  fabButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
+  fabContainer: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    justifyContent: 'flex-start',
+    marginTop: -24,
+  },
+  fabWrapper: {
+    ...Platform.select({
+      ios: {
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  fabGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 })
